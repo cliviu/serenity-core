@@ -267,6 +267,15 @@ subprojects {
 
         }
         testCompile "org.assertj:assertj-core:${assertjVersion}"
+        //junit5
+        testCompile "org.junit.platform:junit-platform-runner:${junitPlatformVersion}"
+        testCompile "org.junit.platform:junit-platform-engine:${junitPlatformVersion}"
+        testCompile "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+        testCompile "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+        testCompile "org.junit.vintage:junit-vintage-engine:${junitVintageEngine}"
+        testCompile "org.junit.jupiter:junit-jupiter-migration-support:${junitJupiterMigrationSupport}"
+
+
     }
 
     configurations.all {

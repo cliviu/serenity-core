@@ -11,6 +11,12 @@ dependencies {
     compile project(':serenity-core')
     compile "junit:junit:${junitVersion}"
     compile "org.hamcrest:hamcrest-core:${hamcrestVersion}"
+    //junit5
+    compile "org.junit.platform:junit-platform-runner:${junitPlatformVersion}"
+    compile "org.junit.platform:junit-platform-engine:${junitPlatformVersion}"
+    compile "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+    compile "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+    compile "org.junit.vintage:junit-vintage-engine:${junitVintageEngine}"
 
     testCompile project(':serenity-test-utils')
     testCompile "commons-dbcp:commons-dbcp:1.3"
