@@ -137,12 +137,28 @@ public class SerenityExtension implements TestInstancePostProcessor, BeforeAllCa
 
     @Override
     public void beforeTestExecution(ExtensionContext extensionContext)  {
+        prepareTestBeforeExecution(extensionContext);
         stepEventBus().clear();
         stepEventBus().setTestSource(StepEventBus.TEST_SOURCE_JUNIT);
         stepEventBus().testStarted(
                 Optional.ofNullable(extensionContext.getDisplayName()).orElse("Initialisation"),
                 extensionContext.getRequiredTestClass());
     }
+
+    private void prepareTestBeforeExecution(ExtensionContext extensionContext) {
+
+        Object testObject = extensionContext.getTestInstance().get();
+        if (webtestsAreSupported(extensionContext.getRequiredTestClass())) {
+            injectDriverInto(testObject);
+            initPagesObjectUsing(driverFor(extensionContext.getTestMethod().get()));
+            injectAnnotatedPagesObjectInto(testObject);
+            initStepFactoryUsing(getPages());
+        }
+        injectScenarioStepsInto(testObject);
+        injectEnvironmentVariablesInto(testObject);
+        useStepFactoryForDataDrivenSteps();
+    }
+
 
     @Override
     public void afterTestExecution(ExtensionContext extensionContext) throws Exception {
@@ -282,7 +298,7 @@ public class SerenityExtension implements TestInstancePostProcessor, BeforeAllCa
     public void handleTestExecutionException(ExtensionContext extensionContext, Throwable throwable) throws Throwable {
         System.out.println("HandleTestExecutionException ");
         stepEventBus().testFailed(throwable);
-        throwable.printStackTrace();
+        throw throwable;
     }
 
     StepEventBus stepEventBus() {
