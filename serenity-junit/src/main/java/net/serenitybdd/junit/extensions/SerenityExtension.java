@@ -140,9 +140,17 @@ public class SerenityExtension implements TestInstancePostProcessor, BeforeAllCa
         prepareTestBeforeExecution(extensionContext);
         stepEventBus().clear();
         stepEventBus().setTestSource(StepEventBus.TEST_SOURCE_JUNIT);
+        String displayName = removeEndBracketsFromDisplayName(extensionContext.getDisplayName());
         stepEventBus().testStarted(
-                Optional.ofNullable(extensionContext.getDisplayName()).orElse("Initialisation"),
+                Optional.ofNullable(displayName).orElse("Initialisation"),
                 extensionContext.getRequiredTestClass());
+    }
+
+    private String removeEndBracketsFromDisplayName(String displayName){
+        if(displayName != null && displayName.endsWith("()")) {
+            displayName = displayName.substring(0,displayName.length()-2);
+        }
+        return displayName;
     }
 
     private void prepareTestBeforeExecution(ExtensionContext extensionContext) {
