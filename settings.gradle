@@ -20,4 +20,6 @@ include 'serenity-test-utils',
         'serenity-assertions',
         'serenity-ensure',
         'serenity-assertions',
-        'serenity-reports-configuration'
+        'serenity-reports-configuration',
+        'serenity-testng'
+
