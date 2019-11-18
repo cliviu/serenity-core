@@ -1,18 +1,27 @@
 package net.serenitybdd.testng;
 
+import net.thucydides.core.steps.StepEventBus;
 import org.testng.*;
 
-public class SerenityTestNGExecutionListener implements IExecutionListener,ISuiteListener,ITestListener {
+public class SerenityTestNGExecutionListener extends TestListenerAdapter implements IExecutionListener,ISuiteListener,ITestListener {
+
+
+    public SerenityTestNGExecutionListener(){
+        
+    }
+
 
     @Override
     public void onStart(ISuite suite) {
-        System.out.println("Starting");
+        System.out.println("Starting Suite");
+        //StepEventBus.getEventBus().testSuiteStarted();
     }
 
 
     @Override
     public void onFinish(ISuite suite) {
-        System.out.println("Finishing");
+        System.out.println("Finishing Suite");
+        StepEventBus.getEventBus().testSuiteFinished();
     }
 
 
@@ -28,7 +37,7 @@ public class SerenityTestNGExecutionListener implements IExecutionListener,ISuit
 
     @Override
     public void onTestStart(ITestResult result) {
-
+        StepEventBus.getEventBus().testStarted(result.getTestName(),result.getTestClass().getRealClass());
     }
 
     @Override
