@@ -1,12 +1,16 @@
 package net.serenitybdd.testng;
 
+import net.thucydides.core.model.Story;
+import net.thucydides.core.steps.BaseStepListener;
+import net.thucydides.core.steps.Listeners;
 import net.thucydides.core.steps.StepEventBus;
 import org.testng.*;
 
 public class SerenityTestNGExecutionListener extends TestListenerAdapter implements IExecutionListener,ISuiteListener,ITestListener {
 
 
-    public SerenityTestNGExecutionListener(){
+    public SerenityTestNGExecutionListener() {
+       // BaseStepListener baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(outputDirectory);
         
     }
 
@@ -14,7 +18,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void onStart(ISuite suite) {
         System.out.println("Starting Suite");
-        //StepEventBus.getEventBus().testSuiteStarted();
+        StepEventBus.getEventBus().testSuiteStarted(Story.called(suite.getName()));
     }
 
 
