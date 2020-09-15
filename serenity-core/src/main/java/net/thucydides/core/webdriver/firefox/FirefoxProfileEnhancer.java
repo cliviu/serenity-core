@@ -3,12 +3,9 @@ package net.thucydides.core.webdriver.firefox;
 import com.google.common.base.Splitter;
 import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.util.EnvironmentVariables;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.openqa.selenium.firefox.FirefoxProfile;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -25,7 +22,8 @@ public class FirefoxProfileEnhancer {
     }
 
     public void configureJavaSupport(FirefoxProfile profile) {
-        boolean enableJava = environmentVariables.getPropertyAsBoolean(ThucydidesSystemProperty.SECURITY_ENABLE_JAVA, false);
+//        boolean enableJava = environmentVariables.getPropertyAsBoolean(ThucydidesSystemProperty.SECURITY_ENABLE_JAVA, false);
+        boolean enableJava = ThucydidesSystemProperty.SECURITY_ENABLE_JAVA.booleanFrom(environmentVariables, false);
         profile.setPreference("security.enable_java", enableJava);
     }
 
@@ -60,8 +58,8 @@ public class FirefoxProfileEnhancer {
     }
 
     public void addPreferences(FirefoxProfile profile) {
-        String preferences = environmentVariables.getProperty(ThucydidesSystemProperty.FIREFOX_PREFERENCES);
-        String driverOptions = environmentVariables.getProperty(ThucydidesSystemProperty.DRIVER_OPTIONS);
+        String preferences = ThucydidesSystemProperty.FIREFOX_PREFERENCES.from(environmentVariables);
+        String driverOptions = ThucydidesSystemProperty.DRIVER_OPTIONS.from(environmentVariables);
 
         applyPreferences(profile, preferences);
         applyPreferences(profile, driverOptions);

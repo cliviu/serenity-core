@@ -7,8 +7,8 @@ import net.thucydides.core.reports.html.ReportNameProvider
 import net.thucydides.core.requirements.model.Example
 import net.thucydides.core.requirements.model.Requirement
 import net.thucydides.core.requirements.reports.MultipleSourceRequirmentsOutcomeFactory
-import net.thucydides.core.requirements.reports.RequirementsOutcomes
 import net.thucydides.core.requirements.reports.RequirementsOutcomeFactory
+import net.thucydides.core.requirements.reports.RequirementsOutcomes
 import net.thucydides.core.util.MockEnvironmentVariables
 import spock.lang.Specification
 
@@ -32,6 +32,7 @@ class WhenCreatingARequirement extends Specification {
                                          .withType("capability")
                                          .withNarrative("as a someone I want something so that something else")
        then: "we should have a correctly instantiated requirement"
+           requirement != null
     }
 
     def "should report no test results for requirements without associated tests"() {

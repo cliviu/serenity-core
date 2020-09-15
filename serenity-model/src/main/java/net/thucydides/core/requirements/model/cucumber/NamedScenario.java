@@ -1,12 +1,13 @@
 package net.thucydides.core.requirements.model.cucumber;
 
-import gherkin.ast.Feature;
-import gherkin.ast.ScenarioDefinition;
+
+import io.cucumber.messages.Messages.GherkinDocument.Feature;
+import io.cucumber.messages.Messages.GherkinDocument.Feature.Scenario;
 
 import java.util.Optional;
 
 public abstract class NamedScenario {
-    public static NamedScenario forScenarioDefinition(Feature feature, ScenarioDefinition scenarioDefinition) {
+    public static NamedScenario forScenarioDefinition(Feature feature, Scenario scenarioDefinition) {
         return new IdentifiedScenario(feature, scenarioDefinition);
     }
 
@@ -15,20 +16,17 @@ public abstract class NamedScenario {
 
     /**
      * Return the Given..When..Then part of the scenario
-     * @return
      */
     public abstract Optional<String> asGivenWhenThen(ScenarioDisplayOption displayOption);
     public abstract Optional<String> asGivenWhenThen();
 
     /**
      * Return the example table part of the scenario outline
-     * @return
      */
     public abstract Optional<String> asExampleTable();
 
     /**
      * Return the example table part of the scenario outline
-     * @return
      */
     public abstract Optional<String> asExampleTable(ScenarioDisplayOption displayOption);
 

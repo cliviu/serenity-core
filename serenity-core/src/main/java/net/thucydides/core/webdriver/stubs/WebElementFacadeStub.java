@@ -1,74 +1,40 @@
 package net.thucydides.core.webdriver.stubs;
 
-import com.google.gson.Gson;
-import net.serenitybdd.core.pages.WebElementFacade;
-import net.serenitybdd.core.pages.WebElementState;
-import net.serenitybdd.core.time.InternalSystemClock;
-import net.thucydides.core.webdriver.javascript.JavascriptExecutorFacade;
+import net.serenitybdd.core.pages.*;
 import org.openqa.selenium.*;
-import org.openqa.selenium.interactions.internal.Coordinates;
+import org.openqa.selenium.interactions.Coordinates;
 import org.openqa.selenium.support.ui.Wait;
 
-import java.lang.reflect.Type;
 import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public class WebElementFacadeStub implements WebElementFacade {
 
-    protected WebElement getElement() {
+    public WebElement getElement() {
         return this;
     }
 
-    protected JavascriptExecutorFacade getJavascriptExecutorFacade() {
-        return new JavascriptExecutorFacade() {
-
-            @Override
-            protected Gson getGson() {
-                return null;
-            }
-
-            @Override
-            public void registerTypeAdapter(Type type, Object typeAdapter) {
-            }
-
-            @Override
-            public Object executeScript(String script) {
-                return null;
-            }
-
-            @Override
-            public Object executeScript(String script, Object... params) {
-                return null;
-            }
-
-            @Override
-            public <T> T deserializeScriptResultAs(Class<T> classOfT, String script, Map<String, Object> injectedFields, Object... params) throws IllegalAccessException {
-                return null;
-            }
-
-            @Override
-            public <T> T deserializeScriptResultAs(Class<T> classOfT, String script, Object... params) throws IllegalAccessException {
-                return null;
-            }
-
-            @Override
-            public <T> List<T> deserializeScriptResultAsListOf(String script, Object... params) {
-                return null;
-            }
-        };
-    }
-
-    protected InternalSystemClock getClock() {
-        return new InternalSystemClock();
-    }
-
-
     @Override
     public WebElementFacade then(String xpathOrCssSelector) {
+        return this;
+    }
+
+    @Override
+    public WebElementFacade thenFind(String xpathOrCssSelector) {
+        return this;
+    }
+
+    @Override
+    public WebElementFacade thenFind(String xpathOrCssSelector, Object... arguments) {
+        return this;
+    }
+
+    @Override
+    public WebElementFacade then(String xpathOrCssSelector, Object... arguments) {
         return this;
     }
 
@@ -80,8 +46,18 @@ public class WebElementFacadeStub implements WebElementFacade {
 
 
     @Override
-    public List<WebElementFacade> thenFindAll(String xpathOrCssSelector) {
-        return new ArrayList<>();
+    public WebElementFacade findBy(String xpathOrCssSelector, Object... arguments) {
+        return this;
+    }
+
+    @Override
+    public ListOfWebElementFacades thenFindAll(String xpathOrCssSelector) {
+        return new ListOfWebElementFacades(new ArrayList<>());
+    }
+
+    @Override
+    public ListOfWebElementFacades thenFindAll(String xpathOrCssSelector, Object... arguments) {
+        return new ListOfWebElementFacades(new ArrayList<>());
     }
 
     private List<WebElementFacade> webElementFacadesFrom(List<WebElement> nestedElements) {
@@ -109,8 +85,8 @@ public class WebElementFacadeStub implements WebElementFacade {
     }
 
     @Override
-    public List<WebElementFacade> thenFindAll(By selector) {
-        return new ArrayList<>();
+    public ListOfWebElementFacades thenFindAll(By selector) {
+        return new ListOfWebElementFacades(new ArrayList<>());
     }
 
     @Override
@@ -120,6 +96,16 @@ public class WebElementFacadeStub implements WebElementFacade {
 
     @Override
     public WebElementFacade withTimeoutOf(int timeout, TimeUnit unit) {
+        return this;
+    }
+
+    @Override
+    public WebElementFacade withTimeoutOf(int timeout, TemporalUnit unit) {
+        return this;
+    }
+
+    @Override
+    public WebElementFacade withTimeoutOf(Duration duration) {
         return this;
     }
 
@@ -288,10 +274,10 @@ public class WebElementFacadeStub implements WebElementFacade {
     /**
      * Type a value into a field, making sure that the field is empty first.
      *
-     * @param value
+     * @param keysToSend
      */
     @Override
-    public WebElementFacade type(final String value) {
+    public WebElementFacade type(CharSequence... keysToSend) {
         return this;
     }
 
@@ -318,6 +304,16 @@ public class WebElementFacadeStub implements WebElementFacade {
 
     @Override
     public void setWindowFocus() {
+    }
+
+    @Override
+    public FluentDropdownSelect select() {
+        return new FluentDropdownSelect(new WebElementFacadeStub());
+    }
+
+    @Override
+    public FluentDropdownDeselect deselect() {
+        return new FluentDropdownDeselect(new WebElementFacadeStub());
     }
 
     @Override
@@ -427,6 +423,16 @@ public class WebElementFacadeStub implements WebElementFacade {
     }
 
     @Override
+    public String getTextContent() {
+        return "";
+    }
+
+    @Override
+    public boolean isDisabled() {
+        return false;
+    }
+
+    @Override
     public WebElementFacade waitUntilClickable() {
         return null;
     }
@@ -451,6 +457,11 @@ public class WebElementFacadeStub implements WebElementFacade {
         return this;
     }
 
+    @Override
+    public boolean isClickable() {
+        return false;
+    }
+
     protected WebElementState expectingErrorMessage(String errorMessage) {
         return this;
     }
@@ -459,8 +470,10 @@ public class WebElementFacadeStub implements WebElementFacade {
      * Wait for an element to be visible and enabled, and then click on it.
      */
     @Override
-    public void click() {
-    }
+    public void click() {}
+
+    @Override
+    public void click(ClickStrategy clickStrategy) {}
 
     @Override
     public void clear() {
@@ -520,7 +533,7 @@ public class WebElementFacadeStub implements WebElementFacade {
     }
 
     public WebElement getWrappedElement() {
-        return this;
+        return new WrappedElementStub();
     }
 
     @Override
@@ -567,16 +580,6 @@ public class WebElementFacadeStub implements WebElementFacade {
 
     @Override
     public List<WebElement> findElementsByAndroidUIAutomator(String using) {
-        return new ArrayList<>();
-    }
-
-    @Override
-    public WebElement findElementByIosUIAutomation(String using) {
-        return this;
-    }
-
-    @Override
-    public List<WebElement> findElementsByIosUIAutomation(String using) {
         return new ArrayList<>();
     }
 

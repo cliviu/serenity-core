@@ -1,9 +1,10 @@
 package net.thucydides.core.model;
 
-import net.serenitybdd.core.environment.*;
-import net.thucydides.core.*;
-import net.thucydides.core.digest.*;
-import net.thucydides.core.util.*;
+import net.serenitybdd.core.environment.ConfiguredEnvironment;
+import net.thucydides.core.digest.Digest;
+import net.thucydides.core.util.NameConverter;
+
+import static net.thucydides.core.ThucydidesSystemProperty.SERENITY_COMPRESS_FILENAMES;
 
 /**
  * Determies the correct default name for test reports.
@@ -22,8 +23,10 @@ public class ReportNamer {
 
     private ReportNamer(final ReportType type) {
         this(type,
-             ConfiguredEnvironment.getEnvironmentVariables()
-                     .getPropertyAsBoolean(ThucydidesSystemProperty.SERENITY_COMPRESS_FILENAMES.getPropertyName(), true));
+                SERENITY_COMPRESS_FILENAMES.booleanFrom(ConfiguredEnvironment.getEnvironmentVariables(), true)
+//             ConfiguredEnvironment.getEnvironmentVariables()
+//                     .getPropertyAsBoolean(ThucydidesSystemProperty.SERENITY_COMPRESS_FILENAMES.getPropertyName(), true)
+        );
     }
 
     public ReportNamer(ReportType type, boolean compressedFilename) {

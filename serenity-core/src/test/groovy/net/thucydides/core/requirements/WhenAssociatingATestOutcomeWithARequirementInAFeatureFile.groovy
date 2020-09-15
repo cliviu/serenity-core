@@ -21,7 +21,7 @@ class WhenAssociatingATestOutcomeWithARequirementInAFeatureFile extends Specific
             def testOutcome = TestOutcome.forTestInStory("someTest", Story.withIdAndPath("PlantPotatoes","Plant potatoes","grow_potatoes/grow_new_potatoes/PlantPotatoes.story"))
         then:
             capabilityProvider.getParentRequirementOf(testOutcome).isPresent()
-            capabilityProvider.getParentRequirementOf(testOutcome).get().name == "Plant potatoes"
+            capabilityProvider.getParentRequirementOf(testOutcome).get().name == "Plant Potatoes"
     }
 
     def "Should find the direct parent requirement of a test outcome related to a feature file without a path"() {
@@ -31,10 +31,11 @@ class WhenAssociatingATestOutcomeWithARequirementInAFeatureFile extends Specific
         and: "We define the root package in the 'thucydides.test.root' property"
             vars.setProperty("thucydides.test.root","net.thucydides.core.requirements.stories")
         when: "We load requirements with nested capability directories and no .narrative files"
-        def testOutcome = TestOutcome.forTestInStory("someTest", Story.withIdAndPath("PlantPotatoes","Plant potatoes","PlantPotatoes.story"))
+        def testOutcome = TestOutcome.forTestInStory("someTest",
+                                                      Story.withIdAndPath("PlantPotatoes","Plant potatoes","PlantPotatoes.story"))
         then:
             capabilityProvider.getParentRequirementOf(testOutcome).isPresent()
-            capabilityProvider.getParentRequirementOf(testOutcome).get().name == "Plant potatoes"
+            capabilityProvider.getParentRequirementOf(testOutcome).get().name == "Plant Potatoes"
     }
 
     def "Should find the requirement for a given tag"() {
@@ -79,7 +80,7 @@ class WhenAssociatingATestOutcomeWithARequirementInAFeatureFile extends Specific
             def growPotatoesTag = TestTag.withName("Grow pink and purple potatoes").andType("capability")
         then:
             Optional<Requirement> requirement = capabilityProvider.getRequirementFor(growPotatoesTag)
-            requirement.empty()
+            !requirement.isPresent()
     }
 }
 

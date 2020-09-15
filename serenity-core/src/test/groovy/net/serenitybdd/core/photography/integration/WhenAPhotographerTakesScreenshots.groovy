@@ -1,5 +1,6 @@
 package net.serenitybdd.core.photography.integration
 
+import com.assertthat.selenium_shutterbug.utils.web.ScrollStrategy
 import net.serenitybdd.core.photography.Darkroom
 import net.serenitybdd.core.photography.Photographer
 import net.serenitybdd.core.photography.ScreenshotPhoto
@@ -10,6 +11,7 @@ import org.apache.commons.io.FileUtils
 import org.openqa.selenium.Dimension
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
+import org.openqa.selenium.chrome.ChromeOptions
 import spock.lang.Ignore
 import spock.lang.Specification
 
@@ -25,20 +27,32 @@ class WhenAPhotographerTakesScreenshots extends Specification {
 
     def "when a photographer takes a screenshot the photographer returns the future path of the screenshot"() {
         given:
-            def photographer = new Photographer(darkroom);
+            def photographer = new Photographer(darkroom,ScrollStrategy.VIEWPORT_ONLY)
         when:
             ScreenshotPhoto photo = photographer.takesAScreenshot()
                                                 .with(driver)
                                                 .andSaveToDirectory(screenshotDirectory);
         then:
-            darkroom.waitUntilClose();
+            darkroom.waitUntilClose()
             photo.getPathToScreenshot().startsWith(screenshotDirectory)
+    }
+
+    def "a screenshot of the whole page can also be taken."() {
+        given:
+        def photographer = new Photographer(darkroom,ScrollStrategy.WHOLE_PAGE)
+        when:
+        ScreenshotPhoto photo = photographer.takesAScreenshot()
+                .with(driver)
+                .andSaveToDirectory(screenshotDirectory);
+        then:
+        darkroom.waitUntilClose()
+        photo.getPathToScreenshot().startsWith(screenshotDirectory)
     }
 
     @Ignore("Unstable on SnapCI")
     def "when a photographer takes a screenshot the screenshot should be stored after processing"() {
         given:
-        def photographer = new Photographer(darkroom);
+        def photographer = new Photographer(darkroom,ScrollStrategy.VIEWPORT_ONLY);
         when:
             ScreenshotPhoto photo = photographer.takesAScreenshot()
                     .with(driver)
@@ -50,7 +64,7 @@ class WhenAPhotographerTakesScreenshots extends Specification {
 
     def "a screenshot that has already been stored should not be stored again"() {
         given:
-        def photographer = new Photographer(darkroom);
+        def photographer = new Photographer(darkroom,ScrollStrategy.VIEWPORT_ONLY);
             ScreenshotPhoto previousPhoto = photographer.takesAScreenshot()
                                                          .with(driver)
                                                          .andSaveToDirectory(screenshotDirectory);
@@ -66,7 +80,7 @@ class WhenAPhotographerTakesScreenshots extends Specification {
 
     def "a screenshot that is already the correct dimensions should not be resized"() {
         given:
-        def photographer = new Photographer(darkroom);
+        def photographer = new Photographer(darkroom,ScrollStrategy.VIEWPORT_ONLY);
             driver.manage().window().setSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT))
 
         when:
@@ -81,7 +95,7 @@ class WhenAPhotographerTakesScreenshots extends Specification {
     @BlurScreenshots(BlurLevel.HEAVY)
     def "blurred screenshots should be blurred"() {
         given:
-            def photographer = new Photographer(darkroom);
+            def photographer = new Photographer(darkroom,ScrollStrategy.VIEWPORT_ONLY);
             driver.manage().window().setSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT))
 
         when:
@@ -96,7 +110,7 @@ class WhenAPhotographerTakesScreenshots extends Specification {
 
     def "unblurred screenshots should not be blurred"() {
         given:
-        def photographer = new Photographer(darkroom);
+        def photographer = new Photographer(darkroom, ScrollStrategy.VIEWPORT_ONLY);
             driver.manage().window().setSize(new Dimension(DEFAULT_WIDTH, DEFAULT_HEIGHT))
 
         when:
@@ -116,7 +130,9 @@ class WhenAPhotographerTakesScreenshots extends Specification {
 
     def setup() {
         screenshotDirectory =  Files.createTempDirectory("screenshots");//Files.createDirectories(Paths.get("./build/screenshots"));// Files.createTempDirectory("screenshots")
-        driver = new ChromeDriver()
+        ChromeOptions chromeOptions = new ChromeOptions();
+        chromeOptions.addArguments("--headless");
+        driver = new ChromeDriver(chromeOptions)
         driver.get(siteFromUrlAt("/static-site/unchanging-page.html"))
         startTime = System.currentTimeMillis()
 

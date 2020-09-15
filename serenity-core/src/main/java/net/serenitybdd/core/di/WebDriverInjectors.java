@@ -1,7 +1,6 @@
 package net.serenitybdd.core.di;
 
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import net.thucydides.core.guice.Injectors;
 import net.thucydides.core.guice.webdriver.WebDriverModule;
 
@@ -11,7 +10,7 @@ public class WebDriverInjectors {
         return Injectors.getInjector(new WebDriverModule());
     }
 
-    public static synchronized Injector getInjector(Module module) {
+    public static synchronized Injector getInjector(com.google.inject.Module module) {
         return Injectors.getInjector(module);
     }
 }

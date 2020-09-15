@@ -1,14 +1,15 @@
 package net.serenitybdd.core.webdriver.integration;
 
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 import net.serenitybdd.core.annotations.ImplementedBy;
 import net.serenitybdd.core.annotations.findby.FindBy;
 import net.serenitybdd.core.pages.PageObject;
 import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WidgetObject;
 import net.serenitybdd.core.pages.WidgetObjectImpl;
+import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
-import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -143,7 +144,7 @@ public class WhenBrowsingAWebSiteUsingWidgetObjects {
 
     @Before
     public void openLocalStaticSite() {
-        driver = new HtmlUnitDriver();
+        driver = new HtmlUnitDriver(BrowserVersion.CHROME, true);
         openStaticTestSite();
         indexPage = new IndexPage(driver, 1);
         indexPage.setWaitForTimeout(100);

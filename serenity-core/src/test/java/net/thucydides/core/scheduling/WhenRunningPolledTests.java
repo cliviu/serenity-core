@@ -1,24 +1,22 @@
 package net.thucydides.core.scheduling;
 
 import net.serenitybdd.core.pages.PageObject;
+import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.StepFailure;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
-import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.support.ui.Clock;
-import org.openqa.selenium.support.ui.Duration;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.Sleeper;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Clock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -79,11 +77,9 @@ public class WhenRunningPolledTests {
 
 
     private ExpectedCondition<Boolean> weHaveWaitedEnough(final Counter counter) {
-        return new ExpectedCondition<Boolean>() {
-            public Boolean apply(WebDriver driver) {
-                counter.incrementCounter();
-                return counter.getCounter() > 3;
-            }
+        return driver -> {
+            counter.incrementCounter();
+            return counter.getCounter() > 3;
         };
     }
 
@@ -134,7 +130,7 @@ public class WhenRunningPolledTests {
     @Test
     public void page_should_pause_during_wait() throws InterruptedException {
 
-        Clock clock = new org.openqa.selenium.support.ui.SystemClock();
+        Clock clock = Clock.systemDefaultZone();
         NormalFluentWait<WebDriver> waitFor = new NormalFluentWait(driver, clock, sleeper);
         Counter counter = new Counter();
 
@@ -222,9 +218,9 @@ public class WhenRunningPolledTests {
         Counter counter = new Counter();
 
         page.waitForCondition()
-                .ignoring(NullPointerException.class)
                 .withTimeoutOf(5000).milliseconds()
                 .pollingEvery(100).milliseconds()
+                .ignoring(NullPointerException.class)
                 .until(weSpitTheDummyWithARuntimeException(counter));
 
     }
@@ -241,7 +237,7 @@ public class WhenRunningPolledTests {
     }
 
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = TimeoutException.class)
     public void should_check_that_condition_is_a_boolean_function() {
         SlowPage page = new SlowPage(driver);
 

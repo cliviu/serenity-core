@@ -1,12 +1,12 @@
 package net.thucydides.core.webdriver.capabilities;
 
-import java.util.HashMap;
 import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.util.EnvironmentVariables;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.isEmpty;
@@ -73,7 +73,7 @@ class SetAppropriateSaucelabsPlatformVersion {
 
     private void setAppropriateSaucelabsPlatformVersionForSafariFrom(EnvironmentVariables environmentVariables) {
         if (ThucydidesSystemProperty.SAUCELABS_TARGET_PLATFORM.from(environmentVariables).equalsIgnoreCase("mac")) {
-            String browserVersion = ThucydidesSystemProperty.SAUCELABS_DRIVER_VERSION.from(environmentVariables);
+            String browserVersion = ThucydidesSystemProperty.SAUCELABS_BROWSER_VERSION.from(environmentVariables);
             if (MAC_OS_VERSIONS_PER_SAFARI_VERSION.containsKey(browserVersion)) {
                 capabilities.setCapability("platform", MAC_OS_VERSIONS_PER_SAFARI_VERSION.get(browserVersion));
             }

@@ -1,11 +1,13 @@
 package net.thucydides.core.requirements.model;
 
 import com.google.common.base.Splitter;
+import net.thucydides.core.model.TestTag;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,7 +19,7 @@ public class LoadedNarrative {
 
     public java.util.Optional<Narrative> fromFile(File narrativeFile, String defaultType) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(narrativeFile), StandardCharsets.UTF_8))) {
-            List<String> lines = readPreambleFrom(reader);
+            List<String> lines = readPreambleFrom(reader, isMarkdown(narrativeFile));
 
             String title = null;
             String type = defaultType;
@@ -30,20 +32,28 @@ public class LoadedNarrative {
             }
             String text = readNarrativeFrom(lines);
             reader.close();
+
+            List<TestTag> tags = (StringUtils.isEmpty(title)) ? new ArrayList<>() : Collections.singletonList(TestTag.withName(title).andType(defaultType));
+
             return java.util.Optional.of(new Narrative(Optional.ofNullable(title),
                     Optional.of(narrativeFile.getPath()),
                     Optional.ofNullable(cardNumber),
                     versionNumbers,
                     type,
-                    text));
+                    text,
+                    tags));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
         return java.util.Optional.empty();
     }
 
+    private boolean isMarkdown(File narrativeFile) {
+        return narrativeFile.getName().toLowerCase().endsWith(".md");
+    }
 
-    private List<String> readPreambleFrom(BufferedReader reader) throws IOException {
+
+    private List<String> readPreambleFrom(BufferedReader reader, boolean isMarkdown) throws IOException {
         List<String> usefulLines = new ArrayList<>();
 
         boolean preambleFinished = false;
@@ -54,7 +64,7 @@ public class LoadedNarrative {
             } else {
                 if (preambleFinishedAt(nextLine)) {
                     preambleFinished = true;
-                } else if (thereIsUsefulInformationIn(nextLine)) {
+                } else if (thereIsUsefulInformationIn(nextLine, isMarkdown)) {
                     usefulLines.add(nextLine);
                 }
             }
@@ -71,10 +81,14 @@ public class LoadedNarrative {
         return nextLine.trim().toLowerCase();
     }
 
-    private boolean thereIsUsefulInformationIn(String nextLine) {
+    private boolean thereIsUsefulInformationIn(String nextLine, boolean isMarkdown) {
         String normalizedText = normalizedLine(nextLine);
-        return !normalizedText.startsWith("#")
-                && !normalizedText.startsWith("meta:")
+
+        if (!isMarkdown) {
+            if (normalizedText.startsWith("#")) { return false; }
+        }
+
+        return !normalizedText.startsWith("meta:")
                 && !normalizedText.startsWith("background:")
                 && !(normalizedText.startsWith("@")
                 && (!normalizedText.startsWith("@issue")

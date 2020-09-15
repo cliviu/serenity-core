@@ -140,8 +140,49 @@ class WhenRunningTestScenarios extends Specification {
         when:
             runner.run(new RunNotifier())
             def outcomes = runner.testOutcomes;
+            def manualOutcome = outcomes.find { outcome -> outcome.name == 'a_manual_test' }
         then:
-            outcomes[0].isManual()
+            manualOutcome.isManual()
+            manualOutcome.getResult() == TestResult.PENDING
+    }
+
+    def "should mark passing @manual tests as manual passing"() {
+            given:
+        def runner = new ThucydidesRunner(SampleManualScenario, webDriverFactory)
+        when:
+            runner.run(new RunNotifier())
+            def outcomes = runner.testOutcomes;
+            def manualOutcome = outcomes.find { outcome -> outcome.name == 'a_successful_manual_test' }
+        then:
+            manualOutcome.isManual()
+            manualOutcome.getResult() == TestResult.SUCCESS
+    }
+
+    def "should mark failing @manual tests as manual failing"() {
+        given:
+        def runner = new ThucydidesRunner(SampleManualScenario, webDriverFactory)
+        when:
+        runner.run(new RunNotifier())
+        def outcomes = runner.testOutcomes;
+        def manualOutcome = outcomes.find { outcome -> outcome.name == 'a_failing_manual_test' }
+        then:
+        manualOutcome.isManual()
+        manualOutcome.getResult() == TestResult.FAILURE
+    }
+
+
+
+    def "failing @manual tests can have a reason"() {
+        given:
+        def runner = new ThucydidesRunner(SampleManualScenario, webDriverFactory)
+        when:
+        runner.run(new RunNotifier())
+        def outcomes = runner.testOutcomes;
+        def manualOutcome = outcomes.find { outcome -> outcome.name == 'a_failing_manual_test_with_a_message' }
+        then:
+        manualOutcome.isManual()
+        manualOutcome.getResult() == TestResult.FAILURE
+        manualOutcome.getTestFailureMessage() == "Manual test failure: Doesn't work"
     }
 
     def "should mark @manual data-driven tests as manual"() {
@@ -253,7 +294,7 @@ class WhenRunningTestScenarios extends Specification {
     @Unroll
     def "annotated tests should have expected results"() {
         given:
-        def runner = new ThucydidesRunner(testclass, webDriverFactory)
+        def runner = new SerenityRunner(testclass, webDriverFactory)
         when:
         runner.run(new RunNotifier())
         def outcomes = runner.testOutcomes;
@@ -538,10 +579,10 @@ class WhenRunningTestScenarios extends Specification {
         then:
             runner.testOutcomes.size() == testcount
         where:
-            tag                     | testcount
-            "module:M1"             | 3
-            "module:M2"             | 0
-            "module:M1, module:M2"  | 3
+            tag                       | testcount
+            "module:M1"               | 3
+            "module:M2"               | 0
+            "module:M1 or module:M2"  | 3
     }
 
     @Unroll
@@ -555,11 +596,11 @@ class WhenRunningTestScenarios extends Specification {
         then:
             runner.testOutcomes.size() == testcount
         where:
-            tag                           | testcount
-            "iteration:I1"                | 2
-            "iteration:I2"                | 1
-            "iteration:I1, iteration:I2"  | 3
-            "iteration:I3"                | 0
+            tag                             | testcount
+            "iteration:I1"                  | 2
+            "iteration:I2"                  | 1
+            "iteration:I1 or iteration:I2"  | 3
+            "iteration:I3"                  | 0
     }
 
     private File reload(File old) {

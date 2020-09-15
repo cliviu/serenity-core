@@ -1,6 +1,7 @@
 package net.thucydides.core.requirements.model.cucumber;
 
-import gherkin.ast.Feature;
+
+import io.cucumber.messages.Messages.GherkinDocument.Feature;
 
 /**
  * A scenario that is mentioned by name in a feature narrative.
@@ -17,9 +18,10 @@ public class ReferencedScenario {
     }
 
     public NamedScenario withName(String scenarioName) {
-        return feature.getChildren().stream()
-                        .filter(scenarioDefinition -> scenarioDefinition.getName().equalsIgnoreCase(scenarioName.trim()))
-                        .map(scenario -> NamedScenario.forScenarioDefinition(feature, scenario))
+        return feature.getChildrenList().stream()
+                        .filter(featureChild -> featureChild.hasScenario())
+                        .filter(featureChild -> featureChild.getScenario().getName().equalsIgnoreCase(scenarioName.trim()))
+                        .map(featureChild -> NamedScenario.forScenarioDefinition(feature, featureChild.getScenario()))
                         .findFirst()
                         .orElse(NamedScenario.withNoMatchingScenario());
     }

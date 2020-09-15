@@ -5,7 +5,6 @@ import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.actions.ByAction;
 import net.serenitybdd.screenplay.targets.Target;
 import net.thucydides.core.annotations.Step;
-import org.openqa.selenium.By;
 
 public class DeselectAllOptions extends ByAction {
 
@@ -19,7 +18,7 @@ public class DeselectAllOptions extends ByAction {
         return Instrumented.instanceOf(DeselectAllOptions.class).withProperties(target);
     }
 
-    @Step("{0} deselects all options in #value")
+    @Step("{0} deselects all options in #target")
     public <T extends Actor> void performAs(T theUser) {
         target.resolveFor(theUser).deselectAll();
     }

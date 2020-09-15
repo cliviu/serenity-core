@@ -1,13 +1,14 @@
 package net.serenitybdd.core.webdriver.integration;
 
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 import net.serenitybdd.core.annotations.ImplementedBy;
 import net.serenitybdd.core.annotations.findby.FindBy;
 import net.serenitybdd.core.pages.PageObject;
 import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WebElementFacadeImpl;
+import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
-import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
@@ -19,7 +20,6 @@ import org.openqa.selenium.support.pagefactory.ElementLocator;
 import java.io.File;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -120,7 +120,7 @@ public class WhenBrowsingAWebSiteUsingListfulPageObjects {
 
     @Before
     public void openLocalStaticSite() {
-        driver = new HtmlUnitDriver();
+        driver =  new HtmlUnitDriver(BrowserVersion.CHROME, true);
         openStaticTestSite();
         indexPage = new TablesPage(driver, 1000);
         indexPage.setWaitForTimeout(100);

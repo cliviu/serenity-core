@@ -1,14 +1,18 @@
 package net.thucydides.core.webdriver;
 
-import net.serenitybdd.core.collect.*;
-import net.serenitybdd.core.environment.*;
-import net.thucydides.core.steps.*;
-import org.openqa.selenium.*;
+import net.serenitybdd.core.collect.NewList;
+import net.serenitybdd.core.environment.ConfiguredEnvironment;
+import net.serenitybdd.core.environment.WebDriverConfiguredEnvironment;
+import net.thucydides.core.steps.StepEventBus;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 
-import java.io.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
-import static java.util.Collections.*;
+import static java.util.Collections.synchronizedList;
 
 /**
  * Provides a proxy for a WebDriver instance.
@@ -105,10 +109,14 @@ public class WebdriverProxyFactory implements Serializable {
 
         if (StepEventBus.getEventBus().isDryRun()) { return; }
 
-        if (((WebDriverFacade) driver).isInstantiated()) {
-            driver.manage().deleteAllCookies();
+        if (((WebDriverFacade) driver).isInstantiated()
+                && !((WebDriverFacade) driver).getProxiedDriver().getCurrentUrl().isEmpty()) {
+
+            WebDriver proxiedDriver = ((WebDriverFacade) driver).getProxiedDriver();
+            proxiedDriver.manage().deleteAllCookies();
             try {
-                ((JavascriptExecutor) driver).executeScript(String.format("window.localStorage.clear();"));
+                ((JavascriptExecutor) proxiedDriver).executeScript("window.sessionStorage.clear();");
+                ((JavascriptExecutor) proxiedDriver).executeScript("window.localStorage.clear();");
             } catch (WebDriverException driverDoesntSupportJavascriptTooBad) {}
         }
     }

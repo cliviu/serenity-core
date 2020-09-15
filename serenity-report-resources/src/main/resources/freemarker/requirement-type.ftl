@@ -24,7 +24,10 @@
     <div id="topbanner">
         <div id="logo"><a href="index.html"><img src="images/serenity-logo.png" border="0"/></a></div>
         <div id="projectname-banner" style="float:right">
-            <span class="projectname">${reportOptions.projectName}</span>
+            <span class="projectname">
+                <span class="projecttitle">${reportOptions.projectName}</span>
+                <span class="projectsubtitle">${reportOptions.projectSubTitle}</span>
+            </span>
         </div>
     </div>
 </div>
@@ -54,7 +57,7 @@
             <div class="table">
 
             <#if (requirements.requirementOutcomes?has_content || testOutcomes.total > 0)>
-                <#assign workingRequirementsTitle = inflection.of(requirements.type).inPluralForm().asATitle() >
+                <#assign workingRequirementsTitle = inflection.of(requirementType).inPluralForm().asATitle() >
 
                 <@requirements_results requirements=requirements title=requirementTypeTitle requirementType=workingRequirementsTitle id="requirements-table"/>
 
@@ -68,7 +71,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-12">
-            <span class="version">Serenity BDD version ${serenityVersionNumber}</span>
+            <span class="version">Serenity BDD version ${serenityVersionNumber!"SNAPSHOT-BUILD"}</span>
         </div>
     </div>
 </div>

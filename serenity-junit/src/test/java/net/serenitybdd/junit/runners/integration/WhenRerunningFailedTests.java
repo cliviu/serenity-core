@@ -21,9 +21,7 @@ import org.mockito.MockitoAnnotations;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class WhenRerunningFailedTests {
 
@@ -63,10 +61,9 @@ public class WhenRerunningFailedTests {
 
         assertThat(executedScenarios.get(0).getResult(), is(TestResult.SUCCESS));
 
-        assertThat(executedScenarios.get(0).getStepCount(), is(4));
-        assertThat(executedScenarios.get(0).getTestSteps().get(3).getDescription(), containsString("UNSTABLE TEST"));
-        assertThat(executedScenarios.get(0).getTestSteps().get(3).getDescription(), containsString("A step that fails on odd tries"));
-        assertThat(executedScenarios.get(0).getTestSteps().get(3).getDescription(), containsString("expected:<[tru]e> but was:<[fals]e>"));
+        assertThat(executedScenarios.get(0).getStepCount(), is(3));
+        assertThat(executedScenarios.get(0).getTestSteps().get(2).getDescription(), containsString("UNSTABLE TEST"));
+        assertThat(executedScenarios.get(0).getTestSteps().get(2).getDescription(), containsString("A step that fails on odd tries"));
 
         assertThat(executedScenarios.get(0).getTags(), hasItem(TestTag.withName("Retries: 1").andType("unstable test")));
     }

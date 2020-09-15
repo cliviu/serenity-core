@@ -1,7 +1,6 @@
 package net.thucydides.core.reports.adaptors.specflow;
 
 import net.serenitybdd.core.collect.NewList;
-import net.serenitybdd.core.collect.NewList;
 import net.thucydides.core.model.*;
 import net.thucydides.core.reports.adaptors.common.FilebasedOutcomeAdaptor;
 
@@ -68,7 +67,7 @@ public class SpecflowAdaptor extends FilebasedOutcomeAdaptor {
             SpecflowScenarioTitleLine rowTitle = new SpecflowScenarioTitleLine(row.getRowTitle());
             TestResult rowResult = TestResultList.overallResultFrom(getTestResults(rowSteps));
 
-            DataTableRow dataTableRow = new DataTableRow(rowTitle.getArguments());
+            DataTableRow dataTableRow = new DataTableRow(rowTitle.getArguments(), 0);
             dataTableRow.setResult(rowResult);
             outcome.addRow(dataTableRow);
 

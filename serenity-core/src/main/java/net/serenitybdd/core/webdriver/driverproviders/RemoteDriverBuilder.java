@@ -1,20 +1,25 @@
 package net.serenitybdd.core.webdriver.driverproviders;
 
-import com.google.common.base.*;
-import io.appium.java_client.android.*;
-import io.appium.java_client.ios.*;
-import net.serenitybdd.core.buildinfo.*;
-import net.serenitybdd.core.di.*;
-import net.serenitybdd.core.exceptions.*;
-import net.thucydides.core.steps.*;
-import net.thucydides.core.util.*;
-import net.thucydides.core.webdriver.appium.*;
-import org.openqa.selenium.*;
-import org.openqa.selenium.remote.*;
+import com.google.common.base.Splitter;
+import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.ios.IOSDriver;
+import net.serenitybdd.core.buildinfo.DriverCapabilityRecord;
+import net.serenitybdd.core.di.WebDriverInjectors;
+import net.serenitybdd.core.exceptions.SerenityManagedException;
+import net.thucydides.core.steps.StepEventBus;
+import net.thucydides.core.util.EnvironmentVariables;
+import net.thucydides.core.webdriver.appium.AppiumConfiguration;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.UnreachableBrowserException;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.UnknownHostException;
+import java.util.List;
 
 abstract class RemoteDriverBuilder {
 
@@ -68,19 +73,17 @@ abstract class RemoteDriverBuilder {
     }
 
     private void ensureHostIsAvailableAt(URL remoteUrl) throws UnknownHostException {
-        if (!hostIsAvailableAt(remoteUrl)) {
-            theRemoteServerIsUnavailable(remoteUrl.getHost() + " could not be reached");
+        try {
+            hostShouldBeAvailableAt(remoteUrl);
+        } catch (IOException hostUnavailable) {
+            theRemoteServerIsUnavailable(remoteUrl.getHost() + " could not be reached: "
+                                         + hostUnavailable.getLocalizedMessage());
         }
     }
 
-    private boolean hostIsAvailableAt(URL remoteUrl) {
-        try {
+    private void hostShouldBeAvailableAt(URL remoteUrl) throws IOException {
             URLConnection urlConnection = remoteUrl.openConnection();
             urlConnection.connect();
-            return true;
-        } catch (IOException e) {
-            return false; // Either timeout or unreachable or failed DNS lookup.
-        }
     }
 
     private void theRemoteServerIsUnavailable(String message) throws UnknownHostException {

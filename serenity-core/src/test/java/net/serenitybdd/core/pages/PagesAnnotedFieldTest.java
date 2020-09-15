@@ -16,8 +16,8 @@ public class PagesAnnotedFieldTest {
 	private static final class TestDefault {
 
 		public Pages pages;
-
 	}
+
 
 	private static final class ExtendedPages extends Pages {
 		// nothing specific

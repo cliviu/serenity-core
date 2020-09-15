@@ -1,11 +1,11 @@
 package net.serenitybdd.junit.runners;
 
 import net.thucydides.core.model.*;
-import org.apache.commons.lang3.*;
-import org.junit.runner.*;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.runner.Runner;
 
 import java.util.*;
-import java.util.stream.*;
+import java.util.stream.Collectors;
 
 public class ParameterizedTestsOutcomeAggregator {
     private final SerenityParameterizedRunner serenityParameterizedRunner;
@@ -39,13 +39,11 @@ public class ParameterizedTestsOutcomeAggregator {
             recordTestOutcomeAsSteps(testOutcome, scenarioOutcome);
 
             if (testOutcome.isManual()) {
-                scenarioOutcome = scenarioOutcome.asManualTest();
+                scenarioOutcome = scenarioOutcome.setToManual();
             }
 
             if (testOutcome.isDataDriven()) {
-                updateResultsForAnyExternalFailures(testOutcome, scenarioOutcomes.get(normalizedMethodName));
                 scenarioOutcome.addDataFrom(testOutcome.getDataTable());
-
             }
         }
 
@@ -85,13 +83,6 @@ public class ParameterizedTestsOutcomeAggregator {
             scenarioOutcomes.put(normalizedMethodName, scenarioOutcome);
         }
         return scenarioOutcomes.get(normalizedMethodName);
-    }
-
-    private void updateResultsForAnyExternalFailures(TestOutcome testOutcome, TestOutcome scenarioOutcome) {
-        if (rowResultsAreInconsistantWithOverallResult(testOutcome)) {
-            testOutcome.getDataTable().getRows().get(0).updateResult(testOutcome.getResult());
-            scenarioOutcome.addFailingExternalStep(new AssertionError(testOutcome.getTestFailureMessage()));
-        }
     }
 
     private boolean rowResultsAreInconsistantWithOverallResult(TestOutcome testOutcome) {

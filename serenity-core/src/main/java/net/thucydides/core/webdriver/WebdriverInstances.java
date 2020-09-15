@@ -1,10 +1,10 @@
 package net.thucydides.core.webdriver;
 
-import net.serenitybdd.core.collect.NewList;
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
 import org.openqa.selenium.WebDriver;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -114,7 +114,7 @@ public class WebdriverInstances {
 
     public void closeCurrentDrivers() {
         closeCurrentDriver();
-        for(String driverName : driversUsedInCurrentThread.get()) {
+        for (String driverName : driversUsedInCurrentThread.get()) {
             WebDriver openDriver = driverMap.get(driverName);
             if (isInstantiated(openDriver)) {
                 closeAndQuit(openDriver);
@@ -180,18 +180,7 @@ public class WebdriverInstances {
 
 
     public List<WebDriver> getActiveDrivers() {
-        List<WebDriver> activeDrivers = new ArrayList<>();
-        for (WebDriver webDriver : driverMap.values()) {
-            if (!(webDriver instanceof WebDriverFacade)) {
-                activeDrivers.add(webDriver);
-                continue;
-            }
-
-            if (((WebDriverFacade) webDriver).isInstantiated()) {
-                activeDrivers.add(webDriver);
-            }
-        }
-        return activeDrivers;
+        return driverMap.values().stream().filter(this::isActive).collect(Collectors.toList());
     }
 
     public List<String> getActiveDriverTypes() {
@@ -207,6 +196,49 @@ public class WebdriverInstances {
             }
         }
         return activeDrivers;
+    }
+
+    private WebDriver currentActiveDriver;
+
+    public void setCurrentActiveDriver(WebDriver driver) {
+        this.currentActiveDriver = driver;
+    }
+
+    public void clearCurrentActiveDriver() {
+        this.currentActiveDriver = null;
+    }
+
+    public List<WebDriver> getCurrentDrivers() {
+        if (currentActiveDriver == null) {
+            return getActiveDriverMap().entrySet().stream()
+                    .map(entry -> entry.getValue())
+                    .collect(Collectors.toList());
+        } else {
+            return Arrays.asList(currentActiveDriver);
+        }
+    }
+
+    public Map<String, WebDriver> getActiveDriverMap() {
+        Map<String, WebDriver> activeDrivers = new HashMap<>();
+
+        driverMap.entrySet().stream()
+                .filter(entry -> isActive(entry.getValue()))
+                .forEach(
+                        entry -> activeDrivers.put(labelFrom(entry.getKey()), entry.getValue())
+                );
+        return activeDrivers;
+    }
+
+    private String labelFrom(String key) {
+        return key.contains(":") ? key.substring(key.lastIndexOf(":")) : key;
+    }
+
+    private boolean isActive(WebDriver driver) {
+        if (driver instanceof WebDriverFacade) {
+            return ((WebDriverFacade) driver).isInstantiated();
+        } else {
+            return true;
+        }
     }
 
     public final class InstanceRegistration {

@@ -1,5 +1,6 @@
 package net.serenitybdd.core.webdriver.driverproviders;
 
+import io.github.bonigarcia.wdm.WebDriverManager;
 import net.serenitybdd.core.buildinfo.DriverCapabilityRecord;
 import net.serenitybdd.core.di.WebDriverInjectors;
 import net.serenitybdd.core.webdriver.servicepools.DriverServicePool;
@@ -20,6 +21,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 
 public class PhantomJSDriverProvider implements DriverProvider {
+
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final DriverCapabilityRecord driverProperties;
     private static final Logger LOGGER = LoggerFactory.getLogger(PhantomJSDriverProvider.class);
@@ -44,6 +47,13 @@ public class PhantomJSDriverProvider implements DriverProvider {
             return new WebDriverStub();
         }
 
+        if(isDriverAutomaticallyDownloaded(environmentVariables)) {
+            logger.info("Using automatically driver download");
+            WebDriverManager.phantomjs().setup();
+        } else {
+            logger.info("Not using automatically driver download");
+        }
+
         DesiredCapabilities enhancedCapabilities = requestedPhantomJSCapabilities(environmentVariables);
         driverProperties.registerCapabilities("phantomjs", capabilitiesToProperties(enhancedCapabilities));
 
@@ -57,6 +67,9 @@ public class PhantomJSDriverProvider implements DriverProvider {
 
     private DesiredCapabilities requestedPhantomJSCapabilities(EnvironmentVariables environmentVariables) {
         DesiredCapabilities capabilities = DesiredCapabilities.phantomjs();
+        SetProxyConfiguration.from(environmentVariables).in(capabilities);
+        AddLoggingPreferences.from(environmentVariables).to(capabilities);
+
         PhantomJSCapabilityEnhancer phantomEnhancer = new PhantomJSCapabilityEnhancer(environmentVariables);
         phantomEnhancer.enhanceCapabilities(capabilities);
 

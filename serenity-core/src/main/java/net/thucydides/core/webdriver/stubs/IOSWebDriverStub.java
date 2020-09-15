@@ -1,19 +1,20 @@
 package net.thucydides.core.webdriver.stubs;
 
-import io.appium.java_client.*;
+import io.appium.java_client.FindsByIosClassChain;
+import io.appium.java_client.FindsByIosNSPredicate;
+import io.appium.java_client.HidesKeyboardWithKeyName;
+import io.appium.java_client.LocksDevice;
 import io.appium.java_client.ios.PerformsTouchID;
 import io.appium.java_client.ios.PushesFiles;
 import io.appium.java_client.ios.ShakesDevice;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.Response;
 
 import java.util.*;
 
 public class IOSWebDriverStub extends WebDriverStub implements HidesKeyboardWithKeyName, ShakesDevice,
-        FindsByIosUIAutomation, PerformsTouchID, FindsByIosNSPredicate, FindsByIosClassChain, PushesFiles, LocksDevice {
+        PerformsTouchID, FindsByIosNSPredicate, FindsByIosClassChain, PushesFiles, LocksDevice {
 
     @Override
     public void get(String s) {
@@ -115,15 +116,15 @@ public class IOSWebDriverStub extends WebDriverStub implements HidesKeyboardWith
         return new ArrayList();
     }
 
-    @Override
-    public WebElement findElementByIosUIAutomation(String using) {
-        return new WebElementFacadeStub();
-    }
-
-    @Override
-    public List findElementsByIosUIAutomation(String using) {
-        return new ArrayList();
-    }
+//    @Override
+//    public WebElement findElementByIosUIAutomation(String using) {
+//        return new WebElementFacadeStub();
+//    }
+//
+//    @Override
+//    public List findElementsByIosUIAutomation(String using) {
+//        return new ArrayList();
+//    }
 
     @Override
     public void shake() {

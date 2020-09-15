@@ -4,19 +4,25 @@ import net.serenitybdd.core.PendingStepException;
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.SkipNested;
 import net.serenitybdd.core.eventbus.Broadcaster;
+import net.serenitybdd.markers.IsHidden;
 import net.serenitybdd.screenplay.events.*;
 import net.serenitybdd.screenplay.exceptions.IgnoreStepException;
 import net.serenitybdd.screenplay.facts.Fact;
 import net.serenitybdd.screenplay.facts.FactLifecycleListener;
 import net.thucydides.core.annotations.Pending;
+import net.thucydides.core.annotations.Step;
+import net.thucydides.core.guice.Injectors;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
+import net.thucydides.core.util.EnvironmentVariables;
+import org.openqa.selenium.Keys;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+
+import static net.serenitybdd.screenplay.SilentTasks.isNestedInSilentTask;
+import static net.serenitybdd.screenplay.SilentTasks.isSilent;
+import static net.thucydides.core.ThucydidesSystemProperty.MANUAL_TASK_INSTRUMENTATION;
 
 /**
  * An actor represents the person or system using the application under test.
@@ -24,7 +30,7 @@ import java.util.Optional;
  */
 public class Actor implements PerformsTasks, SkipNested {
 
-    private final String name;
+    private String name;
 
     private final PerformedTaskTally taskTally = new PerformedTaskTally();
     private EventBusInterface eventBusInterface = new EventBusInterface();
@@ -86,17 +92,41 @@ public class Actor implements PerformsTasks, SkipNested {
         T ability = (T) abilities.get(doSomething);
 
         if (ability == null) {
-            // See if any ability is a subclass of doSomething
-            for (Map.Entry<Class, Ability> entry: abilities.entrySet()) {
-                // Return the first subclass we find
-                if (doSomething.isAssignableFrom(entry.getKey())) {
-                    ability = (T) entry.getValue();
-                    break;
-                }
-            }
+            ability = this.getAbilityThatExtends(doSomething);
         }
 
         return ability;
+    }
+
+    /**
+     * Return an ability that extends the given class. Can be a Superclass or an Interface. If there are multiple
+     * candidate Abilities, the first one found will be returned.
+     * @param extendedClass the Interface class that we expect to find
+     * @param <C> the matching Ability cast to extendedClass or null if none match
+     */
+    @SuppressWarnings("unchecked")
+    public <C> C getAbilityThatExtends(Class<C> extendedClass) {
+        // See if any ability extends doSomething
+        for (Map.Entry<Class, Ability> entry: abilities.entrySet()) {
+            // Return the first matching Ability we find
+            if (extendedClass.isAssignableFrom(entry.getKey())) {
+                return  (C) entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return a list of all {@link Ability}s which implement {@link HasTeardown}
+     */
+    public List<HasTeardown> getTeardowns() {
+        List<HasTeardown> teardowns = new ArrayList<>();
+        for (Ability a : abilities.values()) {
+            if (a instanceof HasTeardown) {
+                teardowns.add((HasTeardown) a);
+            }
+        }
+        return teardowns;
     }
 
     /**
@@ -126,7 +156,7 @@ public class Actor implements PerformsTasks, SkipNested {
     }
 
     /**
-     * A tense-neutral synonyme for addFact() for use with given() clauses
+     * A tense-neutral synonym for addFact() for use with given() clauses
      */
     public final void wasAbleTo(Performable... todos) {
         attemptsTo(todos);
@@ -135,20 +165,62 @@ public class Actor implements PerformsTasks, SkipNested {
     public final void attemptsTo(Performable... tasks) {
         beginPerformance();
         for (Performable task : tasks) {
-            perform(InstrumentedTask.of(task));
+            if (isNestedInSilentTask()) {
+                performSilently(task);
+            } else if (isSilent(task)) {
+                performSilently(task);
+            } else if (isHidden(task) || shouldNotReport(task)) {
+                performWithoutReporting(task);
+            } else {
+                perform(InstrumentedTask.of(task));
+            }
         }
         endPerformance();
     }
 
+    private boolean isHidden(Performable task) {
+        return task instanceof IsHidden;
+    }
+
+    private boolean shouldNotReport(Performable task) {
+        if (manualTaskInstrumentation() && noStepAnnotationIsPresentIn(task)) {
+            return true;
+        }
+        return !InstrumentedTask.isInstrumented(task) && !InstrumentedTask.shouldInstrument(task);
+    }
+
+    private boolean noStepAnnotationIsPresentIn(Performable task) {
+        try {
+            return task.getClass().getMethod("performAs").getAnnotation(Step.class) != null;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     public <ANSWER> ANSWER asksFor(Question<ANSWER> question) {
-        return question.answeredBy(this);
+        beginPerformance();
+        ANSWER answer = question.answeredBy(this);
+        endPerformance();
+
+        return answer;
+    }
+
+    private <T extends Performable> void performSilently(T todo) {
+        perform(todo);
+    }
+
+    private <T extends Performable> void performWithoutReporting(T todo) {
+        perform(todo);
+    }
+
+    private <T extends Performable> void performConditionally(T todo) {
+        perform(todo);
     }
 
     private <T extends Performable> void perform(T todo) {
         if (isPending(todo)) {
             StepEventBus.getEventBus().stepPending();
         }
-
 
         try {
             notifyPerformanceOf(todo);
@@ -178,7 +250,7 @@ public class Actor implements PerformsTasks, SkipNested {
     }
 
     private <T extends Performable> void notifyPerformanceOf(T todo) {
-        Broadcaster.getEventBus().post(new ActorPerforms(todo));
+        Broadcaster.getEventBus().post(new ActorPerforms(todo, getName()));
     }
 
     private <T extends Performable> boolean isPending(T todo) {
@@ -257,7 +329,7 @@ public class Actor implements PerformsTasks, SkipNested {
 
         ConsequenceCheckReporter reporter = new ConsequenceCheckReporter(eventBusInterface, consequence);
         try {
-            reporter.startQuestion();
+            reporter.startQuestion(this);
             if (eventBusInterface.shouldIgnoreConsequences()) {
                 reporter.reportStepIgnored();
             } else {
@@ -272,8 +344,10 @@ public class Actor implements PerformsTasks, SkipNested {
     }
 
     public <ANSWER> void remember(String key, Question<ANSWER> question) {
+        beginPerformance();
         ANSWER answer = this.asksFor(question);
         notepad.put(key, answer);
+        endPerformance();
     }
 
     public void remember(String key, Object value) {
@@ -283,6 +357,10 @@ public class Actor implements PerformsTasks, SkipNested {
     @SuppressWarnings("unchecked")
     public <T> T recall(String key) {
         return (T) notepad.get(key);
+    }
+
+    public Map<String, Object> recallAll() {
+        return new HashMap<>(notepad);
     }
 
     public <T> T sawAsThe(String key) {
@@ -303,6 +381,7 @@ public class Actor implements PerformsTasks, SkipNested {
 
 
     private void startConsequenceCheck() {
+        beginPerformance();
         consequenceListener.beginConsequenceCheck();
         Broadcaster.getEventBus().post(new ActorBeginsConsequenceCheckEvent(name));
     }
@@ -310,6 +389,7 @@ public class Actor implements PerformsTasks, SkipNested {
     private void endConsequenceCheck() {
         consequenceListener.endConsequenceCheck();
         Broadcaster.getEventBus().post(new ActorEndsConsequenceCheckEvent(name));
+        endPerformance();
     }
 
 
@@ -323,9 +403,19 @@ public class Actor implements PerformsTasks, SkipNested {
         return this;
     }
 
+
     public void assignDescriptionToActor(String description) {
         StepEventBus.getEventBus().getBaseStepListener().latestTestOutcome().ifPresent(
                 testOutcome -> testOutcome.assignDescriptionToActor(getName(), description)
         );
+    }
+
+    public void assignName(String name) {
+        this.name = name;
+    }
+
+    private boolean manualTaskInstrumentation() {
+        EnvironmentVariables environmentVariables = Injectors.getInjector().getInstance(EnvironmentVariables.class);
+        return (MANUAL_TASK_INSTRUMENTATION.booleanFrom(environmentVariables, false));
     }
 }

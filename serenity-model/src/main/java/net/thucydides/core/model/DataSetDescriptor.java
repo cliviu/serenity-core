@@ -1,8 +1,9 @@
 package net.thucydides.core.model;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
 
 /**
  * Created by john on 13/08/2014.
@@ -58,5 +59,13 @@ public class DataSetDescriptor {
 
     public List<TestTag> getTags() {
         return (tags == null) ? emptyList() : new ArrayList<>(tags);
+    }
+
+    public DataSetDescriptor forRange(int startRow, int rowCount) {
+        return new DataSetDescriptor(startRow, rowCount, name, description, tags);
+    }
+
+    public int getLastRow() {
+        return (rowCount == 0) ? startRow : startRow + rowCount - 1;
     }
 }

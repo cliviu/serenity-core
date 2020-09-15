@@ -3,9 +3,9 @@ package net.thucydides.core.pages.integration;
 import net.serenitybdd.core.pages.PageObject;
 import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WebElementFacadeImpl;
+import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
-import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -321,7 +321,7 @@ public class WhenManagingAPageObject {
         when(field.getTagName()).thenReturn("input");
         BasicPageObject page = new BasicPageObject(driver);
 
-        page.enter("some value").intoField(By.id("field-id"));
+        page.enter("some value").into(By.id("field-id"));
 
         verify(field).clear();
         verify(field).sendKeys("some value");

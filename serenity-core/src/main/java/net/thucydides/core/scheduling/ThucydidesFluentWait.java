@@ -4,16 +4,17 @@ import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.webdriver.TemporalUnitConverter;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.support.ui.Clock;
 import org.openqa.selenium.support.ui.Sleeper;
 import org.openqa.selenium.support.ui.Wait;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -27,6 +28,7 @@ public abstract class ThucydidesFluentWait<T> implements Wait<T> {
     private final Clock clock;
     private final T input;
     private final Sleeper sleeper;
+    private Supplier<String> messageSupplier = () -> null;
 
     public ThucydidesFluentWait(T input, Clock clock, Sleeper sleeper) {
         this.input = checkNotNull(input);
@@ -48,11 +50,11 @@ public abstract class ThucydidesFluentWait<T> implements Wait<T> {
 
     @Override
     public <V> V until(Function<? super T, V> isTrue) {
-        long end = getClock().laterBy(timeout.toMillis());
+        long end = getClock().millis() +  timeout.toMillis();
         RuntimeException lastException = null;
         String waitForConditionMessage = isTrue.toString();
         while (true) {
-            if (aPreviousStepHasFailed()) {
+            if (webdriverCallsAreSuspended()) {
                 return (V) Boolean.TRUE;
             }
             try {
@@ -69,9 +71,15 @@ public abstract class ThucydidesFluentWait<T> implements Wait<T> {
                 lastException = propagateIfNotIngored(e);
             }
 
-            if (!getClock().isNowBefore(end)) {
-                String message = String.format("Timed out after %d milliseconds: ",timeout.toMillis()) + waitForConditionMessage;
-                throw timeoutException(message, lastException);
+            if (!(getClock().millis() < end)){
+                String message = messageSupplier != null ?
+                        messageSupplier.get() : null;
+
+                String timeoutMessage = String.format(
+                        "Expected condition failed: %s (tried for %d second(s) with %d milliseconds interval)",
+                        message == null ? "waiting for " + isTrue : message,
+                        timeout.getSeconds(), interval.toMillis());
+                throw timeoutException(timeoutMessage, lastException);
             }
 
             try {
@@ -83,8 +91,8 @@ public abstract class ThucydidesFluentWait<T> implements Wait<T> {
         }
     }
 
-    private boolean aPreviousStepHasFailed() {
-        return StepEventBus.getEventBus().aStepInTheCurrentTestHasFailed();
+    private boolean webdriverCallsAreSuspended() {
+        return StepEventBus.getEventBus().webdriverCallsAreSuspended();
     }
 
     public abstract void doWait() throws InterruptedException;
@@ -110,6 +118,28 @@ public abstract class ThucydidesFluentWait<T> implements Wait<T> {
 
     public ThucydidesFluentWait<T> withTimeout(Duration timeout) {
         this.timeout = timeout;
+        return this;
+    }
+
+    /**
+     * Sets the message to be displayed when time expires.
+     *
+     * @param message to be appended to default.
+     * @return A self reference.
+     */
+    public ThucydidesFluentWait<T> withMessage(final String message) {
+        this.messageSupplier = () -> message;
+        return this;
+    }
+
+    /**
+     * Sets the message to be evaluated and displayed when time expires.
+     *
+     * @param messageSupplier to be evaluated on failure and appended to default.
+     * @return A self reference.
+     */
+    public ThucydidesFluentWait<T> withMessage(Supplier<String> messageSupplier) {
+        this.messageSupplier = messageSupplier;
         return this;
     }
 

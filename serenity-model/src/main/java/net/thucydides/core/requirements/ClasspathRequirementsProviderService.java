@@ -1,12 +1,10 @@
 package net.thucydides.core.requirements;
 
-import net.serenitybdd.core.collect.NewList;
 import com.google.inject.Inject;
+import net.serenitybdd.core.collect.NewList;
 import net.thucydides.core.statistics.service.TagProvider;
 import net.thucydides.core.statistics.service.TagProviderFilter;
 import net.thucydides.core.statistics.service.TagProviderService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +17,6 @@ import java.util.List;
  * name for the class.
  */
 public class ClasspathRequirementsProviderService implements RequirementsProviderService {
-    private final Logger logger = LoggerFactory.getLogger(ClasspathRequirementsProviderService.class);
 
     private TagProviderService tagProviderService;
 
@@ -44,7 +41,7 @@ public class ClasspathRequirementsProviderService implements RequirementsProvide
     }
 
     private List<RequirementsTagProvider> loadRequirementsTagProviders() {
-        List<RequirementsTagProvider> providers = new ArrayList<RequirementsTagProvider>();
+        List<RequirementsTagProvider> providers = new ArrayList<>();
 
         List<TagProvider> tagProviders = tagProviderService.getTagProviders();
         for (TagProvider tagProvider : tagProviders) {

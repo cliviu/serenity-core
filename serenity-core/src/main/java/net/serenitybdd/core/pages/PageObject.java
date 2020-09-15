@@ -3,6 +3,7 @@ package net.serenitybdd.core.pages;
 import com.google.common.base.Predicate;
 import com.paulhammant.ngwebdriver.NgWebDriver;
 import net.serenitybdd.core.collect.NewList;
+import net.serenitybdd.core.environment.EnvironmentSpecificConfiguration;
 import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.annotations.WhenPageOpens;
 import net.thucydides.core.fluent.ThucydidesFluentAdapter;
@@ -14,7 +15,7 @@ import net.thucydides.core.pages.components.FileToUpload;
 import net.thucydides.core.pages.jquery.JQueryEnabledPage;
 import net.thucydides.core.reflection.MethodFinder;
 import net.thucydides.core.scheduling.FluentWaitWithRefresh;
-import net.thucydides.core.scheduling.NormalFluentWait;
+import net.thucydides.core.scheduling.SerenityFluentWait;
 import net.thucydides.core.scheduling.ThucydidesFluentWait;
 import net.thucydides.core.steps.PageObjectStepDelayer;
 import net.thucydides.core.steps.StepEventBus;
@@ -28,11 +29,12 @@ import net.thucydides.core.webelements.RadioButtonGroup;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.support.ui.*;
+import org.openqa.selenium.support.ui.ExpectedCondition;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Sleeper;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -42,18 +44,20 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
 import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
+import static net.serenitybdd.core.pages.ParameterisedLocator.withArguments;
 import static net.serenitybdd.core.selectors.Selectors.xpathOrCssSelector;
-import static net.thucydides.core.ThucydidesSystemProperty.THUCYDIDES_JQUERY_INTEGRATION;
-import static net.thucydides.core.ThucydidesSystemProperty.WEBDRIVER_TIMEOUTS_FLUENTWAIT;
-import static net.thucydides.core.ThucydidesSystemProperty.WEBDRIVER_WAIT_FOR_TIMEOUT;
+import static net.thucydides.core.ThucydidesSystemProperty.*;
 import static net.thucydides.core.webdriver.javascript.JavascriptSupport.javascriptIsSupportedIn;
 
 /**
@@ -123,11 +127,10 @@ public abstract class PageObject {
     }
 
     protected PageObject() {
-        this.webdriverClock = new SystemClock();
+        this.webdriverClock = Clock.systemDefaultZone();
         this.clock = Injectors.getInjector().getInstance(net.serenitybdd.core.time.SystemClock.class);
         this.environmentVariables = Injectors.getInjector().getProvider(EnvironmentVariables.class).get();
         this.sleeper = Sleeper.SYSTEM_SLEEPER;
-        setupPageUrls();
     }
 
     protected PageObject(final WebDriver driver, Predicate<? super PageObject> callback) {
@@ -170,7 +173,7 @@ public abstract class PageObject {
     public Duration getWaitForTimeout() {
 
         if (waitForTimeout == null) {
-            int configuredWaitForTimeoutInMilliseconds =fluentWaitTimeout();
+            int configuredWaitForTimeoutInMilliseconds = fluentWaitTimeout();
             waitForTimeout = Duration.ofMillis(configuredWaitForTimeoutInMilliseconds);
         }
         return waitForTimeout;
@@ -237,8 +240,11 @@ public abstract class PageObject {
         return isRemoteUrl || isSaucelabsUrl || isBrowserStack;
     }
 
-    private void setupPageUrls() {
-        setPageUrls(new PageUrls(this));
+    private PageUrls getPageUrls() {
+        if (pageUrls == null) {
+            pageUrls = new PageUrls(this, environmentVariables);
+        }
+        return pageUrls;
     }
 
     /**
@@ -325,12 +331,17 @@ public abstract class PageObject {
         return new RenderedPageObjectView(driver, this, timeout, false);
     }
 
-    public PageObject waitFor(String xpathOrCssSelector) {
-        return waitForRenderedElements(xpathOrCssSelector(xpathOrCssSelector));
+    public PageObject waitFor(String xpathOrCssSelector, Object... arguments) {
+        return waitForRenderedElements(xpathOrCssSelector(withArguments(xpathOrCssSelector, arguments)));
     }
 
     public PageObject waitFor(ExpectedCondition expectedCondition) {
         getRenderedView().waitFor(expectedCondition);
+        return this;
+    }
+
+    public PageObject waitFor(String message, ExpectedCondition expectedCondition) {
+        getRenderedView().waitFor(message, expectedCondition);
         return this;
     }
 
@@ -340,8 +351,8 @@ public abstract class PageObject {
         return this;
     }
 
-    public PageObject waitForPresenceOf(String xpathOrCssSelector) {
-        return waitForRenderedElementsToBePresent(xpathOrCssSelector(xpathOrCssSelector));
+    public PageObject waitForPresenceOf(String xpathOrCssSelector, Object... arguments) {
+        return waitForRenderedElementsToBePresent(xpathOrCssSelector(withArguments(xpathOrCssSelector, arguments)));
     }
 
 
@@ -350,8 +361,8 @@ public abstract class PageObject {
         return this;
     }
 
-    public PageObject waitForAbsenceOf(String xpathOrCssSelector) {
-        return waitForRenderedElementsToDisappear(xpathOrCssSelector(xpathOrCssSelector));
+    public PageObject waitForAbsenceOf(String xpathOrCssSelector, Object... arguments) {
+        return waitForRenderedElementsToDisappear(xpathOrCssSelector(withArguments(xpathOrCssSelector, arguments)));
     }
 
     /**
@@ -367,9 +378,8 @@ public abstract class PageObject {
         return this;
     }
 
-    private WebDriverWait waitOnPage() {
+    public WebDriverWait waitOnPage() {
         return new WebDriverWait(driver, getWaitForTimeout().getSeconds());
-//        waitForTimeoutInSecondsWithAMinimumOfOneSecond());
     }
 
     public PageObject waitForTitleToDisappear(final String expectedTitle) {
@@ -474,10 +484,6 @@ public abstract class PageObject {
         return driver.findElements(byListCriteria);
     }
 
-    public <T extends PageObject> T foo() {
-        return (T) this;
-    }
-
     /**
      * Check that the specified text appears somewhere in the page.
      */
@@ -539,8 +545,8 @@ public abstract class PageObject {
      * Clear a field and enter a value into it.
      * This is a more fluent alternative to using the typeInto method.
      */
-    public FieldEntry enter(final String value) {
-        return new FieldEntry(value);
+    public FieldEntry enter(CharSequence... keysToSend) {
+        return new FieldEntry(keysToSend);
     }
 
     public void selectFromDropdown(final WebElement dropdown,
@@ -633,13 +639,38 @@ public abstract class PageObject {
         return getImplicitWaitTimeout().toMillis();
     }
 
-    public String updateUrlWithBaseUrlIfDefined(final String startingUrl) {
+    public String updateUrlWithBaseUrlIfDefined(String startingUrl) {
 
-        String baseUrl = pageUrls.getSystemBaseUrl();
-        if ((baseUrl != null) && (!StringUtils.isEmpty(baseUrl))) {
-            return replaceHost(startingUrl, baseUrl);
-        } else {
-            return startingUrl;
+        if (getPageUrls().getDeclaredDefaultUrl().isPresent()) {
+            startingUrl = getPageUrls().addDefaultUrlTo(startingUrl);
+        }
+
+        String baseUrl = getPageUrls().getSystemBaseUrl();
+        if (isDefined(baseUrl)) {
+            if (isFullUrl(startingUrl)) {
+                return replaceHost(startingUrl, baseUrl);
+            } else if (isRelative(startingUrl)) {
+                return getPageUrls().addBaseUrlTo(startingUrl);
+            }
+        }
+
+        return startingUrl;
+    }
+
+    protected boolean isRelative(String startingUrl) {
+        return !(isFullUrl(startingUrl));
+    }
+
+    private boolean isDefined(String url) {
+        return (url != null) && (!StringUtils.isEmpty(url));
+    }
+
+    private boolean isFullUrl(String startingUrl) {
+        try {
+            new URL(startingUrl);
+            return true;
+        } catch (MalformedURLException e) {
+            return false;
         }
     }
 
@@ -692,12 +723,31 @@ public abstract class PageObject {
     }
 
     private void open(final OpenMode openMode, final String... parameterValues) {
-        String startingUrl = pageUrls.getStartingUrl(parameterValues);
+        String startingUrl = getPageUrls().getStartingUrl(parameterValues);
         LOGGER.debug("Opening page at url {}", startingUrl);
         openPageAtUrl(startingUrl);
         checkUrlPatterns(openMode);
         initializePage();
         LOGGER.debug("Page opened");
+    }
+
+    public final OpenWithParams open(final String urlTemplateName) {
+        return new OpenWithParams(this, urlTemplateName);
+    }
+
+    public static class OpenWithParams {
+
+        private PageObject pageObject;
+        private String urlTemplateName;
+
+        public OpenWithParams(PageObject pageObject, String urlTemplateName) {
+            this.pageObject = pageObject;
+            this.urlTemplateName = urlTemplateName;
+        }
+
+        public void withParameters(String... parameters) {
+            pageObject.open(urlTemplateName, parameters);
+        }
     }
 
     public final void open(final String urlTemplateName,
@@ -715,8 +765,7 @@ public abstract class PageObject {
 
     private void open(final OpenMode openMode, final String urlTemplateName,
                       final String[] parameterValues) {
-        String startingUrl = pageUrls.getNamedUrl(urlTemplateName,
-                parameterValues);
+        String startingUrl = getPageUrls().getNamedUrl(urlTemplateName, parameterValues);
         LOGGER.debug("Opening page at url {}", startingUrl);
         openPageAtUrl(startingUrl);
         checkUrlPatterns(openMode);
@@ -757,7 +806,7 @@ public abstract class PageObject {
     }
 
     private void open(final OpenMode openMode) {
-        String startingUrl = updateUrlWithBaseUrlIfDefined(pageUrls.getStartingUrl());
+        String startingUrl = updateUrlWithBaseUrlIfDefined(getPageUrls().getStartingUrl());
         openPageAtUrl(startingUrl);
         checkUrlPatterns(openMode);
         initializePage();
@@ -863,6 +912,25 @@ public abstract class PageObject {
         }
     }
 
+    /**
+     * Open an environment-specific page defined in the `serenity.conf` file under the `pages` section.
+     *
+     * @param pageName
+     */
+    public void openPageNamed(String pageName) {
+        getDriver().get(environmentSpecificPageUrl(pageName));
+    }
+
+    public void navigateToPageNamed(String pageName) {
+        getDriver().navigate().to(environmentSpecificPageUrl(pageName));
+    }
+
+    private String environmentSpecificPageUrl(String pageName) {
+        return EnvironmentSpecificConfiguration.from(environmentVariables)
+                .getOptionalProperty("pages." + pageName)
+                .orElseThrow(() -> new UnknownPageException("No page called " + pageName + " was specified in the serenity.conf file"));
+    }
+
     public void clickOn(final WebElement webElement) {
         element(webElement).click();
     }
@@ -875,7 +943,7 @@ public abstract class PageObject {
     }
 
     public void setDefaultBaseUrl(final String defaultBaseUrl) {
-        pageUrls.overrideDefaultBaseUrl(defaultBaseUrl);
+        getPageUrls().overrideDefaultBaseUrl(defaultBaseUrl);
     }
 
     /**
@@ -916,14 +984,34 @@ public abstract class PageObject {
         }
     }
 
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(WithLocator locator) {
+        return element(locator.getLocator());
+    }
+
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(WithByLocator locator) {
+        return element(locator.getLocator());
+    }
 
     public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(WebElement webElement) {
         return element(webElement);
     }
 
-    public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(String xpathOrCssSelector) {
-        return element(xpathOrCssSelector);
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(String xpathOrCssSelector, Object... arguments) {
+        return element(xpathOrCssSelector, arguments);
     }
+
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T $(By bySelector) {
+        return element(bySelector);
+    }
+
+    public ListOfWebElementFacades $$(String xpathOrCssSelector, Object... arguments) {
+        return findAll(xpathOrCssSelector, arguments);
+    }
+
+    public ListOfWebElementFacades $$(By bySelector) {
+        return findAll(bySelector);
+    }
+
 
     /**
      * Provides a fluent API for querying web elements.
@@ -934,6 +1022,16 @@ public abstract class PageObject {
                 getImplicitWaitTimeout().toMillis(),
                 getWaitForTimeout().toMillis(),
                 bySelector.toString());
+    }
+
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(By selector) {
+        return element(selector);
+    }
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(WithByLocator selector) {
+        return element(selector.getLocator());
+    }
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(WithLocator selector) {
+        return element(selector.getLocator());
     }
 
     public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(List<By> selectors) {
@@ -948,11 +1046,106 @@ public abstract class PageObject {
         return element;
     }
 
-    public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(By... selectors) {
-        return find(NewList.of(selectors));
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T findBy(List<String> selectors) {
+        T element = null;
+        for (String selector : selectors) {
+            if (element == null) {
+                element = element(selector);
+            } else {
+                element = element.findBy(selector);
+            }
+        }
+        return element;
     }
 
-    public List<WebElementFacade> findAll(By bySelector) {
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T findNested(By... selectors) {
+        T element = null;
+        for (By selector : selectors) {
+            if (element == null) {
+                element = element(selector);
+            } else {
+                element = element.findBy(selector);
+            }
+        }
+        return element;
+    }
+
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T find(String selector) {
+        return findBy(NewList.of(selector));
+    }
+
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T findNested(String... selectors) {
+        return findBy(NewList.of(selectors));
+    }
+
+    public Optional<WebElementFacade> findFirst(String xpathOrCSSSelector) {
+        return findEach(xpathOrCSSSelector).findFirst();
+    }
+
+    public Optional<WebElementFacade> findFirst(By bySelector) {
+        return findEach(bySelector).findFirst();
+    }
+
+    public Stream<WebElementFacade> findEach(By bySelector) {
+        return findAll(bySelector).stream();
+    }
+
+    public Stream<WebElementFacade> findEach(WithByLocator bySelector) {
+        return findAll(bySelector.getLocator()).stream();
+    }
+
+    public Stream<WebElementFacade> findEach(WithLocator bySelector) {
+        return findAll(bySelector.getLocator()).stream();
+    }
+
+    /**
+     * FindEach will return a stream of WebElementFacades matching the described nested structure.
+     * Only the last selector will return a list; the initial selectors will be used to locate the list of elements.
+     * @param bySelectors
+     * @return
+     */
+    public Stream<WebElementFacade> findEach(By... bySelectors) {
+        if (bySelectors.length == 1) {
+            return findEach(bySelectors[0]);
+        }
+        return find(allButLastIn(bySelectors))
+               .thenFindAll(lastIn(bySelectors)).stream();
+    }
+
+    public Stream<WebElementFacade> findEach(String... xpathOrCssSelectors) {
+        if (xpathOrCssSelectors.length == 1) {
+            return findEach(xpathOrCssSelectors[0]);
+        }
+        return findBy(allButLastIn(xpathOrCssSelectors))
+                .thenFindAll(lastIn(xpathOrCssSelectors)).stream();
+    }
+
+    public ListOfWebElementFacades findNestedElements(String... xpathOrCssSelectors) {
+        if (xpathOrCssSelectors.length == 1) {
+            return findAll(xpathOrCssSelectors[0]);
+        }
+        return findBy(allButLastIn(xpathOrCssSelectors))
+                .thenFindAll(lastIn(xpathOrCssSelectors));
+    }
+
+
+    private <T> List<T> allButLastIn(T[] selectors) {
+        List<T> subList = new ArrayList<>();
+        for(int i = 0; i < selectors.length - 1; i++) {
+            subList.add(selectors[i]);
+        }
+        return subList;
+    }
+    private <T> T lastIn(T[] selectors) {
+        return selectors[selectors.length - 1];
+    }
+
+    public Stream<WebElementFacade> findEach(String xpathOrCSSSelector) {
+        return findAll(xpathOrCSSSelector).stream();
+    }
+
+    public ListOfWebElementFacades findAll(By bySelector) {
+//    public List<WebElementFacade> findAll(By bySelector) {
 
         List<WebElement> matchingWebElements = driver.findElements(bySelector);
 
@@ -961,30 +1154,41 @@ public abstract class PageObject {
             allElements.add($(matchingElement));
         }
 
-        return allElements;
+        return new ListOfWebElementFacades(allElements);
     }
 
-    /**
-     * Provides a fluent API for querying web elements.
-     */
-    public <T extends net.serenitybdd.core.pages.WebElementFacade> T element(String xpathOrCssSelector) {
-        return element(xpathOrCssSelector(xpathOrCssSelector));
+    public ListOfWebElementFacades findAll(WithLocator bySelector) {
+        return findAll(bySelector.getLocator());
     }
 
-    public <T extends net.serenitybdd.core.pages.WebElementFacade> T findBy(String xpathOrCssSelector) {
-        return element(xpathOrCssSelector);
+    public ListOfWebElementFacades findAll(WithByLocator bySelector) {
+        return findAll(bySelector.getLocator());
+    }
+        /**
+         * Provides a fluent API for querying web elements.
+         */
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T element(String xpathOrCssSelector, Object... arguments) {
+        return element(xpathOrCssSelector(withArguments(xpathOrCssSelector,arguments)));
     }
 
-    public List<net.serenitybdd.core.pages.WebElementFacade> findAll(String xpathOrCssSelector) {
-        return findAll(xpathOrCssSelector(xpathOrCssSelector));
+    public <T extends net.serenitybdd.core.pages.WebElementFacade> T findBy(String xpathOrCssSelector, Object... arguments) {
+        return element(withArguments(xpathOrCssSelector,arguments));
+    }
+
+    public Optional<WebElementFacade> findFirst(String xpathOrCssSelector, Object... arguments) {
+        return findAll(xpathOrCssSelector, arguments).stream().findFirst();
+    }
+
+    public ListOfWebElementFacades findAll(String xpathOrCssSelector, Object... arguments) {
+        return findAll(xpathOrCssSelector(withArguments(xpathOrCssSelector,arguments)));
     }
 
     public boolean containsElements(By bySelector) {
         return !findAll(bySelector).isEmpty();
     }
 
-    public boolean containsElements(String xpathOrCssSelector) {
-        return !findAll(xpathOrCssSelector).isEmpty();
+    public boolean containsElements(String xpathOrCssSelector, Object... arguments) {
+        return !findAll(xpathOrCssSelector, arguments).isEmpty();
     }
 
 
@@ -1020,7 +1224,7 @@ public abstract class PageObject {
     }
 
     private Boolean jqueryIntegrationIsActivated() {
-        return THUCYDIDES_JQUERY_INTEGRATION.booleanFrom(environmentVariables, true);
+        return SERENITY_JQUERY_INTEGRATION.booleanFrom(environmentVariables, true);
     }
 
     public RadioButtonGroup inRadioButtonGroup(String name) {
@@ -1049,10 +1253,10 @@ public abstract class PageObject {
                 .ignoring(NoSuchElementException.class, NoSuchFrameException.class);
     }
 
-    public ThucydidesFluentWait<WebDriver> waitForCondition() {
-        return new NormalFluentWait<>(driver, webdriverClock, sleeper)
-                .withTimeout(getWaitForTimeout().toMillis(), TimeUnit.MILLISECONDS)
-                .pollingEvery(WAIT_FOR_ELEMENT_PAUSE_LENGTH, TimeUnit.MILLISECONDS)
+    public SerenityFluentWait waitForCondition() {
+        return (SerenityFluentWait) new SerenityFluentWait(driver, webdriverClock, sleeper)
+                .withTimeout(getWaitForTimeout())
+                .pollingEvery(Duration.ofMillis(WAIT_FOR_ELEMENT_PAUSE_LENGTH))
                 .ignoring(NoSuchElementException.class, NoSuchFrameException.class);
     }
 
@@ -1064,36 +1268,42 @@ public abstract class PageObject {
         return getRenderedView().waitFor(webElement);
     }
 
+    public WebElementFacadeWait waitForElement() {
+        return getRenderedView().waitForElement();
+    }
 
     public Alert getAlert() {
         return driver.switchTo().alert();
     }
 
     public Actions withAction() {
-        WebDriver proxiedDriver = (getDriver() instanceof WebElementFacade) ?
+        WebDriver proxiedDriver = (getDriver() instanceof WebDriverFacade) ?
                 ((WebDriverFacade) getDriver()).getProxiedDriver() : getDriver();
-        return new Actions(proxiedDriver);
+        return new SerenityActions(proxiedDriver);
     }
 
     public class FieldEntry {
 
-        private final String value;
+        private final CharSequence[] keysToSend;
 
-        public FieldEntry(final String value) {
-            this.value = value;
+        public FieldEntry(final CharSequence... keysToSend) {
+            this.keysToSend = keysToSend;
         }
 
         public void into(final WebElement field) {
-            element(field).type(value);
+            element(field).type(keysToSend);
         }
 
         public void into(final net.serenitybdd.core.pages.WebElementFacade field) {
-            field.type(value);
+            field.type(keysToSend);
         }
 
-        public void intoField(final By bySelector) {
+        public void into(final By bySelector) {
             WebElement field = getDriver().findElement(bySelector);
             into(field);
+        }
+        public void into(String selector) {
+            $(selector).type(keysToSend);
         }
     }
 
@@ -1105,11 +1315,11 @@ public abstract class PageObject {
         return new ThucydidesFluentAdapter(getDriver());
     }
 
-    public <T extends WebElementFacade> T moveTo(String xpathOrCssSelector) {
+    public <T extends WebElementFacade> T moveTo(String xpathOrCssSelector, Object... arguments) {
         if (!driverIsDisabled()) {
-            withAction().moveToElement(findBy(xpathOrCssSelector)).perform();
+            withAction().moveToElement(findBy(xpathOrCssSelector, arguments)).perform();
         }
-        return findBy(xpathOrCssSelector);
+        return findBy(xpathOrCssSelector, arguments);
     }
 
     public <T extends WebElementFacade> T moveTo(By locator) {

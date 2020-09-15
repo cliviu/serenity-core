@@ -5,6 +5,7 @@ import net.thucydides.core.ListenerInWrongPackage;
 import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.annotations.Feature;
 import net.thucydides.core.annotations.Story;
+import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.model.TestResult;
 import net.thucydides.core.model.TestStep;
@@ -19,7 +20,6 @@ import net.thucydides.core.util.ExtendedTemporaryFolder;
 import net.thucydides.core.util.FileSystemUtils;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
-import net.thucydides.core.configuration.SystemPropertiesConfiguration;
 import net.thucydides.core.webdriver.ThucydidesWebDriverSupport;
 import org.junit.*;
 import org.mockito.Mock;
@@ -1232,7 +1232,7 @@ public class WhenRecordingStepExecutionResults {
 
         FlatScenarioSteps steps = stepFactory.getSharedStepLibraryFor(FlatScenarioSteps.class);
 
-        environmentVariables.setProperty(ThucydidesSystemProperty.THUCYDIDES_STEP_DELAY.getPropertyName(), "100");
+        environmentVariables.setProperty(ThucydidesSystemProperty.SERENITY_STEP_DELAY.getPropertyName(), "100");
 
         long startTime = System.currentTimeMillis();
         steps.step_one();

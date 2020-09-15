@@ -40,6 +40,7 @@ class WhenWaitingForDelayedResults extends Specification {
             theTestResult() == SUCCESS
     }
 
+
     def "should not wait forever if the result never arrives"() {
         given:
             Actor jane = Actor.named("Jane")
@@ -69,7 +70,7 @@ class WhenWaitingForDelayedResults extends Specification {
                                   orComplainWith(SomethingBadHappenedException)).
                         waitingForNoLongerThan(100).milliseconds())
         then:
-            theTestResult() == ERROR
+        theFailureClass() == SomethingBadHappenedException.getCanonicalName()
     }
 
     def "should report custom error if one is declared outside of the eventually scope"() {
@@ -80,11 +81,15 @@ class WhenWaitingForDelayedResults extends Specification {
         jane.should(eventually(seeThat(TheClickerValue.of(clicker), equalTo(-1))).
                 waitingForNoLongerThan(100).milliseconds().orComplainWith(SomethingBadHappenedException))
         then:
-        theTestResult() == ERROR
+        theFailureClass() == SomethingBadHappenedException.getCanonicalName()
     }
 
     private TestResult theTestResult() {
         StepEventBus.eventBus.baseStepListener.testOutcomes[0].result
+    }
+
+    private String theFailureClass() {
+        StepEventBus.eventBus.baseStepListener.testOutcomes[0].testFailureClassname
     }
 }
 
@@ -114,7 +119,29 @@ class TheClickerValue implements Question<Integer> {
 
     @Override
     Integer answeredBy(Actor actor) {
-        clicker.click();
+        clicker.click()
+        return clicker.count;
+    }
+}
+
+
+class TheClickerValueWithAnExpectedException implements Question<Integer> {
+    private final Clicker clicker;
+
+    TheClickerValueWithAnExpectedException(Clicker clicker) {
+        this.clicker = clicker
+    }
+
+    public static TheClickerValueWithAnExpectedException of(Clicker clicker) {
+        new TheClickerValueWithAnExpectedException(clicker)
+    }
+
+    @Override
+    Integer answeredBy(Actor actor) {
+        clicker.click()
+        if (clicker.count < 10) {
+            throw new IllegalStateException("Ignore this")
+        }
         return clicker.count;
     }
 }

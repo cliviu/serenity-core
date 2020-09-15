@@ -11,6 +11,7 @@ public class BaseScenarioInSomeOtherPackage extends ScenarioSteps{
 
     public String returnFoo() {
         return "proportionOf";
+
     }
 
 }

@@ -1,19 +1,26 @@
 package net.thucydides.core.reports;
 
-import com.typesafe.config.*;
-import net.serenitybdd.core.environment.*;
-import net.thucydides.core.*;
-import net.thucydides.core.guice.*;
-import net.thucydides.core.model.*;
-import net.thucydides.core.reports.junit.*;
-import net.thucydides.core.util.*;
-import net.thucydides.core.webdriver.*;
-import org.slf4j.*;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
+import com.typesafe.config.ConfigValueFactory;
+import net.serenitybdd.core.environment.ConfiguredEnvironment;
+import net.thucydides.core.ThucydidesSystemProperty;
+import net.thucydides.core.guice.Injectors;
+import net.thucydides.core.model.TestOutcome;
+import net.thucydides.core.reports.junit.JUnitXMLOutcomeReporter;
+import net.thucydides.core.util.EnvironmentVariables;
+import net.thucydides.core.webdriver.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.inject.*;
-import java.io.*;
-import java.nio.charset.*;
-import java.nio.file.*;
+import javax.inject.Inject;
+import java.io.File;
+import java.io.PrintWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -129,6 +136,8 @@ public class ReportService {
         for (final AcceptanceTestFullReporter reporter : getSubscribedFullReporters()) {
             generateFullReportFor(allTestOutcomes, reporter);
         }
+        generateJUnitTestResults(allTestOutcomes);
+
     }
 
     /**
@@ -176,7 +185,6 @@ public class ReportService {
                     LOGGER.debug("Processing test outcome " + outcome.getCompleteName() + " done");
                 }));
             }
-            generateJUnitTestResults(testOutcomes);
             waitForReportGenerationToFinish(tasks);
         } finally {
             LOGGER.debug("Shutting down executor service");
@@ -216,15 +224,14 @@ public class ReportService {
 
         ServiceLoader<AcceptanceTestReporter> reporterServiceLoader = ServiceLoader.load(AcceptanceTestReporter.class);
         Iterator<AcceptanceTestReporter> reporterImplementations = reporterServiceLoader.iterator();
-        // Service.providers(AcceptanceTestReporter.class);
 
         LOGGER.debug("Reporting formats: " + formatConfiguration.getFormats());
 
         while (reporterImplementations.hasNext()) {
             AcceptanceTestReporter reporter = reporterImplementations.next();
-            LOGGER.debug("Found reporter: " + reporter + "(format = " + reporter.getFormat() + ")");
+            LOGGER.trace("Found reporter: " + reporter + "(format = " + reporter.getFormat() + ")");
             if (!reporter.getFormat().isPresent() || formatConfiguration.getFormats().contains(reporter.getFormat().get())) {
-                LOGGER.debug("Registering reporter: " + reporter);
+                LOGGER.trace("Registering reporter: " + reporter);
                 reporters.add(reporter);
             }
         }

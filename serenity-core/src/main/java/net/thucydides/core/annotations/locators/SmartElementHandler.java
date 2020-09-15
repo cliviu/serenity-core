@@ -6,7 +6,6 @@ import org.openqa.selenium.support.pagefactory.ElementLocator;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.concurrent.TimeUnit;
 
 public class SmartElementHandler extends AbstractSingleItemHandler<WebElementFacade> {
 
@@ -45,22 +44,6 @@ public class SmartElementHandler extends AbstractSingleItemHandler<WebElementFac
             throw new RuntimeException(String.format(NO_SUITABLE_CONSTRUCTOR_FOUND_FMT2, className, className));
         }
 
-//        try {
-//            constructor = implementerClass.getConstructor(WebDriver.class, ElementLocator.class, long.class, long.class);
-//            instance = constructor.newInstance(page.getDriver(), locator,
-//                    page.getImplicitWaitTimeout().toMillis(),
-//                    page.getWaitForTimeout().toMillis());
-//        } catch (NoSuchMethodException e) {
-//            try {
-//                constructor = implementerClass.getConstructor(WebDriver.class, ElementLocator.class, WebElement.class, long.class, long.class);
-//                instance = constructor.newInstance(page.getDriver(), locator, null,
-//                        page.getImplicitWaitTimeout().toMillis(),
-//                        page.getWaitForTimeout().toMillis());
-//            } catch (NoSuchMethodException e1) {
-//                String className = implementerClass.getSimpleName();
-//                throw new RuntimeException(String.format(NO_SUITABLE_CONSTRUCTOR_FOUND_FMT2, className, className));
-//            }
-//        }
         return instance;
     }
 

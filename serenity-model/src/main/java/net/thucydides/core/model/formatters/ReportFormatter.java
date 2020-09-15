@@ -136,5 +136,4 @@ public class ReportFormatter {
         });
         return sortedIssues;
     }
-
 }

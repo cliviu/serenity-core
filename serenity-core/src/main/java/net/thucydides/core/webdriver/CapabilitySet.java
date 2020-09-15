@@ -2,14 +2,11 @@ package net.thucydides.core.webdriver;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Splitter;
-import net.serenitybdd.core.collect.NewList;
-import java.util.HashMap;
 import net.thucydides.core.util.EnvironmentVariables;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static net.thucydides.core.ThucydidesSystemProperty.SERENITY_DRIVER_CAPABILITIES;
 
@@ -27,7 +24,7 @@ class CapabilitySet {
     }
 
     public Map<String,Object> getCapabilities() {
-        Map<String,Object> capabilitiesMap = new HashMap();
+        Map<String,Object> capabilitiesMap = new HashMap<>();
 
         String specifiedCapabilities = SERENITY_DRIVER_CAPABILITIES.from(environmentVariables);
         if (StringUtils.isNotEmpty(specifiedCapabilities)) {
@@ -38,39 +35,14 @@ class CapabilitySet {
     }
 
     private  Map<String,Object> addCapabilityMapValues(Iterable<String> capabilityValues) {
-        Map<String,Object> capabilitiesMap = new HashMap();
+        Map<String,Object> capabilitiesMap = new HashMap<>();
         for(String capability : capabilityValues) {
             CapabilityToken token = new CapabilityToken(capability);
             if (token.isDefined()) {
-                capabilitiesMap.put(token.getName(), asObject(token.getValue()));
+                capabilitiesMap.put(token.getName(), CapabilityValue.asObject(token.getValue()));
             }
         }
         return capabilitiesMap;
-    }
-
-    private Object asObject(String value) {
-        if (StringUtils.isNumeric(value))  {
-            return Integer.parseInt(value);
-        }
-        if (value.toLowerCase().equals("true") || value.toLowerCase().equals("false")) {
-            return Boolean.parseBoolean(value);
-        }
-        if (isAList(value)) {
-            return asList(value);
-        }
-        return value;
-    }
-
-    private List<Object> asList(String value) {
-        String listContents = StringUtils.removeEnd(StringUtils.removeStart(value, "["), "]");
-        List<String> items = Splitter.on(",").trimResults().splitToList(listContents);
-        return items.stream()
-                .map(this::asObject)
-                .collect(Collectors.toList());
-    }
-
-    private boolean isAList(String value) {
-        return value.startsWith("[") && value.endsWith("]");
     }
 
     private static class CapabilityToken {
@@ -78,14 +50,40 @@ class CapabilitySet {
         private final String value;
 
         private CapabilityToken(String capability) {
-            int colonIndex = capability.indexOf(":");
+
+            int colonIndex = capability.lastIndexOf(":");
             if (colonIndex >= 0)  {
+                boolean colonIndexFound = false;
+                int lastIndex = capability.length();
+                while(!colonIndexFound) {
+                    int lastColonIndex = capability.lastIndexOf(":", lastIndex);
+                    if (lastColonIndex > 0) {
+                        colonIndex = lastColonIndex;
+                        if ((capability.length() >= colonIndex + 1) && isFollowedByPathSeparator(capability, colonIndex)) {
+                            if (lastIndex == colonIndex - 1) {
+                                colonIndexFound = true;
+                                //been here before, only single colon followed by a path separator found
+                                break;
+                            }
+                            lastIndex = colonIndex - 1;
+                        } else {
+                            colonIndexFound = true;
+                        }
+                    }
+                    else {
+                       colonIndexFound = true;
+                    }
+                }
                 name = capability.substring(0, colonIndex);
                 value = capability.substring(colonIndex + 1);
             } else {
                 name = capability;
                 value = null;
             }
+        }
+
+        private boolean isFollowedByPathSeparator(String capability, int colonIndex) {
+            return (capability.charAt(colonIndex+1) =='\\') || (capability.charAt(colonIndex+1) =='/');
         }
 
         public String getName() {

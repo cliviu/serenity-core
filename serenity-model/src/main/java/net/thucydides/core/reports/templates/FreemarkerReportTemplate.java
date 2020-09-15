@@ -5,7 +5,6 @@ import freemarker.core.ParseException;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import freemarker.template.TemplateExceptionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,12 +31,9 @@ public class FreemarkerReportTemplate implements ReportTemplate {
         try {
             Environment environment = template.createProcessingEnvironment(context, writer);
             environment.setOutputEncoding(StandardCharsets.UTF_8.name());
-            environment.setTemplateExceptionHandler(new TemplateExceptionHandler() {
-                @Override
-                public void handleTemplateException(TemplateException te, Environment env, Writer out) throws TemplateException {
-                    LOGGER.warn("Report generation failed", te);
-                    throw te;
-                }
+            environment.setTemplateExceptionHandler((te, env, out) -> {
+                LOGGER.warn("Report generation failed", te);
+                throw te;
             });
             environment.process();
         } catch (TemplateException templateException) {

@@ -1,5 +1,6 @@
 package net.serenitybdd.core.webdriver.driverproviders;
 
+import io.github.bonigarcia.wdm.WebDriverManager;
 import net.serenitybdd.core.buildinfo.DriverCapabilityRecord;
 import net.serenitybdd.core.di.WebDriverInjectors;
 import net.serenitybdd.core.webdriver.servicepools.ChromeServicePool;
@@ -12,23 +13,19 @@ import net.thucydides.core.webdriver.SupportedWebDriver;
 import net.thucydides.core.webdriver.stubs.WebDriverStub;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 
 public class ChromeDriverProvider implements DriverProvider {
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
+
     private final DriverCapabilityRecord driverProperties;
-    private static final Logger LOGGER = LoggerFactory.getLogger(ChromeDriverProvider.class);
 
     private final DriverServicePool driverServicePool = new ChromeServicePool();
-
-    private DriverServicePool getDriverServicePool() throws IOException {
-        driverServicePool.ensureServiceIsRunning();
-        return driverServicePool;
-    }
 
     private final FixtureProviderService fixtureProviderService;
 
@@ -42,21 +39,48 @@ public class ChromeDriverProvider implements DriverProvider {
         if (StepEventBus.getEventBus().webdriverCallsAreSuspended()) {
             return new WebDriverStub();
         }
-        DesiredCapabilities capabilities = requestedChromeCapabilities(options, environmentVariables);
-        driverProperties.registerCapabilities("chrome", capabilitiesToProperties(capabilities));
 
-        try {
-            return getDriverServicePool().newDriver(capabilities);
-        } catch (IOException couldNotStartChromeServer) {
-            LOGGER.warn("Failed to start the chrome driver service, using a native driver instead",  couldNotStartChromeServer.getMessage());
-            CapabilityEnhancer enhancer = new CapabilityEnhancer(environmentVariables, fixtureProviderService);
-            return new ChromeDriver(enhancer.enhanced(capabilities, SupportedWebDriver.CHROME));
+        if(isDriverAutomaticallyDownloaded(environmentVariables)) {
+            logger.info("Using automatically driver download");
+            WebDriverManager.chromedriver().setup();
+        } else {
+            logger.info("Not using automatically driver download");
         }
+        DesiredCapabilities enhancedCapabilities = enhancedCapabilitiesConfiguredIn(environmentVariables, options);
+        driverProperties.registerCapabilities("chrome", capabilitiesToProperties(enhancedCapabilities));
+
+        ChromeOptions chromeOptions = chromeDriverCapabilitiesDefinedIn(environmentVariables,options).configuredOptions();
+        enhancedCapabilities.asMap().forEach(
+                chromeOptions::setCapability
+        );
+
+        //
+        // Check for extended classes to add extra ChromeOptions configuration
+        //
+        final ChromeOptions enhancedChromeOptions = ConfigureChromeOptions.from(environmentVariables).to(chromeOptions);
+
+        WebDriver newDriver = ProvideNewDriver.withConfiguration(environmentVariables,
+                enhancedCapabilities,
+                driverServicePool,
+                DriverServicePool::newDriver,
+                (pool, capabilities) -> new ChromeDriver(enhancedChromeOptions)
+        );
+
+        //
+        // Perform any custom configuration to the new driver
+        //
+        EnhanceDriver.from(environmentVariables).to(newDriver);
+
+        return newDriver;
     }
 
-    private DesiredCapabilities requestedChromeCapabilities(String options, EnvironmentVariables environmentVariables) {
-        DesiredCapabilities capabilities = new ChromeDriverCapabilities(environmentVariables, options).getCapabilities();
+    private DesiredCapabilities enhancedCapabilitiesConfiguredIn(EnvironmentVariables environmentVariables, String options) {
+        DesiredCapabilities capabilities = chromeDriverCapabilitiesDefinedIn(environmentVariables,options).getCapabilities();
         CapabilityEnhancer enhancer = new CapabilityEnhancer(environmentVariables, fixtureProviderService);
         return enhancer.enhanced(capabilities, SupportedWebDriver.CHROME);
+    }
+
+    private ChromeDriverCapabilities chromeDriverCapabilitiesDefinedIn(EnvironmentVariables environmentVariables, String options) {
+        return new ChromeDriverCapabilities(environmentVariables, options);
     }
 }

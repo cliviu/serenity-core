@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.EMPTY_LIST;
 import static net.thucydides.core.reports.html.ReportNameProvider.NO_CONTEXT;
@@ -26,7 +29,6 @@ public abstract class BaseRequirementsService implements RequirementsService {
 
     protected final EnvironmentVariables environmentVariables;
 
-    private static final List<Requirement> NO_REQUIREMENTS = Collections.synchronizedList(new ArrayList<Requirement>());
     private static final Logger LOGGER = LoggerFactory.getLogger(BaseRequirementsService.class);
 
     public BaseRequirementsService(EnvironmentVariables environmentVariables) {
@@ -35,23 +37,9 @@ public abstract class BaseRequirementsService implements RequirementsService {
 
     public abstract List<Requirement> getRequirements();
 
-    public abstract  List<? extends RequirementsTagProvider> getRequirementsTagProviders();
+    public abstract List<? extends RequirementsTagProvider> getRequirementsTagProviders();
 
     public abstract Optional<ReleaseProvider> getReleaseProvider();
-
-    protected List<Requirement> addParentsTo(List<Requirement> requirements) {
-        return addParentsTo(requirements, null);
-    }
-
-    protected List<Requirement> addParentsTo(List<Requirement> requirements, String parent) {
-        List<Requirement> augmentedRequirements = new ArrayList<>();
-        for(Requirement requirement : requirements) {
-            List<Requirement> children = requirement.hasChildren()
-                    ? addParentsTo(requirement.getChildren(),requirement.getName()) : NO_REQUIREMENTS;
-            augmentedRequirements.add(requirement.withParent(parent).withChildren(children));
-        }
-        return augmentedRequirements;
-    }
 
     public java.util.Optional<Requirement> getParentRequirementFor(TestOutcome testOutcome) {
 
@@ -90,13 +78,9 @@ public abstract class BaseRequirementsService implements RequirementsService {
             java.util.Optional<Requirement> requirement = getParentRequirementOf(testOutcome, tagProvider);
             if (requirement.isPresent()) {
                 LOGGER.debug("Requirement found for test outcome " + testOutcome.getTitle() + "-" + testOutcome.getIssueKeys() + ": " + requirement);
-                if (matchingAncestorFor(requirement.get()).isPresent()) {
-                    Requirement matchingAncestor = matchingAncestorFor(requirement.get()).get();
-                    return getRequirementAncestors().get(matchingAncestor);
-//                }
-//
-//                if ((getRequirementAncestors() != null) && (getRequirementAncestors().containsKey(requirement.get()))) {
-//                    return getRequirementAncestors().get(requirement.get());
+                Optional<Requirement> matchingAncestor = matchingAncestorFor(requirement.get());
+                if (matchingAncestor.isPresent()) {
+                    return getRequirementAncestors().get(matchingAncestor.get());
                 } else {
                     LOGGER.warn("Requirement without identified ancestors found test outcome " + testOutcome.getTitle() + "-" + testOutcome.getIssueKeys() + ": " + requirement);
                 }
@@ -107,7 +91,7 @@ public abstract class BaseRequirementsService implements RequirementsService {
 
     Optional<Requirement> matchingAncestorFor(Requirement requirement) {
         return getRequirementAncestors().keySet().stream().filter(
-               requirementKey -> requirementKey.matches(requirement)
+                requirementKey -> requirementKey.matches(requirement)
         ).findFirst();
     }
 
@@ -161,12 +145,17 @@ public abstract class BaseRequirementsService implements RequirementsService {
     }
 
     private java.util.Optional<Requirement> findMatchingIndexedRequirement(Requirement requirement) {
-        for(Requirement indexedRequirement : AllRequirements.in(requirements)) {
-            if (requirement.matches(indexedRequirement)) {
-                return java.util.Optional.of(mostPreciseOf(requirement,indexedRequirement));
-            }
-        }
-        return java.util.Optional.empty();
+        return AllRequirements.asStreamFrom(requirements)
+                .filter(requirement::matches)
+                .map(matchingRequirement -> mostPreciseOf(requirement, matchingRequirement))
+                .findFirst();
+//
+//        for(Requirement indexedRequirement : AllRequirements.in(requirements)) {
+//            if (requirement.matches(indexedRequirement)) {
+//                return java.util.Optional.of(mostPreciseOf(requirement,indexedRequirement));
+//            }
+//        }
+//        return java.util.Optional.empty();
     }
 
     private Requirement mostPreciseOf(Requirement thisRequirement, Requirement thatRequirement) {
@@ -188,27 +177,40 @@ public abstract class BaseRequirementsService implements RequirementsService {
         return releases;
     }
 
-    public List<String> getTopLevelRequirementTypes() {
-        List<String> requirementTypes = new ArrayList<>();
-        for(Requirement requirement : getRequirements()) {
-            requirementTypes.add(requirement.getType());
-        }
-        return requirementTypes;
-    }
+//    public List<String> getTopLevelRequirementTypes() {
+//        return getRequirements()
+//                .stream()
+//                .map(Requirement::getType)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//
+//        List<String> requirementTypes = new ArrayList<>();
+//        for(Requirement requirement : getRequirements()) {
+//            requirementTypes.add(requirement.getType());
+//        }
+//        return requirementTypes;
+//    }
 
     public List<String> getRequirementTypes() {
-        List<String> requirementTypes = new ArrayList<>();
-        for(String type : requirementTypesDefinedIn(getRequirements())) {
-            if (!requirementTypes.contains(type)) {
-                requirementTypes.add(type);
-            }
-        }
-        return requirementTypes;
+
+        return requirementTypesDefinedIn(getRequirements())
+                .stream()
+                .distinct()
+                .collect(Collectors.toList());
+//
+//        List<String> requirementTypes = new ArrayList<>();
+//        for(String type : requirementTypesDefinedIn(getRequirements())) {
+//            if (!requirementTypes.contains(type)) {
+//                requirementTypes.add(type);
+//            }
+//        }
+//        return requirementTypes;
     }
 
-    private Collection<? extends String> requirementTypesDefinedIn(List<Requirement> requirements) {
+    private Collection<String> requirementTypesDefinedIn(List<Requirement> requirements) {
         List<String> requirementTypes = new ArrayList<>();
-        for(Requirement requirement : requirements) {
+        for (Requirement requirement : requirements) {
             if (!requirementTypes.contains(requirement.getType())) {
                 requirementTypes.add(requirement.getType());
             }
@@ -219,6 +221,18 @@ public abstract class BaseRequirementsService implements RequirementsService {
         return requirementTypes;
     }
 
+    private Collection<TestTag> requirementTagsOfType(List<Requirement> requirements, List<String> tagTypes) {
+        return AllRequirements.asStreamFrom(requirements)
+                .map(requirement -> tagsWithTypes(requirement, tagTypes))
+                .flatMap(Function.identity())
+                .collect(Collectors.toList());
+    }
+
+    private Stream<TestTag> tagsWithTypes(Requirement requirement, List<String> tagTypes) {
+            return requirement.getTags()
+                    .stream()
+                    .filter(tag -> tagTypes.contains(tag.getType()));
+    }
 
     @Override
     public List<String> getReleaseVersionsFor(TestOutcome testOutcome) {
@@ -244,4 +258,30 @@ public abstract class BaseRequirementsService implements RequirementsService {
         return getRequirementTypes().contains(tag.getType());
     }
 
+    @Override
+    public Collection<TestTag> getTagsOfType(List<String> tagTypes) {
+        return requirementTagsOfType(getRequirements(), tagTypes);
+    }
+
+    @Override
+    public Collection<Requirement> getRequirementsWithTagsOfType(List<String> tagTypes) {
+        return AllRequirements.asStreamFrom(requirements)
+                .filter(requirement -> hasTagOfType(requirement, tagTypes))
+                .collect(Collectors.toList());
+    }
+
+
+    private boolean hasTagOfType(Requirement requirement, List<String> tagTypes) {
+        return requirement.getTags()
+                .stream()
+                .anyMatch(tag -> tagTypes.contains(tag.getType()));
+    }
+
+
+    public boolean containsEmptyRequirementWithTag(TestTag tag) {
+        return AllRequirements.asStreamFrom(requirements)
+                .anyMatch(
+                        requirement -> (requirement.hasTag(tag) && requirement.containsNoScenarios())
+                );
+    }
 }

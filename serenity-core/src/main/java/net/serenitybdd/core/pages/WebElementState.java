@@ -49,6 +49,7 @@ public interface WebElementState {
      */
     void shouldNotBeCurrentlyVisible();
 
+
     /**
      * Does this element currently have the focus.
      */
@@ -101,6 +102,8 @@ public interface WebElementState {
 
     boolean isEnabled();
 
+    boolean isDisabled();
+
     void shouldNotBeEnabled();
 
     String getSelectedVisibleTextValue();
@@ -119,5 +122,11 @@ public interface WebElementState {
 
     String getTextValue();
 
+    String getValue();
+
+    String getText();
+
     WebElementState expect(String errorMessage);
+
+    boolean isClickable();
 }

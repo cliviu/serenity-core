@@ -1,17 +1,17 @@
 package net.thucydides.core.requirements;
 
-import com.google.common.base.*;
-import net.serenitybdd.core.collect.*;
-import net.thucydides.core.*;
-import net.thucydides.core.requirements.model.*;
-import net.thucydides.core.util.*;
+import com.google.common.base.Splitter;
+import net.serenitybdd.core.collect.NewList;
+import net.thucydides.core.ThucydidesSystemProperty;
+import net.thucydides.core.requirements.model.RequirementsConfiguration;
+import net.thucydides.core.util.EnvironmentVariables;
 
-import java.util.*;
+import java.util.List;
 
 
 public class ExcludedUnrelatedRequirementTypes {
 
-    private final static String DEFAULT_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE = "capability,epic,feature";
+    private final static String DEFAULT_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE = "theme,epic,capability,feature";
 
     private final static List<String> EXCLUDE_NONE = NewList.of("none");
 
@@ -27,7 +27,7 @@ public class ExcludedUnrelatedRequirementTypes {
 
     public static ExcludedUnrelatedRequirementTypes definedIn(EnvironmentVariables environmentVariables) {
         String unrleatedRequirementTypes =
-                ThucydidesSystemProperty.THUCYDIDES_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE.from(environmentVariables,
+                ThucydidesSystemProperty.SERENITY_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE.from(environmentVariables,
                         DEFAULT_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE);
 
         return new ExcludedUnrelatedRequirementTypes(

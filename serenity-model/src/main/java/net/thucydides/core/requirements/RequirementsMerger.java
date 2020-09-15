@@ -1,9 +1,9 @@
 package net.thucydides.core.requirements;
 
-import net.serenitybdd.core.collect.*;
-import net.thucydides.core.requirements.model.*;
+import net.thucydides.core.requirements.model.Requirement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by john on 16/04/2015.
@@ -19,7 +19,7 @@ public class RequirementsMerger {
             mergeNewRequirement(newRequirement, mergedRequirements);
         }
 
-        return NewList.copyOf(mergedRequirements);
+        return new ArrayList<>(mergedRequirements);
     }
 
     private void mergeNewRequirement(Requirement newRequirement, List<Requirement> existingRequirements) {

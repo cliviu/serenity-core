@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 /**
  * Transforms words to singular, plural, humanized (human readable), underscore, camel case, or ordinal form. This is inspired by
- * the <a href="http://api.rubyonrails.org/classes/Inflector.html">Inflector</a> class in <a
+ * the <a href="https://api.rubyonrails.org/classes/ActiveSupport/Inflector.html">Inflector</a> class in <a
  * href="http://www.rubyonrails.org">Ruby on Rails</a>, which is distributed under the <a
  * href="http://wiki.rubyonrails.org/rails/pages/License">Rails license</a>.
  *
@@ -111,7 +111,7 @@ public class Inflector {
         return wordStr;
     }
 
-    String pluralize(Object word,
+    public String pluralize(Object word,
                      int count) {
         if (word == null) return null;
         if (count == 1 || count == -1) {
@@ -190,6 +190,9 @@ public class Inflector {
     public String humanize( String lowerCaseAndUnderscoredWords,
                             String... removableTokens ) {
 
+        if (isCamelCase(lowerCaseAndUnderscoredWords)) {
+            lowerCaseAndUnderscoredWords = underscore(lowerCaseAndUnderscoredWords);
+        }
         String result = humanReadableFormOf(lowerCaseAndUnderscoredWords, removableTokens);
 
         Set<Acronym> acronyms = Acronym.acronymsIn(result);
@@ -201,6 +204,13 @@ public class Inflector {
         }
 
         return StringUtils.capitalize(result);
+    }
+
+    private final static Pattern LOWER_CAMEL_CASE = Pattern.compile("[a-z]+((\\d)|([A-Z0-9][a-z0-9]+))*([A-Z])?");
+    private final static Pattern UPPER_CAMEL_CASE = Pattern.compile("([A-Z][a-z0-9]+)((\\d)|([A-Z0-9][a-z0-9]+))*([A-Z])?");
+
+    private boolean isCamelCase(String text) {
+        return LOWER_CAMEL_CASE.matcher(text).matches() || UPPER_CAMEL_CASE.matcher(text).matches();
     }
 
     private String humanReadableFormOf(String lowerCaseAndUnderscoredWords,
@@ -249,7 +259,7 @@ public class Inflector {
         if (result.length() == 0) return "";
         result = result.replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2");
         result = result.replaceAll("([a-z\\d])([A-Z])", "$1_$2");
-        result = result.replace('-', '_');
+//        result = result.replace('-', '_');
         if (delimiterChars != null) {
             for (char delimiterChar : delimiterChars) {
                 result = result.replace(delimiterChar, '_');

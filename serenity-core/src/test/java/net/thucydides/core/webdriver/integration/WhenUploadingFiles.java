@@ -4,6 +4,8 @@ import net.serenitybdd.core.pages.PageObject;
 import net.thucydides.core.pages.Pages;
 import net.thucydides.core.pages.components.FileToUpload;
 import net.thucydides.core.pages.components.FileToUploadCouldNotBeFoundException;
+import net.thucydides.core.util.EnvironmentVariables;
+import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.WebDriverFacade;
 import net.thucydides.core.webdriver.WebDriverFactory;
 import org.junit.AfterClass;
@@ -13,9 +15,7 @@ import org.junit.Test;
 import org.openqa.selenium.InvalidArgumentException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.support.FindBy;
 
 import java.io.File;
@@ -25,8 +25,6 @@ import java.net.URISyntaxException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class WhenUploadingFiles {
 
@@ -67,9 +65,10 @@ public class WhenUploadingFiles {
 
     @BeforeClass
     public static void open_local_static_site() {
-        ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.addArguments("--headless");
-        driver = new WebDriverFacade(ChromeDriver.class, new WebDriverFactory());
+        EnvironmentVariables environmentVariables = new MockEnvironmentVariables();
+        environmentVariables.setProperty("headless.mode","true");
+//        driver = new WebDriverFacade(ChromeDriver.class, new WebDriverFactory(), environmentVariables);
+        driver = new WebDriverFacade(HtmlUnitDriver.class, new WebDriverFactory(), environmentVariables);
         pageFactory = new Pages(driver);
         openStaticTestSite(driver);
     }

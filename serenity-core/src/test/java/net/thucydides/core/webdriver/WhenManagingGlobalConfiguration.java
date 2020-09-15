@@ -1,13 +1,14 @@
 package net.thucydides.core.webdriver;
 
-import net.thucydides.core.util.MockEnvironmentVariables;
 import net.thucydides.core.configuration.SystemPropertiesConfiguration;
+import net.thucydides.core.util.MockEnvironmentVariables;
 import org.junit.Before;
 import org.junit.Test;
 
 import static net.thucydides.core.util.FileSeparatorUtil.changeSeparatorIfRequired;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
 
 public class WhenManagingGlobalConfiguration {
 
@@ -23,20 +24,10 @@ public class WhenManagingGlobalConfiguration {
 
     @Test
     public void the_step_delay_value_can_be_defined_in_a_system_property() {
-        environmentVariables.setProperty("thucydides.step.delay", "1000");
+        environmentVariables.setProperty("serenity.step.delay", "1000");
 
         assertThat(configuration.getStepDelay(), is(1000));
     }
-
-    @Test
-    public void a_configuration_can_be_safely_copied() {
-        environmentVariables.setProperty("thucydides.step.delay", "1000");
-        Configuration copy = configuration.copy();
-        ((SystemPropertiesConfiguration) copy).getEnvironmentVariables().setProperty("thucydides.step.delay", "2000");
-        assertThat(copy.getStepDelay(), is(not(configuration.getStepDelay())));
-        assertThat(configuration.getStepDelay(), is(1000));
-    }
-
 
     @Test
     public void the_browser_restart_value_can_be_defined_in_a_system_property() {
@@ -81,8 +72,4 @@ public class WhenManagingGlobalConfiguration {
         assertThat(configuration.shouldUseAUniqueBrowser(), is(false));
     }
 
-    @Test
-    public void the_default_unique_browser_value_should_be_false() {
-        assertThat(configuration.shouldUseAUniqueBrowser(), is(false));
-    }
 }

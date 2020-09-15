@@ -4,7 +4,7 @@ import net.serenitybdd.screenplay.Actor;
 import net.thucydides.core.annotations.Step;
 
 import static net.serenitybdd.screenplay.Tasks.instrumented;
-import static net.serenitybdd.screenplay.rest.abiities.CallAnApi.as;
+import static net.serenitybdd.screenplay.rest.abilities.CallAnApi.as;
 
 /**
  * Put something to a REST resource.
@@ -18,7 +18,7 @@ public class Delete extends RestInteraction {
         this.resource = resource;
     }
 
-    @Step("{0} executes a PUT on the resource #resource")
+    @Step("{0} executes a DELETE on the resource #resource")
     @Override
     public <T extends Actor> void performAs(T actor) {
         rest().delete(as(actor).resolve(resource));

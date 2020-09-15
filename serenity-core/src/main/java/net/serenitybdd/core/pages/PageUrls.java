@@ -1,9 +1,12 @@
 package net.serenitybdd.core.pages;
 
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
+import net.serenitybdd.core.environment.EnvironmentSpecificConfiguration;
 import net.thucydides.core.annotations.DefaultUrl;
 import net.thucydides.core.annotations.NamedUrl;
 import net.thucydides.core.annotations.NamedUrls;
+import net.thucydides.core.guice.Injectors;
+import net.thucydides.core.util.EnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
 import org.apache.commons.lang3.StringUtils;
 
@@ -20,6 +23,7 @@ import java.util.Optional;
  */
 public class PageUrls {
     private static final String CLASSPATH_URL_PREFIX = "classpath:";
+    private static final String NAMED_URL_PREFIX = "page:";
     private static final int CLASSPATH_URL_PREFIX_LENGTH = CLASSPATH_URL_PREFIX.length();
     private Object pageObject;
 
@@ -36,6 +40,11 @@ public class PageUrls {
         this(pageObject, ConfiguredEnvironment.getConfiguration());
     }
 
+    public PageUrls(final Object pageObject, EnvironmentVariables environmentVariables) {
+        this(pageObject,
+             ConfiguredEnvironment.getConfiguration().withEnvironmentVariables(environmentVariables));
+    }
+
     public String getStartingUrl() {
         Optional<String> declaredDefaultUrl = getDeclaredDefaultUrl();
         String url;
@@ -47,7 +56,7 @@ public class PageUrls {
         return verified(url, pageObject);
     }
 
-    private Optional<String> getDeclaredDefaultUrl() {
+    public Optional<String> getDeclaredDefaultUrl() {
         DefaultUrl urlAnnotation = pageObject.getClass().getAnnotation(DefaultUrl.class);
         if (urlAnnotation != null) {
             return Optional.ofNullable(urlAnnotation.value());
@@ -66,7 +75,7 @@ public class PageUrls {
             } catch (MalformedURLException e) {
                 if (requestedUrl == null) {
                     throw new AssertionError("Undefined default URL for page object "
-                                             + pageObject.getClass().getSuperclass().getSimpleName());
+                            + pageObject.getClass().getSuperclass().getSimpleName());
                 } else {
                     throw new AssertionError("Invalid URL: " + requestedUrl);
                 }
@@ -81,9 +90,14 @@ public class PageUrls {
         if (isAClasspathResource(annotatedBaseUrl)) {
             URL baseUrl = obtainResourcePathFromClasspath(annotatedBaseUrl);
             return baseUrl.toString();
+        } else if (isANamedUrl(annotatedBaseUrl)) {
+            return namedUrlFrom(annotatedBaseUrl);
         } else {
             return annotatedBaseUrl;
         }
+    }
+    private static boolean isANamedUrl(String annotatedBaseUrl) {
+        return annotatedBaseUrl.startsWith(NAMED_URL_PREFIX);
     }
 
     private static boolean isAClasspathResource(String annotatedBaseUrl) {
@@ -98,6 +112,16 @@ public class PageUrls {
         }
         return resourceUrl;
     }
+
+
+    private static String namedUrlFrom(String annotatedBaseUrl) {
+        String pageName = annotatedBaseUrl.substring(NAMED_URL_PREFIX.length());
+        EnvironmentVariables environmentVariables = Injectors.getInjector().getInstance(EnvironmentVariables.class);
+        return EnvironmentSpecificConfiguration.from(environmentVariables)
+                .getOptionalProperty(pageName)
+                .orElse(environmentVariables.getProperty(pageName));
+    }
+
 
     private String getBaseUrl() {
         String baseUrl;
@@ -130,11 +154,15 @@ public class PageUrls {
     }
 
     private String prefixedWithDefaultUrl(String url) {
-        Optional<String> declaredDefaultUrl = getDeclaredDefaultUrl();
-        if (declaredDefaultUrl.isPresent() && isARelativeUrl(url)) {
-            return StringUtils.stripEnd(declaredDefaultUrl.get(),"/")
-                   + "/"
-                   + StringUtils.stripStart(url,"/");
+        Optional<String> optionalDeclaredDefaultUrl = getDeclaredDefaultUrl();
+        if (optionalDeclaredDefaultUrl.isPresent() && isARelativeUrl(url)) {
+            String declaredDefaultUrl = optionalDeclaredDefaultUrl.get();
+            if (isANamedUrl(declaredDefaultUrl)) {
+                declaredDefaultUrl = namedUrlFrom(declaredDefaultUrl);
+            }
+            return StringUtils.stripEnd(declaredDefaultUrl, "/")
+                    + "/"
+                    + StringUtils.stripStart(url, "/");
         } else {
             return url;
         }
@@ -149,15 +177,26 @@ public class PageUrls {
     private String urlWithParametersSubstituted(final String template,
                                                 final String[] parameterValues) {
 
-        String url = template;
+        String url = addBaseUrlTo(template);
         for (int i = 0; i < parameterValues.length; i++) {
             String variable = String.format("{%d}", i + 1);
             url = url.replace(variable, parameterValues[i]);
         }
-        return addBaseUrlTo(url);
+//        return addBaseUrlTo(url);
+        return url;
     }
 
-    private String addBaseUrlTo(final String url) {
+
+
+    public String addDefaultUrlTo(final String url) {
+        return prefixedWithDefaultUrl(url);
+    }
+
+    public String addBaseUrlTo(final String url) {
+        if (isANamedUrl(url)) {
+            return namedUrlFrom(url);
+        }
+
         if (isAClasspathResource(url) && baseUrlIsDefined()) {
             return getBaseUrl();
         }
@@ -188,7 +227,7 @@ public class PageUrls {
     }
 
     private String removeDoubleSlashesFrom(String url) {
-        return url.replaceAll("([^:])//","$1/");
+        return url.replaceAll("([^:])//", "$1/");
     }
 
     private String pathFrom(String url) throws MalformedURLException {

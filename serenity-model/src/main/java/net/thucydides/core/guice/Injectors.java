@@ -2,7 +2,6 @@ package net.thucydides.core.guice;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,7 +20,7 @@ public class Injectors {
         return getInjector(new ThucydidesModule());
     }
     
-    public static synchronized Injector getInjector(Module module) {
+    public static synchronized Injector getInjector(com.google.inject.Module module) {
         String moduleClassName = module.getClass().getCanonicalName();
         Injector injector = injectors.get(moduleClassName);
         if (injector == null) {

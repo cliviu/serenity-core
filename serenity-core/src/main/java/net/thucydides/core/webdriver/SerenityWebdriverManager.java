@@ -1,12 +1,16 @@
 package net.thucydides.core.webdriver;
 
-import net.thucydides.core.util.*;
-import org.openqa.selenium.*;
-import org.openqa.selenium.remote.*;
+import net.thucydides.core.util.EnvironmentVariables;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.SessionId;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 /**
  * Manage WebDriver instances.
@@ -48,7 +52,7 @@ public class SerenityWebdriverManager implements WebdriverManager {
      * override this method to use a custom driver if you really know what you
      * are doing.
      *
-     * @throws UnsupportedDriverException
+     * @throws DriverConfigurationError
      *             if the driver type is not supported.
      */
     private static WebDriver newDriver(final DriverConfiguration configuration,
@@ -95,6 +99,11 @@ public class SerenityWebdriverManager implements WebdriverManager {
     }
 
     @Override
+    public void overrideProperties(Map<String, String> propertyValues) {
+        configuration.getEnvironmentVariables().setProperties(propertyValues);
+    }
+
+    @Override
     public WebdriverManager withProperty(String property, String value) {
         EnvironmentVariables updatedEnvironmentVariables = configuration.getEnvironmentVariables().copy();
         updatedEnvironmentVariables.setProperty(property, value);
@@ -130,6 +139,10 @@ public class SerenityWebdriverManager implements WebdriverManager {
 
     public void clearCurrentDriver() {
         inThisTestThread().resetCurrentDriver();
+    }
+
+    public static void resetThisThread() {
+        webdriverInstancesThreadLocal.remove();
     }
 
     @Override

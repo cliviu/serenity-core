@@ -18,6 +18,7 @@ class WhenUsingSmartFindBy extends Specification {
     def setupSpec() {
         page.open()
         page.waitFor(1).second()
+
     }
 
 	def "should be able to find an element using jquery"(){

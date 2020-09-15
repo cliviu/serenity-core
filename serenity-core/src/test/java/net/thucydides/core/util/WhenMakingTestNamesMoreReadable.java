@@ -39,6 +39,11 @@ public class WhenMakingTestNamesMoreReadable {
     }
 
     @Test
+    public void should_cope_with_capitals_after_underscores() {
+        assertThat(NameConverter.humanize("SYSTEM_Availability_test"), is("SYSTEM availability test"));
+    }
+
+    @Test
     public void test_names_with_parameters_should_only_modify_the_name() {
         assertThat(NameConverter.humanize("aTestMethod: ABC def bGd"), is("A test method: ABC def bGd"));
     }
@@ -58,6 +63,10 @@ public class WhenMakingTestNamesMoreReadable {
         assertThat(NameConverter.humanize("aTESTMethod"), is("A TEST method"));
     }
 
+    @Test
+    public void should_recognize_word_acronyms() {
+        assertThat(NameConverter.humanize("A TEST method"), is("A TEST method"));
+    }
 
     @Test
     public void camelCase_method_names_should_be_converted_to_human_readable_sentences() {

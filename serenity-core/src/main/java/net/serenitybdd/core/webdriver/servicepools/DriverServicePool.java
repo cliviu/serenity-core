@@ -1,6 +1,5 @@
 package net.serenitybdd.core.webdriver.servicepools;
 
-import java.util.HashMap;
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
 import net.thucydides.core.util.EnvironmentVariables;
 import org.openqa.selenium.Capabilities;
@@ -69,7 +68,7 @@ public abstract class DriverServicePool<T extends DriverService> {
         }
     }
 
-    public WebDriver newDriver(Capabilities capabilities) throws IOException {
+    public WebDriver newDriver(Capabilities capabilities) {
         try {
             logger.debug("Creating new driver instance with capabilities: {}", capabilities);
             return new RemoteWebDriver(getDriverService().getUrl(), capabilities);

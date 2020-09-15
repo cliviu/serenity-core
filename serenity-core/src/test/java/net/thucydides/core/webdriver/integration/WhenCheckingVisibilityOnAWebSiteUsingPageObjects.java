@@ -1,5 +1,6 @@
 package net.thucydides.core.webdriver.integration;
 
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 import net.serenitybdd.core.pages.PageObject;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -9,8 +10,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 
 import static net.thucydides.core.webdriver.StaticTestSite.fileInClasspathCalled;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -38,9 +38,7 @@ public class WhenCheckingVisibilityOnAWebSiteUsingPageObjects {
     @BeforeClass
     public static void openStaticTestSite() {
         String url = "file://" + fileInClasspathCalled("static-site/index.html").getAbsolutePath();
-        ChromeOptions chromeOptions = new ChromeOptions();
-        chromeOptions.addArguments("--headless");
-        driver = new ChromeDriver();
+        driver = new HtmlUnitDriver(BrowserVersion.CHROME, true);
         driver.get(url);
     }
 

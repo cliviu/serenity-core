@@ -1,12 +1,12 @@
 package net.thucydides.core.webdriver;
 
+import com.gargoylesoftware.htmlunit.BrowserVersion;
 import net.thucydides.core.util.EnvironmentVariables;
 import net.thucydides.core.util.MockEnvironmentVariables;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.htmlunit.HtmlUnitDriver;
@@ -20,7 +20,7 @@ public class WhenUsingAProvidedDriver {
 
         @Override
         public WebDriver newDriver() {
-            return new HtmlUnitDriver();
+            return  new HtmlUnitDriver(BrowserVersion.CHROME, true);
         }
 
         @Override

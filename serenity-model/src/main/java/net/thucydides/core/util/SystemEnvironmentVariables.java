@@ -1,12 +1,13 @@
 package net.thucydides.core.util;
 
-import net.serenitybdd.core.collect.*;
-import org.apache.commons.lang3.*;
+import net.serenitybdd.core.collect.NewMap;
+import org.apache.commons.lang3.StringUtils;
 
-import java.io.*;
+import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.locks.*;
-import java.util.stream.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 /**
  * Return system environment variable values.
@@ -22,7 +23,7 @@ public class SystemEnvironmentVariables implements EnvironmentVariables {
 
     SystemEnvironmentVariables(Properties systemProperties, Map<String, String> systemValues) {
 
-        Map<String, String> propertyValues = new HashMap();
+        Map<String, String> propertyValues = new HashMap<>();
         for(String property : systemProperties.stringPropertyNames()) {
             propertyValues.put(property, systemProperties.getProperty(property));
         }
@@ -44,6 +45,9 @@ public class SystemEnvironmentVariables implements EnvironmentVariables {
         return (value == null) ? defaultValue : value;
     }
 
+    private void setValue(String name, String value) {
+        systemValues.put(name, value);
+    }
 
     public String getValue(Enum<?> property, String defaultValue) {
         return getValue(property.toString(), defaultValue);
@@ -150,10 +154,17 @@ public class SystemEnvironmentVariables implements EnvironmentVariables {
 
         propertySetLock.lock();
 
-        HashMap<String, String> workingCopy = new HashMap(properties);
+        HashMap<String, String> workingCopy = new HashMap<>(properties);
         workingCopy.put(name, value);
         properties = NewMap.copyOf(workingCopy);
 
+        propertySetLock.unlock();
+    }
+
+    public void setProperties(Map<String, String> properties) {
+
+        propertySetLock.lock();
+        this.properties.putAll(properties);
         propertySetLock.unlock();
     }
 
@@ -166,6 +177,24 @@ public class SystemEnvironmentVariables implements EnvironmentVariables {
         properties = NewMap.copyOf(workingCopy);
 
         propertySetLock.unlock();
+    }
+
+    @Override
+    public Map<String, String> asMap() {
+        Map<String, String> environmentValues = new HashMap<>(properties);
+        environmentValues.putAll(systemValues);
+        return environmentValues;
+    }
+
+    @Override
+    public Map<String, String> simpleSystemPropertiesAsMap() {
+        Map<String, String> environmentValues = new HashMap<>();
+        properties.keySet().stream()
+                    .filter(key -> !key.contains("."))
+                    .forEach(
+                            key -> environmentValues.put(key, properties.get(key))
+                    );
+        return environmentValues;
     }
 
     public EnvironmentVariables copy() {

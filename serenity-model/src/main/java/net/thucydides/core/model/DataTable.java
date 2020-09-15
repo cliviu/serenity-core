@@ -1,11 +1,15 @@
 package net.thucydides.core.model;
 
+import net.thucydides.core.requirements.model.cucumber.ExampleRowResultIcon;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toMap;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 /**
  * A table of test data
@@ -16,41 +20,53 @@ public class DataTable {
     private final boolean predefinedRows;
     private String scenarioOutline;
     private List<DataSetDescriptor> dataSetDescriptors;
-    private List<TestTag> tags;
     private transient AtomicInteger currentRow = new AtomicInteger(0);
+    private transient Map<Integer, Integer> lineNumbersForEachRow = new HashMap<>();
+    private final static String INFO_ICON = "<i class=\"fa fa-info-circle\"></i>";
 
     private final static List<DataTableRow> NO_ROWS = new ArrayList<>();
 
     protected DataTable(List<String> headers, List<DataTableRow> rows) {
-        this(null, headers, new CopyOnWriteArrayList<>(rows), null, null, Collections.singletonList(DataSetDescriptor.DEFAULT_DESCRIPTOR));
+        this(null, headers, new CopyOnWriteArrayList<>(rows), null, null, Collections.singletonList(DataSetDescriptor.DEFAULT_DESCRIPTOR), null);
     }
 
     protected DataTable(List<String> headers, List<DataTableRow> rows, String title, String description) {
-        this(null, headers, new CopyOnWriteArrayList<>(rows), title, description, Collections.singletonList(new DataSetDescriptor(0,0,title, description, Collections.emptyList())));
+        this(null, headers, new CopyOnWriteArrayList<>(rows), title, description, Collections.singletonList(new DataSetDescriptor(0, 0, title, description, Collections.emptyList())), null);
     }
 
-    protected DataTable(String scenarioOutline, List<String> headers, List<DataTableRow> rows, String title, String description, List<DataSetDescriptor> dataSetDescriptors) {
+    protected DataTable(String scenarioOutline,
+                        List<String> headers,
+                        List<DataTableRow> rows,
+                        String title,
+                        String description,
+                        List<DataSetDescriptor> dataSetDescriptors,
+                        Map<Integer, Integer> lineNumbersForEachRow) {
         this.scenarioOutline = scenarioOutline;
         this.headers = headers;
         this.rows = new CopyOnWriteArrayList<>(rows);
         this.predefinedRows = !rows.isEmpty();
         this.dataSetDescriptors = dataSetDescriptors;
-        this.tags = new ArrayList<>();
         if ((title != null) || (description != null)) {
             setLatestNameAndDescription(title, description);
         }
+        this.lineNumbersForEachRow = (lineNumbersForEachRow == null) ? new HashMap<>() : lineNumbersForEachRow;
     }
 
     protected DataTable(List<String> headers, List<DataTableRow> rows, boolean predefinedRows,
                         String scenarioOutline, List<DataSetDescriptor> dataSetDescriptors,
                         AtomicInteger currentRow) {
+        this(headers, rows, predefinedRows, scenarioOutline, dataSetDescriptors, currentRow, new ArrayList<>());
+    }
+
+    protected DataTable(List<String> headers, List<DataTableRow> rows, boolean predefinedRows,
+                        String scenarioOutline, List<DataSetDescriptor> dataSetDescriptors,
+                        AtomicInteger currentRow, Collection<TestTag> tags) {
         this.headers = headers;
         this.rows = rows;
         this.predefinedRows = predefinedRows;
         this.scenarioOutline = scenarioOutline;
         this.dataSetDescriptors = dataSetDescriptors;
         this.currentRow = currentRow;
-        this.tags = new ArrayList<>();
     }
 
     public void addTagsToLatestDataSet(List<TestTag> tags) {
@@ -59,13 +75,14 @@ public class DataTable {
         }
     }
 
-    public List<TestTag> getTags() {
-        return new ArrayList<>(tags);
+    public Collection<TestTag> getTags() {
+        return getExampleTags();
     }
 
     public void setScenarioOutline(String scenarioOutline) {
         this.scenarioOutline = scenarioOutline;
     }
+
     public static DataTableBuilder withHeaders(List<String> headers) {
         return new DataTableBuilder(headers);
     }
@@ -107,11 +124,29 @@ public class DataTable {
     }
 
     public void addRow(Map<String, ?> data) {
-        addRow(new DataTableRow(new ArrayList<>(data.values())));
+        addRow(new DataTableRow(new ArrayList<>(data.values()), 0));
+    }
+
+    public void updateLineNumbers(Map<Integer, Integer> lineNumbersOfEachRow) {
+        lineNumbersForEachRow().putAll(withLineNumbersIncrementedBy(lineNumbersOfEachRow.size() - 1,lineNumbersOfEachRow));
+    }
+
+    private Map<Integer, Integer> lineNumbersForEachRow() {
+        if (lineNumbersForEachRow == null) {
+            lineNumbersForEachRow = new HashMap<>();
+        }
+        return lineNumbersForEachRow;
+    }
+
+    private Map<? extends Integer, ? extends Integer> withLineNumbersIncrementedBy(int startRow, Map<Integer, Integer> lineNumbersOfEachRow) {
+        return lineNumbersOfEachRow.entrySet()
+                .stream()
+                .collect(toMap(entry -> entry.getKey() + startRow,
+                               Map.Entry::getValue));
     }
 
     public void addRow(List<?> data) {
-        addRow(new DataTableRow(new ArrayList<>(data)));
+        addRow(new DataTableRow(new ArrayList<>(data), 0));
     }
 
     public List<DataSetDescriptor> getDataSetDescriptors() {
@@ -124,20 +159,20 @@ public class DataTable {
     }
 
     public void appendRow(Map<String, ?> data) {
-        appendRow(new DataTableRow(new ArrayList<>(data.values())));
+        appendRow(new DataTableRow(new ArrayList<>(data.values()), 0));
     }
 
     public void appendRow(List<?> data) {
-        appendRow(new DataTableRow(new ArrayList<>(data)));
+        appendRow(new DataTableRow(new ArrayList<>(data), 0));
     }
 
-    void appendRow(DataTableRow dataTableRow) {
+    public void appendRow(DataTableRow dataTableRow) {
         rows.add(dataTableRow);
     }
 
     public void addRows(List<DataTableRow> rows) {
         for (DataTableRow row : rows) {
-            DataTableRow newRow = new DataTableRow(new ArrayList<>(row.getValues()));
+            DataTableRow newRow = new DataTableRow(new ArrayList<>(row.getValues()), row.getLineNumber());
             newRow.setResult(row.getResult());
             this.rows.add(newRow);
         }
@@ -146,7 +181,7 @@ public class DataTable {
 
     private void setLatestNameAndDescription(String name, String description) {
         if ((dataSetDescriptors == null) || (dataSetDescriptors.isEmpty())) {
-            dataSetDescriptors = Collections.singletonList(new DataSetDescriptor(0,0,name,description, Collections.emptyList()));
+            dataSetDescriptors = Collections.singletonList(new DataSetDescriptor(0, 0, name, description, Collections.emptyList()));
         } else {
             dataSetDescriptors = replaceLatestDescriptor(last(dataSetDescriptors).withNameAndDescription(name, description));
         }
@@ -202,43 +237,177 @@ public class DataTable {
     }
 
     void updateRowResultsTo(TestResult result) {
-        for(DataTableRow row : rows) {
+        for (DataTableRow row : rows) {
             row.setResult(result);
         }
     }
 
-    public String toMarkdown() {
+    public String toMarkdown(String featureName, String scenarioName) {
         StringBuilder renderedTable = new StringBuilder();
 
+        getDataSetDescriptors().forEach(
+                dataSetDescriptor -> {
+                    renderTableHeader(renderedTable, dataSetDescriptor);
+                    renderTableBody(renderedTable, dataSetDescriptor, featureName, scenarioName);
+                }
+        );
+
+        return renderedTable.toString();
+    }
+
+    private void renderTableBody(StringBuilder renderedTable,
+                                 DataSetDescriptor dataSetDescriptor,
+                                 String featureName,
+                                 String scenarioName) {
+        addHeaderTo(renderedTable);
+        addSeparatorsTo(renderedTable);
+        addRowsTo(renderedTable, dataSetDescriptor, featureName, scenarioName);
+    }
+
+    private void addRowsTo(StringBuilder renderedTable,
+                           DataSetDescriptor dataSetDescriptor,
+                           String featureName,
+                           String scenarioName) {
+        ExampleRowResultIcon exampleRowCounter = new ExampleRowResultIcon(featureName);
+
+        int startRow = dataSetDescriptor.getStartRow();
+        int rowCount = dataSetDescriptor.getRowCount();
+        int endRow = (rowCount > 0) ? startRow + rowCount - 1 : getRows().size() - 1;
+        for (int row = startRow; row <= endRow; row++) {
+            int lineNumber = lineNumbersForEachRow().getOrDefault(row, 0);
+            renderedTable.append("| ");
+            getRows().get(row).getValues().forEach(value -> renderedTable.append(value).append(" |"));
+            renderedTable.append(" ")
+                    .append(exampleRowCounter.resultToken(lineNumber))
+                    .append(" |")
+                    .append(System.lineSeparator());
+        }
+    }
+
+    private void addSeparatorsTo(StringBuilder renderedTable) {
+        renderedTable.append("| ");
+        for (int column = 0; column < getHeaders().size(); column++) {
+            renderedTable.append("------- | ");
+        }
+        addSeparatorCellTo(renderedTable);
+        renderedTable.append(System.lineSeparator());
+    }
+
+    private void addHeaderTo(StringBuilder renderedTable) {
         renderedTable.append("| ");
         getHeaders().forEach(
                 header -> renderedTable.append(header).append(" |")
         );
+        addBlankCellTo(renderedTable);
         renderedTable.append(System.lineSeparator());
+    }
 
-        renderedTable.append("| ");
-        for(int column = 0; column < getHeaders().size(); column++) {
-            renderedTable.append("------- | ");
+    private void addBlankCellTo(StringBuilder renderedTable) {
+        renderedTable.append("    | ");
+    }
+
+    private void addSeparatorCellTo(StringBuilder renderedTable) {
+        renderedTable.append("--- | ");
+    }
+
+    private void renderTableHeader(StringBuilder renderedTable, DataSetDescriptor dataSetDescriptor) {
+        renderedTable.append("Examples: ").append(dataSetDescriptor.getName()).append(System.lineSeparator());
+        if (isNotEmpty(dataSetDescriptor.getDescription())) {
+            renderedTable.append(System.lineSeparator())
+                    .append("<div class='example-description'>")
+                    .append(INFO_ICON)
+                    .append(" ")
+                    .append(dataSetDescriptor.getDescription())
+                    .append("</div>")
+                    .append(System.lineSeparator());
         }
-        renderedTable.append(" ").append(System.lineSeparator());
+        renderedTable.append(System.lineSeparator());
+    }
 
-        getRows().forEach(
-                row -> {
-                    renderedTable.append("| ");
-                    row.getValues().forEach( value -> renderedTable.append(value).append(" |") );
-                    renderedTable.append(System.lineSeparator());
+    public List<TestStep> filterStepsWithTagsFrom(List<TestStep> testSteps, Collection<TestTag> tags) {
+        List<DataSetDescriptor> exampleTablesContainingTag = descriptorsWithTagsFrom(tags);
+
+        List<TestStep> filteredSteps = new ArrayList<>();
+
+        exampleTablesContainingTag.forEach(
+                table -> {
+                    filteredSteps.addAll(
+                            testSteps.subList(table.getStartRow(), table.getStartRow() + table.getRowCount())
+                    );
                 }
         );
-        return renderedTable.toString();
+        return filteredSteps;
+    }
+
+
+    public DataTable containingOnlyRowsWithTagsFrom(Collection<TestTag> filterTags) {
+
+        if ((getExampleTags() == null) || (getExampleTags().isEmpty())) return this;
+
+
+        List<DataSetDescriptor> exampleTablesContainingTag = descriptorsWithTagsFrom(filterTags);
+
+        List<DataTableRow> filteredRows = new ArrayList<>();
+        List<DataSetDescriptor> reindexedDescriptors = new ArrayList<>();
+
+        int row = 0;
+        for (DataSetDescriptor tableDescriptor : exampleTablesContainingTag) {
+            filteredRows.addAll(rowsReferencedIn(tableDescriptor));
+            reindexedDescriptors.add(tableDescriptor.forRange(row, tableDescriptor.getRowCount()));
+            row += tableDescriptor.getRowCount();
+        }
+
+
+        return new DataTable(headers,
+                filteredRows,
+                predefinedRows,
+                scenarioOutline,
+                reindexedDescriptors,
+                new AtomicInteger(filteredRows.size() - 1));
+    }
+
+
+    public int getLineNumberForRow(int row) {
+        return lineNumbersForEachRow().getOrDefault(row, 0);
+    }
+
+    private Collection<TestTag> getExampleTags() {
+        return dataSetDescriptors.stream().flatMap(
+                descriptor -> descriptor.getTags().stream()
+        ).collect(Collectors.toList());
+    }
+
+    private List<DataSetDescriptor> descriptorsWithTagsFrom(Collection<TestTag> tags) {
+        return dataSetDescriptors.stream()
+                .filter(dataset -> TestTags.of(dataset.getTags()).containsTagMatchingOneOf(tags))
+                .collect(Collectors.toList());
+    }
+
+    private Collection<DataTableRow> rowsReferencedIn(DataSetDescriptor tableDescriptor) {
+        List<DataTableRow> referencedRows = new ArrayList<>();
+        for (int row = tableDescriptor.getStartRow(); row <= tableDescriptor.getLastRow(); row++) {
+            referencedRows.add(rows.get(row));
+        }
+        return referencedRows;
+    }
+
+    public Optional<Integer> getResultRowWithLineNumber(int lineNumber) {
+        for (int row = 0; row < rows.size(); row++) {
+            if (rows.get(row).getLineNumber() == lineNumber) {
+                return Optional.of(row);
+            }
+        }
+        return Optional.empty();
     }
 
     public static class DataTableBuilder {
-        final String scenarioOutline;
-        final List<String> headers;
-        final List<DataTableRow> rows;
-        final String description;
-        final String title;
-        final List<DataSetDescriptor> descriptors;
+        private String scenarioOutline;
+        private List<String> headers;
+        private List<DataTableRow> rows;
+        private String description;
+        private String title;
+        private List<DataSetDescriptor> descriptors;
+        private Map<Integer, Integer> rowNumbers;
 
         DataTableBuilder(List<String> headers) {
             this(null, headers, NO_ROWS, null, null, Collections.singletonList(DataSetDescriptor.DEFAULT_DESCRIPTOR));
@@ -255,30 +424,34 @@ public class DataTable {
         }
 
         public DataTableBuilder andScenarioOutline(String scenarioOutline) {
-            return new DataTableBuilder(scenarioOutline, headers, rows, title, description, descriptors);
+            this.scenarioOutline = scenarioOutline;
+            return this;
         }
 
         public DataTableBuilder andCopyRowDataFrom(DataTableRow row) {
             List<DataTableRow> rows = new ArrayList<>();
-            rows.add(new DataTableRow(row.getValues()));
-            return new DataTableBuilder(scenarioOutline, headers, rows, title, description, descriptors);
+            rows.add(new DataTableRow(row.getValues(), row.getLineNumber()));
+            this.rows = rows;
+            return this;
         }
 
         public DataTableBuilder andTitle(String title) {
-            return new DataTableBuilder(scenarioOutline, headers, rows, title, description, descriptors);
+            this.title = title;
+            return this;
         }
 
         public DataTableBuilder andDescription(String description) {
-            return new DataTableBuilder(scenarioOutline, headers, rows, title, description, descriptors);
+            this.description = description;
+            return this;
         }
 
         public DataTable build() {
-            return new DataTable(scenarioOutline, headers, rows, title, description, descriptors);
+            return new DataTable(scenarioOutline, headers, rows, title, description, descriptors, rowNumbers);
         }
 
         public DataTableBuilder andRows(List<List<Object>> rows) {
             List<DataTableRow> dataTableRows = rows.stream()
-                    .map(DataTableRow::new)
+                    .map(values -> new DataTableRow(values, 0))
                     .collect(Collectors.toList());
 
             return new DataTableBuilder(scenarioOutline, headers, dataTableRows, title, description, descriptors);
@@ -294,16 +467,27 @@ public class DataTable {
         }
 
         public DataTableBuilder andMappedRows(List<? extends Map<String, ?>> mappedRows) {
-            List<List<Object>> rowData = new ArrayList<>();
-            for (Map<String, ?> mappedRow : mappedRows) {
-                rowData.add(rowDataFrom(mappedRow));
-            }
+            return andMappedRows(mappedRows, new HashMap<>());
+        }
 
+        public DataTableBuilder andMappedRows(List<? extends Map<String, ?>> mappedRows,
+                                              Map<Integer, Integer> lineNumbers) {
+
+            List<List<Object>> rowData = mappedRows.stream().map(this::rowDataFrom).collect(Collectors.toList());
+
+            AtomicInteger rowNumber = new AtomicInteger();
             List<DataTableRow> dataTableRows = rowData.stream()
-                    .map(DataTableRow::new)
+                    .map(values -> new DataTableRow(values,
+                            lineNumberForRow(lineNumbers, rowNumber)))
                     .collect(Collectors.toList());
 
-            return new DataTableBuilder(scenarioOutline, headers, dataTableRows, title, description, descriptors);
+            this.rowNumbers = new HashMap<>(lineNumbers);
+            this.rows = dataTableRows;
+            return this;
+        }
+
+        private Integer lineNumberForRow(Map<Integer, Integer> lineNumbers, AtomicInteger rowNumber) {
+            return lineNumbers.getOrDefault(rowNumber.getAndIncrement(), 0);
         }
 
         private List<Object> rowDataFrom(Map<String, ?> mappedRow) {
@@ -344,15 +528,15 @@ public class DataTable {
     }
 
     public String restoreVariablesIn(String stepDescription) {
-        for(int column = 0; column < getHeaders().size(); column++) {
+        for (int column = 0; column < getHeaders().size(); column++) {
             String correspondingValueInFirstRow = getRows().get(0).getStringValues().get(column);
-            if (StringUtils.isNotEmpty(correspondingValueInFirstRow)) {
+            if (isNotEmpty(correspondingValueInFirstRow)) {
                 stepDescription = stepDescription.replaceAll("\\b" + withEscapedRegExChars(correspondingValueInFirstRow) + "\\b", "{{" + column + "}}");
             }
         }
 
         int field = 0;
-        for(String header : getHeaders()) {
+        for (String header : getHeaders()) {
             stepDescription = StringUtils.replace(stepDescription, "{{" + field + "}}", "<" + header + ">");
             field++;
         }
@@ -360,12 +544,12 @@ public class DataTable {
         return stepDescription;
     }
 
-    private static String[] REGEX_CHARS = new String[] {
-            "{","}","(",")","[","]","\\",".","?","*","+","^","$","|"
+    private static String[] REGEX_CHARS = new String[]{
+            "{", "}", "(", ")", "[", "]", "\\", ".", "?", "*", "+", "^", "$", "|"
     };
 
-    private static String[] ESCAPED_REGEX_CHARS = new String[] {
-            "\\{","\\}","\\(","\\)","\\[","\\]","\\\\","\\.","\\?","\\*","\\+","\\^","\\$","\\|"
+    private static String[] ESCAPED_REGEX_CHARS = new String[]{
+            "\\{", "\\}", "\\(", "\\)", "\\[", "\\]", "\\\\", "\\.", "\\?", "\\*", "\\+", "\\^", "\\$", "\\|"
     };
 
     private String withEscapedRegExChars(String value) {

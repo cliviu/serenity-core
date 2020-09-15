@@ -1,17 +1,17 @@
 package net.thucydides.samples;
 
 import net.thucydides.core.annotations.*;
-import net.thucydides.core.pages.*;
-import net.thucydides.junit.runners.*;
-import org.junit.*;
-import org.junit.runner.*;
-import org.openqa.selenium.*;
+import net.thucydides.core.pages.Pages;
+import net.thucydides.junit.runners.ThucydidesRunner;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.openqa.selenium.WebDriver;
 
 @RunWith(ThucydidesRunner.class)
 @UserStoryCode("US01")
 public class SuccessfulSingleTestScenarioWithABrowser {
-    
-    @Managed(driver = "phantomjs")
+
+    @Managed(driver = "chrome", options = "--headless")
     public WebDriver webdriver;
 
     @ManagedPages(defaultUrl = "classpath:static-site/index.html")

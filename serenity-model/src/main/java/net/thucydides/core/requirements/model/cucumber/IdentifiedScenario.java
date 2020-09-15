@@ -1,8 +1,11 @@
 package net.thucydides.core.requirements.model.cucumber;
 
-import gherkin.ast.*;
+
+import io.cucumber.messages.Messages.GherkinDocument.Feature;
+import io.cucumber.messages.Messages.GherkinDocument.Feature.Scenario;
+import io.cucumber.messages.Messages.GherkinDocument.Feature.Scenario.Examples;
+import net.thucydides.core.digest.Digest;
 import net.thucydides.core.requirements.reports.cucumber.RenderCucumber;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -14,12 +17,14 @@ import static net.thucydides.core.requirements.model.cucumber.ScenarioDisplayOpt
 public class IdentifiedScenario extends NamedScenario {
     private Feature feature;
     private String scenarioReport;
-    private ScenarioDefinition scenarioDefinition;
+    private String scenarioId;
+    private Feature.Scenario scenarioDefinition;
     private ExampleTableInMarkdown exampleTableInMarkdown;
 
-    protected IdentifiedScenario(Feature feature, ScenarioDefinition scenarioDefinition) {
+    protected IdentifiedScenario(Feature feature, Scenario scenarioDefinition) {
         this.feature = feature;
         this.scenarioReport = ScenarioReport.forScenario(scenarioDefinition.getName()).inFeature(feature);
+        this.scenarioId = Digest.ofTextValue(scenarioDefinition.getName());
         this.scenarioDefinition = scenarioDefinition;
         this.exampleTableInMarkdown = new ExampleTableInMarkdown(feature, scenarioReport, scenarioDefinition);
     }
@@ -39,12 +44,12 @@ public class IdentifiedScenario extends NamedScenario {
         } else {
             suffix = resultToken();
         }
-        renderedDescription += scenarioDefinition.getSteps().stream()
-                        .map(step -> "  > " + RenderCucumber.step(step) + "  ")
+        renderedDescription += scenarioDefinition.getStepsList().stream()
+                        .map(step -> RenderCucumber.step(step) + "  ")
                         .collect(Collectors.joining(lineSeparator())) + suffix;
 
         renderedDescription += System.lineSeparator()
-                               + "[<i class=\"fa fa-info-circle\"></i> More details](" + scenarioReport + ")"
+                               + "[<i class=\"fa fa-info-circle\"></i> More details](#" + scenarioId + ")"
                                + System.lineSeparator();
 
         return Optional.of("" + renderedDescription + "");
@@ -62,18 +67,16 @@ public class IdentifiedScenario extends NamedScenario {
 
     @Override
     public Optional<String> asExampleTable(ScenarioDisplayOption withDisplayOption) {
-        if (!(scenarioDefinition instanceof ScenarioOutline)) {
+        if (scenarioDefinition.getExamplesCount() == 0) {
             return Optional.empty();
         }
-
-        ScenarioOutline scenarioOutline = (ScenarioOutline) scenarioDefinition;
 
         StringBuilder renderedExamples = new StringBuilder();
 
         int exampleRow = 0;
-        for(Examples example : scenarioOutline.getExamples()) {
+        for(Examples example : scenarioDefinition.getExamplesList()) {
             renderedExamples.append(exampleTableInMarkdown.renderedFormOf(example, exampleRow++, withDisplayOption));
-            if (exampleRow < scenarioOutline.getExamples().size() - 1) {
+            if (exampleRow < scenarioDefinition.getExamplesCount() - 1) {
                 renderedExamples.append(lineSeparator());
             }
         }

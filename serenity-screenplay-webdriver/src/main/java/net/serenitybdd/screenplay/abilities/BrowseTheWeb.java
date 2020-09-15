@@ -6,12 +6,11 @@ import net.serenitybdd.core.pages.PageObject;
 import net.serenitybdd.screenplay.Ability;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.RefersToActor;
-import net.serenitybdd.screenplay.events.ActorAsksQuestion;
-import net.serenitybdd.screenplay.events.ActorEndsPerformanceEvent;
-import net.serenitybdd.screenplay.events.ActorPerforms;
+import net.serenitybdd.screenplay.events.*;
 import net.serenitybdd.screenplay.exceptions.ActorCannotBrowseTheWebException;
 import net.thucydides.core.pages.Pages;
 import net.thucydides.core.steps.PageObjectDependencyInjector;
+import net.thucydides.core.webdriver.SerenityWebdriverManager;
 import net.thucydides.core.webdriver.ThucydidesWebDriverSupport;
 import net.thucydides.core.webdriver.WebdriverManager;
 import org.openqa.selenium.WebDriver;
@@ -61,18 +60,36 @@ public class BrowseTheWeb extends PageObject implements Ability, RefersToActor {
     }
 
     @Subscribe public void perform(ActorPerforms performAction) {
-        WebDriver driver = webdriverManager.getWebdriver();
-        PageObjectDependencyInjector injector = new PageObjectDependencyInjector(new Pages(driver));
-        injector.injectDependenciesInto(performAction.getPerformable());
+        if (messageIsForThisActor(performAction)) {
+            WebDriver driver = webdriverManager.getWebdriver();
+            PageObjectDependencyInjector injector = new PageObjectDependencyInjector(new Pages(driver));
+            injector.injectDependenciesInto(performAction.getPerformable());
+        }
     }
 
     @Subscribe public void prepareQuestion(ActorAsksQuestion questionEvent) {
-        WebDriver driver = webdriverManager.getWebdriver();
-        PageObjectDependencyInjector injector = new PageObjectDependencyInjector(new Pages(driver));
-        injector.injectDependenciesInto(questionEvent.getQuestion());
+        if (messageIsForThisActor(questionEvent)) {
+            WebDriver driver = webdriverManager.getWebdriver();
+            PageObjectDependencyInjector injector = new PageObjectDependencyInjector(new Pages(driver));
+            injector.injectDependenciesInto(questionEvent.getQuestion());
+        }
     }
 
-    @Subscribe public void endPerformance(ActorEndsPerformanceEvent performanceEvent) {}
+    @Subscribe public void beginPerformance(ActorBeginsPerformanceEvent performanceEvent) {
+        if (messageIsForThisActor(performanceEvent)) {
+            SerenityWebdriverManager.inThisTestThread().setCurrentActiveDriver(getDriver());
+        }
+    }
+
+    @Subscribe public void endPerformance(ActorEndsPerformanceEvent performanceEvent) {
+        if (messageIsForThisActor(performanceEvent)) {
+            SerenityWebdriverManager.inThisTestThread().clearCurrentActiveDriver();
+        }
+    }
+
+    private boolean messageIsForThisActor(ActorPerformanceEvent event) {
+        return event.getName().equals(actor.getName());
+    }
 
     @Override
     public <T extends Ability> T asActor(Actor actor) {
@@ -82,6 +99,6 @@ public class BrowseTheWeb extends PageObject implements Ability, RefersToActor {
 
     @Override
     public String toString() {
-        return "browse the web with " + webdriverManager.getDefaultDriverType();
+        return "browse the web";
     }
 }

@@ -7,6 +7,7 @@ import net.thucydides.core.annotations.Step;
 import net.thucydides.core.annotations.Steps;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.steps.StepEventBus;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -120,7 +121,6 @@ public class WhenUsingStepsAsNamedPersonas {
     public void shouldNotBreakNormalUsesOfANameField() {
 
         NamedTraveller traveller = Instrumented.instanceOf(NamedTraveller.class).withProperties("Natalie");
-
         assertThat(traveller.actor).isEqualTo("Natalie");
     }
 
@@ -147,6 +147,11 @@ public class WhenUsingStepsAsNamedPersonas {
         anonymousSalesman.makesASale();
 
         assertThat(stepDescriptionFor("shouldBeAbleToNameActorsAfterCreation")).isEqualTo("Sam makes a sale");
+    }
+
+    @Test
+    public void shouldStopTestIfAnAssumptionFails() {
+        Assume.assumeTrue(false);
     }
 
     private String stepDescriptionFor(String testName) {

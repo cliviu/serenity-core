@@ -2,7 +2,6 @@ package net.serenitybdd.screenplay.questions;
 
 import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.screenplay.Actor;
-import net.serenitybdd.screenplay.Question;
 import net.serenitybdd.screenplay.targets.Target;
 
 import java.util.List;
@@ -30,9 +29,4 @@ public abstract class TargetedUIState<T> extends UIState<T>{
     protected Stream<WebElementFacade> resolvedElements() {
         return target.resolveAllFor(actor).stream();
     }
-
-    public Question<T> asAQuestion() {
-        return new TargetedUIStateQuestion<>(this);
-    }
-
 }

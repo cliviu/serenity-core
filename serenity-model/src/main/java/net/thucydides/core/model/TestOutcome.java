@@ -11,7 +11,6 @@ import net.serenitybdd.core.time.SystemClock;
 import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.annotations.TestAnnotations;
 import net.thucydides.core.guice.Injectors;
-import net.thucydides.core.images.ResizableImage;
 import net.thucydides.core.issues.IssueKeyFormat;
 import net.thucydides.core.issues.IssueTracking;
 import net.thucydides.core.model.failures.FailureAnalysis;
@@ -40,7 +39,6 @@ import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.time.ZoneId;
@@ -48,6 +46,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -75,9 +74,6 @@ public class TestOutcome {
     private static final String ISSUES = "issues";
     private static final String NEW_LINE = System.getProperty("line.separator");
 
-    private ReportFormatter reportFormatter;
-
-
     /**
      * The name of the method implementing this test.
      */
@@ -99,7 +95,7 @@ public class TestOutcome {
      * The list of steps recorded in this test execution.
      * Each step can contain other nested steps.
      */
-    private final List<TestStep> testSteps = new ArrayList<>();
+    private List<TestStep> testSteps = new ArrayList<>();
 
     /**
      * A test can be linked to the user story it tests using the Story annotation.
@@ -173,6 +169,21 @@ public class TestOutcome {
     private String driver;
 
     /**
+     * The last tested version for manual tests, defined by the @last-tested tag in Cucumber scenarios
+     */
+    private String lastTested;
+
+    /**
+     * True if a manual test has been marked as up-to-date. Only relevant if lastTested is defined.
+     */
+    private boolean isManualTestingUpToDate;
+
+    /**
+     * A relative or absolute link to test evidence related to the last manual test
+     */
+    private List<String> manualTestEvidence;
+
+    /**
      * Keeps track of step groups.
      * If not empty, the top of the stack contains the step corresponding to the current step group - new steps should
      * be added here.
@@ -232,6 +243,14 @@ public class TestOutcome {
      */
     private List<CastMember> actors;
 
+    private ExternalLink externalLink;
+
+    /**
+     * An indication of the order of appearance that this scenario should appear in the story or feature.
+     * Used for JUnit tests.
+     */
+    private Integer order;
+
     /**
      * Fields used for serialization
      */
@@ -244,14 +263,13 @@ public class TestOutcome {
      */
     private String scenarioOutline;
 
-
     private static final Logger LOGGER = LoggerFactory.getLogger(TestOutcome.class);
 
     private TestOutcome() {
         groupStack = new Stack<>();
         this.additionalIssues = new ArrayList<>();
         this.additionalVersions = new ArrayList<>();
-        this.actors = new ArrayList<>();
+        this.actors = new CopyOnWriteArrayList<>();
         this.issueTracking = Injectors.getInjector().getInstance(IssueTracking.class);
         this.linkGenerator = Injectors.getInjector().getInstance(LinkGenerator.class);
         this.flagProvider = Injectors.getInjector().getInstance(FlagProvider.class);
@@ -358,9 +376,9 @@ public class TestOutcome {
         return this;
     }
 
-    public TestOutcome asManualTest() {
+    public TestOutcome setToManual() {
         this.manual = true;
-        addTag(TestTag.withName("Manual").andType("External Tests"));
+        addTag(TestTag.withName("manual").andType("tag"));
         return this;
     }
 
@@ -421,6 +439,7 @@ public class TestOutcome {
         this.flagProvider = Injectors.getInjector().getInstance(FlagProvider.class);
         this.environmentVariables = environmentVariables;
         this.context = contextFrom(environmentVariables);
+        this.order = TestCaseOrder.definedIn(testCase, name);
 
         this.projectKey = ThucydidesSystemProperty.THUCYDIDES_PROJECT_KEY.from(environmentVariables, "");
     }
@@ -455,8 +474,13 @@ public class TestOutcome {
                 this.qualifier,
                 this.driver,
                 this.manual,
+                this.isManualTestingUpToDate,
+                this.lastTested,
+                this.manualTestEvidence,
                 this.projectKey,
-                this.environmentVariables);
+                this.environmentVariables,
+                this.externalLink,
+                this.context);
     }
 
     protected TestOutcome(final ZonedDateTime startTime,
@@ -481,8 +505,13 @@ public class TestOutcome {
                           final Optional<String> qualifier,
                           final String driver,
                           final boolean manualTest,
+                          final boolean isManualTestingUpToDate,
+                          final String lastTested,
+                          final List<String> testEvidence,
                           final String projectKey,
-                          final EnvironmentVariables environmentVariables) {
+                          final EnvironmentVariables environmentVariables,
+                          final ExternalLink externalLink,
+    final String context) {
         this.startTime = startTime;
         this.duration = duration;
         this.title = title;
@@ -510,8 +539,13 @@ public class TestOutcome {
         this.flagProvider = Injectors.getInjector().getInstance(FlagProvider.class);
         this.driver = driver;
         this.manual = manualTest;
+        this.manualTestEvidence = testEvidence;
+        this.isManualTestingUpToDate = isManualTestingUpToDate;
+        this.lastTested = lastTested;
         this.projectKey = projectKey;
         this.environmentVariables = environmentVariables;
+        this.externalLink = externalLink;
+        this.context=context;
     }
 
     private List<String> removeDuplicates(List<String> issues) {
@@ -561,8 +595,13 @@ public class TestOutcome {
                     Optional.ofNullable(qualifier),
                     this.driver,
                     this.manual,
+                    this.isManualTestingUpToDate,
+                    this.lastTested,
+                    this.manualTestEvidence,
                     this.projectKey,
-                    this.environmentVariables);
+                    this.environmentVariables,
+                    this.externalLink,
+                    this.context);
         } else {
             return this;
         }
@@ -591,8 +630,13 @@ public class TestOutcome {
                 this.qualifier,
                 this.driver,
                 this.manual,
+                this.isManualTestingUpToDate,
+                this.lastTested,
+                this.manualTestEvidence,
                 this.projectKey,
-                this.environmentVariables);
+                this.environmentVariables,
+                this.externalLink,
+                this.context);
     }
 
     public TestOutcome withTags(Set<TestTag> tags) {
@@ -618,8 +662,13 @@ public class TestOutcome {
                 this.qualifier,
                 this.driver,
                 this.manual,
+                this.isManualTestingUpToDate,
+                this.lastTested,
+                this.manualTestEvidence,
                 this.projectKey,
-                this.environmentVariables);
+                this.environmentVariables,
+                this.externalLink,
+                this.context);
     }
 
     public TestOutcome withMethodName(String methodName) {
@@ -646,8 +695,13 @@ public class TestOutcome {
                     this.qualifier,
                     this.driver,
                     this.manual,
+                    this.isManualTestingUpToDate,
+                    this.lastTested,
+                    this.manualTestEvidence,
                     this.projectKey,
-                    this.environmentVariables);
+                    this.environmentVariables,
+                    this.externalLink,
+                    this.context);
         } else {
             return this;
         }
@@ -672,8 +726,8 @@ public class TestOutcome {
     public String toString() {
 
         return getTitle() + ":" + testSteps.stream()
-                                           .map(TestStep::toString)
-                                           .collect(Collectors.joining(", "));
+                .map(TestStep::toString)
+                .collect(Collectors.joining(", "));
     }
 
     /**
@@ -695,11 +749,11 @@ public class TestOutcome {
     }
 
     public TitleBuilder getUnqualified() {
-        return new TitleBuilder(this, issueTracking, environmentVariables, false);
+        return new TitleBuilder(this, issueTracking, getEnvironmentVariables(), false);
     }
 
     public TitleBuilder getQualified() {
-        return new TitleBuilder(this, issueTracking, environmentVariables, true);
+        return new TitleBuilder(this, issueTracking, getEnvironmentVariables(), true);
     }
 
     public void setAllStepsTo(TestResult result) {
@@ -829,8 +883,13 @@ public class TestOutcome {
                 this.qualifier,
                 this.driver,
                 this.manual,
+                this.isManualTestingUpToDate,
+                this.lastTested,
+                this.manualTestEvidence,
                 this.projectKey,
-                this.environmentVariables);
+                this.environmentVariables,
+                this.externalLink,
+                this.context);
     }
 
     public void updateTopLevelStepResultsTo(TestResult result) {
@@ -855,25 +914,27 @@ public class TestOutcome {
     }
 
     public boolean hasTagWithName(String tagName) {
-        return java.util.Optional.ofNullable(tags).orElse(Collections.emptySet())
+        return java.util.Optional.ofNullable(getAllTags()).orElse(Collections.emptySet())
                 .stream()
-                .anyMatch( tag -> tag.getName().equalsIgnoreCase(tagName) );
+                .anyMatch(tag -> tag.getName().equalsIgnoreCase(tagName));
     }
 
     public boolean hasTagWithType(String tagType) {
-        return java.util.Optional.ofNullable(tags).orElse(Collections.emptySet())
+        return java.util.Optional.ofNullable(getAllTags()).orElse(Collections.emptySet())
                 .stream()
-                .anyMatch( tag -> tag.getType().equalsIgnoreCase(tagType) );
+                .anyMatch(tag -> tag.getType().equalsIgnoreCase(tagType));
     }
 
     public boolean hasTagWithTypes(List<String> tagTypes) {
-        return java.util.Optional.ofNullable(tags).orElse(Collections.emptySet())
+        return java.util.Optional.ofNullable(getAllTags()).orElse(Collections.emptySet())
                 .stream()
-                .anyMatch( tag -> tagTypes.contains(tag.getType()));
+                .anyMatch(tag -> tagTypes.contains(tag.getType()));
     }
 
     public int getDataTableRowCount() {
-        if (dataTable == null) { return 0; }
+        if (dataTable == null) {
+            return 0;
+        }
         return dataTable.getSize();
     }
 
@@ -882,13 +943,13 @@ public class TestOutcome {
     }
 
     public void castActor(String name) {
-        if (actors.stream().noneMatch( actor -> actor.getName().equalsIgnoreCase(name))) {
+        if (actors.stream().noneMatch(actor -> actor.getName().equalsIgnoreCase(name))) {
             actors.add(new CastMember(name));
         }
     }
 
     public void assignFact(String name, String fact) {
-        if (actors.stream().noneMatch( actor -> actor.getName().equalsIgnoreCase(name))) {
+        if (actors.stream().noneMatch(actor -> actor.getName().equalsIgnoreCase(name))) {
             actors.add(new CastMember(name));
         }
 
@@ -898,7 +959,7 @@ public class TestOutcome {
     }
 
     public void assignAbility(String name, String ability) {
-        if (actors.stream().noneMatch( actor -> actor.getName().equalsIgnoreCase(name))) {
+        if (actors.stream().noneMatch(actor -> actor.getName().equalsIgnoreCase(name))) {
             actors.add(new CastMember(name));
         }
 
@@ -908,13 +969,41 @@ public class TestOutcome {
     }
 
     public void assignDescriptionToActor(String name, String description) {
-        if (actors.stream().noneMatch( actor -> actor.getName().equalsIgnoreCase(name))) {
+        if (actors.stream().noneMatch(actor -> actor.getName().equalsIgnoreCase(name))) {
             actors.add(new CastMember(name));
         }
 
         actors.stream().filter(actor -> actor.getName().equalsIgnoreCase(name)).forEach(
                 crewMember -> crewMember.withDescription(description)
         );
+    }
+
+    public void setManualTestEvidence(List<String> manualTestEvidence) {
+        this.manualTestEvidence = manualTestEvidence;
+    }
+
+    public List<String> getManualTestEvidence() {
+        return manualTestEvidence;
+    }
+
+    public List<ManualTestEvidence> getRenderedManualTestEvidence() {
+        return manualTestEvidence.stream()
+                .map(ManualTestEvidence::from)
+                .collect(Collectors.toList());
+    }
+
+    public void setLink(ExternalLink externalLink) {
+        if (isDataDriven()) {
+            getLatestTopLevelTestStep().ifPresent(
+                    latestStep -> latestStep.setExternalLink(externalLink)
+            );
+        } else {
+            this.externalLink = externalLink;
+        }
+    }
+
+    public boolean hasNoSteps() {
+        return (testSteps == null || testSteps.isEmpty());
     }
 
     private static class TestOutcomeWithEnvironmentBuilder {
@@ -1133,7 +1222,25 @@ public class TestOutcome {
      * @return A list of top-level test steps for this test.
      */
     public List<TestStep> getTestSteps() {
-        return new ArrayList<>(testSteps);
+        return annotatedStepsFrom(testSteps);
+    }
+
+    public Optional<TestStep> getLatestTopLevelTestStep() {
+        int latestStep = testSteps.size() - 1;
+        return (latestStep >= 0) ?
+                Optional.of(annotatedStepsFrom(testSteps).get(latestStep))
+                : Optional.empty();
+    }
+
+    private List<TestStep> annotatedStepsFrom(List<TestStep> testSteps) {
+        // For manual tests, all top level steps respect the manual test result if defined
+        if (isManual()) {
+            return testSteps.stream().map(
+                    step -> step.withResult(getResult()).asManual()
+            ).collect(Collectors.toList());
+        } else {
+            return testSteps;
+        }
     }
 
     public boolean hasScreenshots() {
@@ -1157,39 +1264,37 @@ public class TestOutcome {
                 .collect(Collectors.toList());
     }
 
+
     public List<Screenshot> getScreenshots() {
+
         List<Screenshot> screenshots = new ArrayList<>();
 
-        List<TestStep> testStepsWithScreenshots = getFlattenedTestSteps();// select(getFlattenedTestSteps(),
-//                having(on(TestStep.class).needsScreenshots()));
+        List<TestStep> testStepsWithScreenshots = getFlattenedTestSteps();
 
         for (TestStep currentStep : testStepsWithScreenshots) {
-            screenshots.addAll(screenshotsIn(currentStep));
+            screenshots.addAll(currentStep.getRenderedScreenshots());
         }
 
-        return new ArrayList<>(screenshots);
+        screenshots.sort(Comparator.comparing(Screenshot::getTimestamp));
+
+        return screenshots;
     }
 
-    private List<Screenshot> screenshotsIn(TestStep currentStep) {
-        return currentStep.getScreenshots().stream().map(
-                screenshotAndHtmlSource -> extractScreenshot(currentStep, screenshotAndHtmlSource)
-        ).collect(Collectors.toList());
+
+    /**
+     * Find the first and last screenshots for each aggregate step, and every screenshots for leaf steps.
+     */
+    public List<Screenshot> getStepScreenshots() {
+
+        List<Screenshot> screenshots = new ArrayList<>();
+
+        testSteps.forEach(
+                step -> screenshots.addAll(step.getRenderedScreenshots())
+        );
+
+        return screenshots;
     }
 
-    public static Screenshot extractScreenshot(TestStep currentStep, ScreenshotAndHtmlSource from) {
-        return new Screenshot(from.getScreenshot().getName(),
-                currentStep.getDescription(),
-                widthOf(from.getScreenshot()),
-                currentStep.getException());
-    }
-
-    private static int widthOf(final File screenshot) {
-        try {
-            return new ResizableImage(screenshot).getWidth();
-        } catch (IOException e) {
-            return ThucydidesSystemProperty.DEFAULT_WIDTH;
-        }
-    }
 
     public boolean hasNonStepFailure() {
         boolean stepsContainFailure = false;
@@ -1221,7 +1326,7 @@ public class TestOutcome {
                 leafTestSteps.add(step);
             }
         }
-        return new ArrayList<>(leafTestSteps);
+        return leafTestSteps;
     }
 
     /**
@@ -1237,6 +1342,10 @@ public class TestOutcome {
     public TestResult getResult() {
         if (result != null) {
             return result;
+        }
+
+        if (isManual() && (annotatedResult != null)) {
+            return annotatedResult;
         }
 
         if ((TestResult.IGNORED == annotatedResult) || (TestResult.SKIPPED == annotatedResult) || TestResult.PENDING == annotatedResult) {
@@ -1288,13 +1397,26 @@ public class TestOutcome {
     }
 
     private void addStep(TestStep step) {
-        testSteps.add(step);
-        renumberTestSteps();
+//        testSteps.add(step);
+//        renumberTestSteps();
+        List<TestStep> updatedSteps = new ArrayList<>(testSteps);
+        updatedSteps.add(step);
+        renumberTestSteps(updatedSteps);
+        testSteps = Collections.unmodifiableList(updatedSteps);
     }
 
     private void addSteps(List<TestStep> steps) {
-        testSteps.addAll(steps);
-        renumberTestSteps();
+        List<TestStep> updatedSteps = new ArrayList<>(testSteps);
+        updatedSteps.addAll(steps);
+        renumberTestSteps(updatedSteps);
+        testSteps = Collections.unmodifiableList(updatedSteps);
+    }
+
+    private void renumberTestSteps(List<TestStep> testSteps) {
+        int count = 1;
+        for (TestStep step : testSteps) {
+            count = step.renumberFrom(count);
+        }
     }
 
     private void renumberTestSteps() {
@@ -1355,9 +1477,9 @@ public class TestOutcome {
      * Turns the current step into a group. Subsequent steps will be added as children of the current step.
      */
     public void startGroup() {
-        if (!testSteps.isEmpty()) {
-            groupStack.push(currentStep());
-        }
+        currentStep().ifPresent(
+                step -> groupStack.push(step)
+        );
     }
 
     /**
@@ -1372,14 +1494,16 @@ public class TestOutcome {
     /**
      * @return The current step is the last step in the step list, or the last step in the children of the current step group.
      */
-    public TestStep currentStep() {
-        checkState(!testSteps.isEmpty());
+    public Optional<TestStep> currentStep() {
+        if (testSteps.isEmpty()) {
+            return Optional.empty();
+        }
 
         if (!inGroup()) {
-            return lastStepIn(testSteps);
+            return Optional.ofNullable(lastStepIn(testSteps));
         } else {
             TestStep currentStepGroup = groupStack.peek();
-            return lastStepIn(currentStepGroup.getChildren());
+            return Optional.ofNullable(lastStepIn(currentStepGroup.getChildren()));
         }
     }
 
@@ -1396,6 +1520,9 @@ public class TestOutcome {
     }
 
     private TestStep lastStepIn(final List<TestStep> testSteps) {
+        if (testSteps.isEmpty()) {
+            return null;
+        }
         return testSteps.get(testSteps.size() - 1);
     }
 
@@ -1490,7 +1617,9 @@ public class TestOutcome {
     }
 
     public String getTestFailureErrorType() {
-        if (getTestFailureCause() == null) { return ""; }
+        if (getTestFailureCause() == null) {
+            return "";
+        }
         return getTestFailureCause().getErrorType();
     }
 
@@ -1583,7 +1712,7 @@ public class TestOutcome {
         if (thereAre(additionalIssues)) {
             allIssues.addAll(additionalIssues);
         }
-        return new ArrayList<>(allIssues);
+        return allIssues;
     }
 
     private List<String> versions() {
@@ -1604,7 +1733,7 @@ public class TestOutcome {
             allVersions.addAll(additionalVersions);
         }
         addVersionsDefinedInTagsTo(allVersions);
-        return new ArrayList<>(allVersions);
+        return allVersions;
     }
 
     private void addVersionsDefinedInTagsTo(List<String> allVersions) {
@@ -1683,7 +1812,7 @@ public class TestOutcome {
         Set<String> issues = new HashSet<>(getIssues());
         if (!issues.isEmpty()) {
             List<String> orderedIssues = issues.stream().sorted().collect(Collectors.toList());
-            String formattedIssues =  orderedIssues.stream().collect(Collectors.joining(", "));
+            String formattedIssues = orderedIssues.stream().collect(Collectors.joining(", "));
             return "(" + getFormatter().addLinks(formattedIssues) + ")";
         } else {
             return "";
@@ -1694,11 +1823,6 @@ public class TestOutcome {
         if (!issues().contains(issue)) {
             issues().add(issue);
         }
-    }
-
-    public void addFailingExternalStep(Throwable testFailureCause) {
-        // Add as a sibling of the last deepest group
-        addFailingStepAsSibling(testSteps, testFailureCause);
     }
 
     public void addFailingStepAsSibling(List<TestStep> testStepList, Throwable testFailureCause) {
@@ -1736,6 +1860,14 @@ public class TestOutcome {
             tags = getTagsUsingTagProviders(getTagProviderService().getTagProviders(getTestSource()));
         }
         return tags;
+    }
+
+    public Set<TestTag> getAllTags() {
+        Set<TestTag> allTags = new HashSet<>(getTags());
+        getFeatureTag().ifPresent(
+                featureTag -> allTags.add(featureTag)
+        );
+        return allTags;
     }
 
     public void addUserStoryFeatureTo(Set<TestTag> augmentedTags) {
@@ -1791,7 +1923,7 @@ public class TestOutcome {
 
     public List<String> getIssueKeys() {
         return getIssues().stream()
-                .map(issue -> IssueKeyFormat.forEnvironment(environmentVariables).andKey(issue))
+                .map(issue -> IssueKeyFormat.forEnvironment(getEnvironmentVariables()).andKey(issue))
                 .collect(Collectors.toList());
     }
 
@@ -1815,12 +1947,24 @@ public class TestOutcome {
         return null;
     }
 
+    public String getNonNullContext() {
+        return (getContext() == null) ? "" : getContext();
+    }
+
     public String getContext() {
         if (context == null) {
-            context = contextFrom(environmentVariables);
+            context = contextFrom(getEnvironmentVariables());
         }
 
         return context;
+    }
+    
+    /**
+     * Setting the context
+     * @param context
+     */
+    public void setContext(String context) {
+    	this.context = context;
     }
 
     /**
@@ -1917,14 +2061,21 @@ public class TestOutcome {
     private int countDataRowsWithResult(TestResult expectedResult, TestType expectedType) {
         int matchingRowCount = 0;
         if (typeCompatibleWith(expectedType)) {
-            for (DataTableRow row : getDataTable().getRows()) {
-                matchingRowCount += (row.getResult() == expectedResult) ? 1 : 0;
+            if (resultsAreUndefinedIn(getDataTable())) {
+                for (TestStep step : getTestSteps()) {
+                    matchingRowCount += (step.getResult() == expectedResult) ? 1 : 0;
+                }
+            } else {
+                for (DataTableRow row : getDataTable().getRows()) {
+                    matchingRowCount += (row.getResult() == expectedResult) ? 1 : 0;
+                }
             }
         }
         return matchingRowCount;
-//        List<DataTableRow> matchingRows
-//                = filter(having(on(DataTableRow.class).getResult(), is(expectedResult)), getDataTable().getRows());
-//        return matchingRows.size();
+    }
+
+    private boolean resultsAreUndefinedIn(DataTable dataTable) {
+        return dataTable.getRows().stream().allMatch( row -> row.getResult() == TestResult.UNDEFINED);
     }
 
     public int countNestedStepsWithResult(TestResult expectedResult, TestType testType) {
@@ -1960,19 +2111,18 @@ public class TestOutcome {
     }
 
     public boolean hasTag(TestTag tag) {
-        return getTags().contains(tag);
+        return getAllTags().contains(tag);
     }
-
 
     public boolean hasAMoreGeneralFormOfTag(TestTag specificTag) {
-        for (TestTag tag : getTags()) {
-            if (specificTag.isAsOrMoreSpecificThan(tag)) {
-                return true;
-            }
-        }
-        return false;
+        return TestTags.of(getAllTags()).containsTagMatching(specificTag);
     }
 
+    public boolean hasAMoreSpecificFormOfTag(TestTag generalTag) {
+        return getAllTags().stream().anyMatch(
+                tag -> tag.isAsOrMoreSpecificThan(generalTag)
+        );// TestTags.of(getTags()).containsTagMatching(specificTag);
+    }
 
     public void setStartTime(ZonedDateTime startTime) {
         this.startTime = startTime;
@@ -1999,6 +2149,22 @@ public class TestOutcome {
 
     public boolean isManual() {
         return manual;
+    }
+
+    public String getLastTested() {
+        return lastTested;
+    }
+
+    public void setLastTested(String lastTested) {
+        this.lastTested = lastTested;
+    }
+
+    public boolean isManualTestingUpToDate() {
+        return isManualTestingUpToDate;
+    }
+
+    public void setManualTestingUpToDate(Boolean upToDate) {
+        this.isManualTestingUpToDate = upToDate;
     }
 
     public Set<? extends Flag> getFlags() {
@@ -2084,13 +2250,17 @@ public class TestOutcome {
         return count(TestStep.COMPROMISED_TESTSTEPS).in(getLeafTestSteps());
     }
 
-    public Long getIgnoredCount() { return count(TestStep.IGNORED_TESTSTEPS).in(getLeafTestSteps()); }
+    public Long getIgnoredCount() {
+        return count(TestStep.IGNORED_TESTSTEPS).in(getLeafTestSteps());
+    }
 
     public Long getSkippedOrIgnoredCount() {
         return getIgnoredCount() + getSkippedCount();
     }
 
-    public Long getSkippedCount() { return count(TestStep.SKIPPED_TESTSTEPS).in(getLeafTestSteps()); }
+    public Long getSkippedCount() {
+        return count(TestStep.SKIPPED_TESTSTEPS).in(getLeafTestSteps());
+    }
 
     public Long getPendingCount() {
         return getLeafTestSteps()
@@ -2138,12 +2308,21 @@ public class TestOutcome {
     }
 
     public Long getDuration() {
-        if (duration > 0) { return duration; }
+        if (duration > 0) {
+            return duration;
+        }
 
         return testSteps
                 .stream()
                 .mapToLong(TestStep::getDuration)
                 .sum();
+    }
+
+    public ZonedDateTime getEndTime() {
+        if (startTime == null) {
+            return null;
+        }
+        return startTime.plusNanos(duration * 1000);
     }
 
     /**
@@ -2173,6 +2352,7 @@ public class TestOutcome {
     private StepCountBuilder count(Predicate<TestStep> filter) {
         return new StepCountBuilder(filter);
     }
+
     public static class StepCountBuilder {
         private final Predicate<TestStep> stepFilter;
 
@@ -2182,7 +2362,7 @@ public class TestOutcome {
 
         long in(List<TestStep> steps) {
             return steps.stream()
-                    .filter( stepFilter )
+                    .filter(stepFilter)
                     .count();
         }
     }
@@ -2268,13 +2448,13 @@ public class TestOutcome {
     }
 
     public String getStartedAt() {
-            return Optional.ofNullable(startTime).orElse(now())
-                    .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        return Optional.ofNullable(startTime).orElse(now())
+                .format(DateTimeFormatter.ofPattern("HH:mm:ss"));
     }
 
     public String getTimestamp() {
         return Optional.ofNullable(startTime).orElse(now())
-               .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
 
@@ -2283,6 +2463,7 @@ public class TestOutcome {
                 .format(formater);
 
     }
+
     public boolean isDataDriven() {
         return dataTable != null;
     }
@@ -2369,6 +2550,7 @@ public class TestOutcome {
         if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (name != null ? !name.equals(that.name) : that.name != null) return false;
         if (qualifier != null ? !qualifier.equals(that.qualifier) : that.qualifier != null) return false;
+        if (context != null ? !context.equals(that.context) : that.context != null) return false;
         if (testCaseName != null ? !testCaseName.equals(that.testCaseName) : that.testCaseName != null) return false;
         if (title != null ? !title.equals(that.title) : that.title != null) return false;
         if (userStory != null ? !userStory.equals(that.userStory) : that.userStory != null) return false;
@@ -2379,10 +2561,13 @@ public class TestOutcome {
     @Override
     public int hashCode() {
         int result = name != null ? name.hashCode() : 0;
-        result = 31 * result + (testCase != null ? testCase.hashCode() : 0);
-        result = 31 * result + (userStory != null ? userStory.hashCode() : 0);
-        result = 31 * result + (title != null ? title.hashCode() : 0);
+        result = 31 * result + (id != null ? id.hashCode() : 0);
+        result = 31 * result + (name != null ? name.hashCode() : 0);
         result = 31 * result + (qualifier != null ? qualifier.hashCode() : 0);
+        result = 31 * result + (context != null ? context.hashCode() : 0);
+        result = 31 * result + (testCaseName != null ? testCaseName.hashCode() : 0);
+        result = 31 * result + (title != null ? title.hashCode() : 0);
+        result = 31 * result + (userStory != null ? userStory.hashCode() : 0);
         result = 31 * result + (manual ? 1 : 0);
         return result;
     }
@@ -2447,12 +2632,18 @@ public class TestOutcome {
     }
 
     private void removeSteps(List<TestStep> stepsToReplace) {
-        List<TestStep> currentTestSteps = new ArrayList<>(testSteps);
-        for (TestStep testStep : currentTestSteps) {
-            if (stepsToReplace.contains(testStep)) {
-                testSteps.remove(testStep);
-            }
-        }
+//        List<TestStep> currentTestSteps = new ArrayList<>(testSteps);
+//        for (TestStep testStep : currentTestSteps) {
+//            if (stepsToReplace.contains(testStep)) {
+//                testSteps.remove(testStep);
+//            }
+//        }
+//
+        List<TestStep> updatedSteps = new ArrayList<>(testSteps);
+        updatedSteps.removeAll(stepsToReplace);
+        renumberTestSteps(updatedSteps);
+        testSteps = Collections.unmodifiableList(updatedSteps);
+
     }
 
     public FailureDetails getFailureDetails() {
@@ -2467,6 +2658,93 @@ public class TestOutcome {
         this.testSource = testSource;
     }
 
-    public List<CastMember> getActors() { return new ArrayList<>(actors); }
+    public List<CastMember> getActors() {
+        return actors;
+    }
 
+    public boolean hasEvidence() {
+        return testSteps.stream().anyMatch(
+                step -> step.getReportData().stream().anyMatch(ReportData::isEvidence)
+        );
+    }
+
+    public List<ReportData> getEvidence() {
+        return getFlattenedTestSteps().stream()
+                .filter(step -> !step.getReportEvidence().isEmpty())
+                .map(TestStep::getReportEvidence)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+    }
+
+    public TestOutcome withDataRowsfilteredbyTag(TestTag tag) {
+        return withDataRowsfilteredbyTagsFrom(Collections.singleton(tag));
+    }
+
+    public TestOutcome withDataRowsfilteredbyTagsFrom(Collection<TestTag> filterTags) {
+        if (!isDataDriven()) {
+            return this;
+        }
+
+        if (!TestTags.of(dataTable.getTags()).containsTagMatchingOneOf(filterTags)) {
+            return this;
+        }
+        if (testSteps.size() != dataTable.getSize()) {
+            return this;
+        }
+
+        DataTable filteredDataTable = dataTable.containingOnlyRowsWithTagsFrom(filterTags);
+        List<TestStep> filteredSteps = testSteps;// dataTable.filterStepsWithTagsFrom(testSteps, tags);
+
+        Collection<TestTag> originalDataTableTags = dataTable.getTags();
+        Collection<TestTag> filteredDataTableTags = filteredDataTable.getTags();
+
+        Collection<TestTag> redundantTags = new HashSet<>(originalDataTableTags);
+        redundantTags.removeAll(filteredDataTableTags);
+
+        Set<TestTag> outcomeTagsWithoutRedundentTags = new HashSet<>(tags);
+        outcomeTagsWithoutRedundentTags.removeAll(redundantTags);
+
+        return new TestOutcome(startTime,
+                duration,
+                title,
+                description,
+                name,
+                id,
+                testCase,
+                filteredSteps,
+                issues,
+                additionalIssues,
+                actors,
+                outcomeTagsWithoutRedundentTags,
+                userStory,
+                testFailureCause,
+                testFailureClassname,
+                testFailureMessage,
+                testFailureSummary,
+                annotatedResult,
+                filteredDataTable,
+                qualifier,
+                driver,
+                manual,
+                isManualTestingUpToDate,
+                lastTested,
+                manualTestEvidence,
+                projectKey,
+                environmentVariables,
+                externalLink,
+                context);
+    }
+
+    public ExternalLink getExternalLink() {
+        return externalLink;
+    }
+
+    public void setOrder(int order) {
+        this.order = order;
+    }
+
+    public Integer getOrder() {
+        if (order == null) { return 0; }
+        return order;
+    }
 }

@@ -21,7 +21,10 @@
     <div id="topbanner">
         <div id="logo"><a href="index.html"><img src="images/serenity-logo.png" border="0"/></a></div>
         <div id="projectname-banner" style="float:right">
-            <span class="projectname">${reportOptions.projectName}</span>
+            <span class="projectname">
+                <span class="projecttitle">${reportOptions.projectName}</span>
+                <span class="projectsubtitle">${reportOptions.projectSubTitle}</span>
+            </span>
         </div>
     </div>
 </div>
@@ -72,6 +75,19 @@
                     </table>
                 </#list>
 
+                <#assign sectionTitles = build.sectionTitles>
+                <#list sectionTitles as sectionTitle>
+                    <h2>${sectionTitle}</h2>
+                    <#assign sectionValues = build.sections[sectionTitle]>
+                    <#assign sectionValueLabels = sectionValues?keys>
+                    <table class="table table-striped build-info">
+                        <#list sectionValueLabels as section>
+                            <tr>
+                                <td style="width: 30%">${section}</td><td>${sectionValues[section]}</td>
+                            </tr>
+                        </#list>
+                    </table>
+                </#list>
 
             </div>
         <#--- Test Results end -->
@@ -83,7 +99,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-sm-12">
-            <span class="version">Serenity BDD version ${serenityVersionNumber}</span>
+            <span class="version">Serenity BDD version ${serenityVersionNumber!"SNAPSHOT-BUILD"}</span>
         </div>
     </div>
 </div>

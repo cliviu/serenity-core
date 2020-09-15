@@ -7,18 +7,17 @@ import net.thucydides.core.model.*;
 import net.thucydides.core.releases.ReleaseManager;
 import net.thucydides.core.reports.TestOutcomes;
 import net.thucydides.core.reports.html.ReportNameProvider;
+import net.thucydides.core.reports.html.RequirementsFilter;
 import net.thucydides.core.requirements.ExcludedUnrelatedRequirementTypes;
 import net.thucydides.core.requirements.RequirementsTagProvider;
-import net.thucydides.core.requirements.model.NarrativeReader;
-import net.thucydides.core.requirements.model.OverviewReader;
 import net.thucydides.core.requirements.model.Requirement;
 import net.thucydides.core.util.EnvironmentVariables;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import static net.thucydides.core.ThucydidesSystemProperty.SERENITY_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 
 /**
@@ -389,7 +388,7 @@ public class RequirementsOutcomes {
     }
 
     public List<RequirementOutcome> getFlattenedRequirementOutcomes(List<RequirementOutcome> outcomes) {
-        Set<RequirementOutcome> flattenedOutcomes = new HashSet();
+        Set<RequirementOutcome> flattenedOutcomes = new HashSet<>();
 
         for (RequirementOutcome requirementOutcome : outcomes) {
             flattenedOutcomes.add(requirementOutcome);
@@ -520,8 +519,22 @@ public class RequirementsOutcomes {
                 .collect(Collectors.toList());
     }
 
+    public RequirementsOutcomes filteredByDisplayTag() {
+        return new RequirementsOutcomes(
+                reportNameProvider,
+                filteredByDisplayTag(requirementOutcomes),
+                testOutcomes,
+                parentRequirement,
+                environmentVariables,
+                issueTracking,
+                requirementsTagProviders,
+                releaseManager,
+                overview);
+    }
+
     public RequirementsOutcomes withoutUnrelatedRequirements() {
-        if (isEmpty(ThucydidesSystemProperty.THUCYDIDES_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE.from(environmentVariables))) {
+        if (SERENITY_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE.from(environmentVariables,"none").equalsIgnoreCase("none")) {
+        //if ("none".equalsIgnoreCase(SERENITY_EXCLUDE_UNRELATED_REQUIREMENTS_OF_TYPE.from(environmentVariables))) {
             return this;
         }
         return new RequirementsOutcomes(
@@ -540,7 +553,16 @@ public class RequirementsOutcomes {
 
         return requirementOutcomes.stream()
                 .filter(requirementOutcome -> !shouldPrune(requirementOutcome))
-                .map(requirementOutcome -> requirementOutcome.withoutUnrelatedRequirements())
+                .map(RequirementOutcome::withoutUnrelatedRequirements)
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<RequirementOutcome> filteredByDisplayTag(List<RequirementOutcome> requirementOutcomes) {
+
+        return requirementOutcomes.stream()
+                .filter(this::shouldDisplay)
+                .map(requirementOutcome -> requirementOutcome.filteredByDisplayTag())
                 .distinct()
                 .collect(Collectors.toList());
     }
@@ -549,6 +571,11 @@ public class RequirementsOutcomes {
         return ((requirementOutcome.getTestCount() == 0)
                  && ExcludedUnrelatedRequirementTypes.definedIn(environmentVariables)
                 .excludeUntestedRequirementOfType(requirementOutcome.getRequirement().getType()));
+    }
+
+    private boolean shouldDisplay(RequirementOutcome requirementOutcome) {
+        RequirementsFilter requirementsFilter = new RequirementsFilter(environmentVariables);
+        return requirementsFilter.inDisplayOnlyTags(requirementOutcome.getRequirement());
     }
 
     public String getOverview() {

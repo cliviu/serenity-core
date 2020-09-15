@@ -1,13 +1,15 @@
 package net.thucydides.core.webdriver;
 
-import net.serenitybdd.core.environment.*;
-import net.thucydides.core.annotations.*;
-import net.thucydides.core.pages.*;
-import net.thucydides.core.steps.*;
-import org.openqa.selenium.*;
-import org.openqa.selenium.remote.*;
-import org.slf4j.*;
+import net.serenitybdd.core.environment.WebDriverConfiguredEnvironment;
+import net.thucydides.core.annotations.TestCaseAnnotations;
+import net.thucydides.core.pages.Pages;
+import net.thucydides.core.steps.StepAnnotations;
+import net.thucydides.core.steps.StepFactory;
+import org.apache.commons.lang3.StringUtils;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.SessionId;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -28,6 +30,9 @@ public class ThucydidesWebDriverSupport {
         }
     }
 
+    public static void overrideProperties(Map<String, String> propertyValues) {
+        getWebdriverManager().overrideProperties(propertyValues);
+    }
     public static void initialize(String requestedDriver) {
 
         WebdriverManager webdriverManagerForThisThread = newWebdriverManager();
@@ -87,7 +92,9 @@ public class ThucydidesWebDriverSupport {
     }
 
     public static void useDefaultDriver(String driverName) {
-        defaultDriverType.set(driverName);
+        if (StringUtils.isNotEmpty(driverName)) {
+            defaultDriverType.set(driverName);
+        }
     }
 
     public static void useDriverOptions(String driverOptions) {
@@ -113,6 +120,13 @@ public class ThucydidesWebDriverSupport {
         getWebdriverManager().registerDriver(driver);
     }
 
+    public static Optional<String> getDefaultDriverType() {
+        return Optional.ofNullable(defaultDriverType.get());
+    }
+
+    public static Optional<String> getDefaultDriverOptions() {
+        return Optional.ofNullable(defaultDriverOptions.get());
+    }
 
     public static WebDriver getDriver() {
 
@@ -259,4 +273,5 @@ public class ThucydidesWebDriverSupport {
             stepFactoryThreadLocal.get().reset();
         }
     }
+
 }

@@ -4,7 +4,7 @@ import net.serenitybdd.screenplay.Actor;
 import net.thucydides.core.annotations.Step;
 
 import static net.serenitybdd.screenplay.Tasks.instrumented;
-import static net.serenitybdd.screenplay.rest.abiities.CallAnApi.as;
+import static net.serenitybdd.screenplay.rest.abilities.CallAnApi.as;
 
 /**
  * An OPTIONS query
@@ -18,10 +18,10 @@ public class Patch extends RestInteraction {
         this.resource = resource;
     }
 
-    @Step("{0} executes a PUT on the resource #resource")
+    @Step("{0} executes a PATCH on the resource #resource")
     @Override
     public <T extends Actor> void performAs(T actor) {
-        rest().options(as(actor).resolve(resource));
+        rest().patch(as(actor).resolve(resource));
     }
 
     public static Patch to(String resource) {

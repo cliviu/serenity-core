@@ -322,8 +322,8 @@ public class WhenFindingTagsForATestOutcome {
         when(testOutcome.getPath()).thenReturn("stories.grow_potatoes.grow_new_potatoes.PlantPotatoes");
         Set<TestTag> tags = tagProvider.getTagsFor(testOutcome);
         assertThat(tags, hasItem(TestTag.withName("Grow potatoes").andType("capability")));
-        assertThat(tags, hasItem(TestTag.withName("Grow potatoes/Grow new potatoes").andType("feature")));
-        assertThat(tags, hasItem(TestTag.withName("Grow new potatoes/Plant potatoes").andType("story")));
+        assertThat(tags, hasItem(TestTag.withName("Grow potatoes" + File.separator + "Grow new potatoes").andType("feature")));
+        assertThat(tags, hasItem(TestTag.withName("Grow new potatoes" + File.separator + "Plant potatoes").andType("story")));
     }
 
     @Test
@@ -358,10 +358,10 @@ public class WhenFindingTagsForATestOutcome {
     public void should_get_tags_from_story_path_with_file_separators() {
         FileSystemRequirementsTagProvider tagProvider = new FileSystemRequirementsTagProvider();
 
-        when(testOutcome.getPath()).thenReturn("stories/grow_potatoes/grow_new_potatoes/PlantPotatoes");
+        when(testOutcome.getPath()).thenReturn("stories" + File.separator + "grow_potatoes" + File.separator + "grow_new_potatoes" + File.separator + "PlantPotatoes");
         Set<TestTag> tags = tagProvider.getTagsFor(testOutcome);
         assertThat(tags, hasItem(TestTag.withName("Grow potatoes").andType("capability")));
-        assertThat(tags, hasItem(TestTag.withName("Grow potatoes/Grow new potatoes").andType("feature")));
+        assertThat(tags, hasItem(TestTag.withName("Grow potatoes" + File.separator + "Grow new potatoes").andType("feature")));
     }
 
     @Test
@@ -371,20 +371,20 @@ public class WhenFindingTagsForATestOutcome {
         when(testOutcome.getPath()).thenReturn("stories/grow_potatoes/grow_new_potatoes/PlantPotatoes.story");
         Set<TestTag> tags = tagProvider.getTagsFor(testOutcome);
         assertThat(tags, hasItem(TestTag.withName("Grow potatoes").andType("capability")));
-        assertThat(tags, hasItem(TestTag.withName("Grow potatoes/Grow new potatoes").andType("feature")));
-        assertThat(tags, hasItem(TestTag.withName("Grow new potatoes/Plant potatoes").andType("story")));
+        assertThat(tags, hasItem(TestTag.withName("Grow potatoes" + File.separator + "Grow new potatoes").andType("feature")));
+        assertThat(tags, hasItem(TestTag.withName("Grow new potatoes" + File.separator + "Plant potatoes").andType("story")));
     }
 
     @Test
     public void should_record_the_relative_path_of_each_requirement() {
         FileSystemRequirementsTagProvider tagProvider = new FileSystemRequirementsTagProvider();
 
-        when(testOutcome.getPath()).thenReturn("stories/grow_potatoes/grow_new_potatoes/PlantPotatoes.story");
+        when(testOutcome.getPath()).thenReturn("stories/grow_potatoes" + File.separator + "grow_new_potatoes" + File.separator + "PlantPotatoes.story");
 
         Optional<Requirement> requirement = tagProvider.getParentRequirementOf(testOutcome);
 
         assertThat(requirement.isPresent(), is(true));
-        assertThat(requirement.get().getPath(), is("grow_potatoes/grow_new_potatoes/PlantPotatoes.story"));
+        assertThat(requirement.get().getPath(), is("grow_potatoes" + File.separator + "grow_new_potatoes" + File.separator + "PlantPotatoes.story"));
     }
 
     @Test
@@ -394,7 +394,7 @@ public class WhenFindingTagsForATestOutcome {
         when(testOutcome.getPath()).thenReturn("stories\\grow_potatoes\\grow_new_potatoes\\PlantPotatoes");
         Set<TestTag> tags = tagProvider.getTagsFor(testOutcome);
         assertThat(tags, hasItem(TestTag.withName("Grow potatoes").andType("capability")));
-        assertThat(tags, hasItem(TestTag.withName("Grow potatoes/Grow new potatoes").andType("feature")));
+        assertThat(tags, hasItem(TestTag.withName("Grow potatoes" + File.separator + "Grow new potatoes").andType("feature")));
     }
 
     @Test
@@ -408,7 +408,7 @@ public class WhenFindingTagsForATestOutcome {
         Optional<Requirement> requirement = tagProvider.getParentRequirementOf(testOutcome);
 
         assertThat(requirement.isPresent(), is(true));
-        assertThat(requirement.get().getName(), is("Plant potatoes"));
+        assertThat(requirement.get().getName(), is("Plant Potatoes"));
         assertThat(requirement.get().getNarrative().getText(), containsString("As a farmer"));
         assertThat(requirement.get().getNarrative().getText(), containsString("I want to plant potatoes"));
         assertThat(requirement.get().getNarrative().getText(), containsString("So that I can harvest them later on"));
@@ -451,7 +451,7 @@ public class WhenFindingTagsForATestOutcome {
 
         File norwegenfeatureFile = new File(this.getClass().getResource("/features/PlantScandanavianPotatoes.feature").toURI());
 
-        Requirement norwegenRequirement = tagProvider.readRequirementsFromStoryOrFeatureFile(norwegenfeatureFile);
+        Requirement norwegenRequirement = tagProvider.readRequirementsFromStoryOrFeatureFile(norwegenfeatureFile).get();
 
         assertThat(norwegenRequirement.getName(), is("Summering"));
     }
@@ -463,7 +463,7 @@ public class WhenFindingTagsForATestOutcome {
 
         File featureFile = new File(this.getClass().getResource("/features/PlantPotatoes.feature").toURI());
 
-        Requirement featureRequirement = tagProvider.readRequirementsFromStoryOrFeatureFile(featureFile);
+        Requirement featureRequirement = tagProvider.readRequirementsFromStoryOrFeatureFile(featureFile).get();
 
         assertThat(featureRequirement.getName(), is("Planting some potatoes"));
     }

@@ -30,7 +30,18 @@ public class Stage {
         return actorInTheSpotlight;
     }
 
+    /**
+     * A shortened form of theActorInTheSpotight()
+     */
+    public Actor theActor() {
+        return theActorInTheSpotlight();
+    }
+
     public void drawTheCurtain() {
         cast.dismissAll();
+    }
+
+    public boolean anActorIsOnStage() {
+        return actorInTheSpotlight != null;
     }
 }
