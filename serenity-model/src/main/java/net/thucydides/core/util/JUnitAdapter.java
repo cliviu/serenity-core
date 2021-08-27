@@ -39,8 +39,6 @@ import static java.util.Arrays.stream;
  */
 public class JUnitAdapter {
 
-    private final static Logger logger = LoggerFactory.getLogger(JUnitAdapter.class);
-
     private static List<JUnitStrategy> strategies = new ArrayList<>();
 
     private static Optional<JUnit4Strategy> jUnit4Strategy = Optional.empty();
@@ -184,9 +182,6 @@ public class JUnitAdapter {
 //            return (testClass.getAnnotation(org.junit.runner.RunWith.class) != null);
         }
 
-        private boolean containsAnnotationCalled(Annotation[] annotations, String annotationName) {
-            return stream(annotations).anyMatch(annotation -> annotation.annotationType().getSimpleName().equals(annotationName));
-        }
 
         @Override
         public boolean isTestMethod(final Method method) {
