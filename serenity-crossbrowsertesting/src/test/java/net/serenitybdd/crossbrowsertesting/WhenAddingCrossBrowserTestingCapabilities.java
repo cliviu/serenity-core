@@ -5,7 +5,7 @@ import net.serenitybdd.core.webdriver.driverproviders.AddCustomDriverCapabilitie
 import net.thucydides.core.model.Story;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.util.EnvironmentVariables;
-import net.thucydides.core.util.MockEnvironmentVariables;
+import net.thucydides.core.environment.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.SupportedWebDriver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +36,7 @@ public class WhenAddingCrossBrowserTestingCapabilities {
                 .withTestDetails(SupportedWebDriver.REMOTE, SAMPLE_TEST_OUTCOME)
                 .to(capabilities);
 
-        assertThat(capabilities.getPlatform()).isEqualTo(Platform.ANDROID);
+        assertThat(capabilities.getPlatformName()).isEqualTo(Platform.ANDROID);
     }
 
     @Test

@@ -2,6 +2,7 @@ package net.serenitybdd.junit.runners;
 
 import com.google.inject.Injector;
 import net.serenitybdd.core.Serenity;
+import net.serenitybdd.core.annotations.environment.AnnotatedEnvironmentProperties;
 import net.serenitybdd.core.environment.WebDriverConfiguredEnvironment;
 import net.serenitybdd.core.injectors.EnvironmentDependencyInjector;
 import net.serenitybdd.core.lifecycle.LifecycleRegister;
@@ -38,7 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import static net.thucydides.core.ThucydidesSystemProperty.TEST_RETRY_COUNT;
@@ -110,6 +114,7 @@ public class SerenityRunner extends BlockJUnit4ClassRunner implements Taggable {
 
     public SerenityRunner(final Class<?> klass,
                           final Injector injector) throws InitializationError {
+
         this(klass,
                 ThucydidesWebDriverSupport.getWebdriverManager(),
                 injector.getInstance(DriverConfiguration.class),
@@ -594,6 +599,7 @@ public class SerenityRunner extends BlockJUnit4ClassRunner implements Taggable {
     @Override
     protected Statement methodInvoker(final FrameworkMethod method, final Object test) {
 
+        AnnotatedEnvironmentProperties.apply(method.getMethod());
 //  This might work too:
 //        Serenity.initialize(test);
         if (webtestsAreSupported()) {

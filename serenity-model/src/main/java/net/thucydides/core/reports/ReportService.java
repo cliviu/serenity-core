@@ -6,7 +6,7 @@ import com.typesafe.config.ConfigRenderOptions;
 import com.typesafe.config.ConfigValueFactory;
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
 import net.thucydides.core.ThucydidesSystemProperty;
-import net.thucydides.core.guice.Injectors;
+import net.thucydides.core.environment.SystemEnvironmentVariables;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.reports.junit.JUnitXMLOutcomeReporter;
 import net.thucydides.core.util.EnvironmentVariables;
@@ -47,7 +47,7 @@ public class ReportService {
     private List<AcceptanceTestReporter> subscribedReporters;
 
 
-    private JUnitXMLOutcomeReporter jUnitXMLOutcomeReporter;
+    private final JUnitXMLOutcomeReporter jUnitXMLOutcomeReporter;
 
     private final static Logger LOGGER = LoggerFactory.getLogger(ReportService.class);
 
@@ -57,7 +57,7 @@ public class ReportService {
     }
 
     public ReportService(final File outputDirectory, final Collection<AcceptanceTestReporter> subscribedReporters) {
-        this(outputDirectory, subscribedReporters, Injectors.getInjector().getInstance(EnvironmentVariables.class));
+        this(outputDirectory, subscribedReporters, SystemEnvironmentVariables.currentEnvironmentVariables());
     }
 
     public ReportService(final File outputDirectory,
@@ -220,7 +220,7 @@ public class ReportService {
         List<AcceptanceTestReporter> reporters = new ArrayList<>();
 
         FormatConfiguration formatConfiguration
-                = new FormatConfiguration(Injectors.getInjector().getProvider(EnvironmentVariables.class).get());
+                = new FormatConfiguration(SystemEnvironmentVariables.currentEnvironmentVariables());
 
         ServiceLoader<AcceptanceTestReporter> reporterServiceLoader = ServiceLoader.load(AcceptanceTestReporter.class);
         Iterator<AcceptanceTestReporter> reporterImplementations = reporterServiceLoader.iterator();
@@ -257,7 +257,7 @@ public class ReportService {
         List<AcceptanceTestFullReporter> reporters = new ArrayList<>();
 
         FormatConfiguration formatConfiguration
-                = new FormatConfiguration(Injectors.getInjector().getProvider(EnvironmentVariables.class).get());
+                = new FormatConfiguration(SystemEnvironmentVariables.currentEnvironmentVariables());
 
         ServiceLoader<AcceptanceTestFullReporter> reporterServiceLoader = ServiceLoader.load(AcceptanceTestFullReporter.class);
         Iterator<AcceptanceTestFullReporter> reporterImplementations = reporterServiceLoader.iterator();

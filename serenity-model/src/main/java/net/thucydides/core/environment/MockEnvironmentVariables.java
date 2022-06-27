@@ -1,7 +1,9 @@
-package net.thucydides.core.util;
+package net.thucydides.core.environment;
 
 import net.serenitybdd.core.collect.NewMap;
 import net.serenitybdd.core.environment.ConfiguredEnvironment;
+import net.thucydides.core.util.EnvironmentVariables;
+import net.thucydides.core.util.PropertiesUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
@@ -180,6 +182,11 @@ public class MockEnvironmentVariables implements EnvironmentVariables {
     @Override
     public Map<String, String> simpleSystemPropertiesAsMap() {
         return new HashMap<>();
+    }
+
+    @Override
+    public void reset() {
+
     }
 
     public void setValue(String name, String value) {

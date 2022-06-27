@@ -8,14 +8,13 @@ import net.serenitybdd.core.pages.WebElementFacade;
 import net.serenitybdd.core.pages.WidgetObject;
 import net.serenitybdd.core.pages.WidgetObjectImpl;
 import net.thucydides.core.configuration.SystemPropertiesConfiguration;
-import net.thucydides.core.util.MockEnvironmentVariables;
+import net.thucydides.core.environment.MockEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.pagefactory.ElementLocator;
 
@@ -149,7 +148,6 @@ public class WhenBrowsingAWebSiteUsingWidgetObjects {
 		WebDriverManager.chromedriver().setup();
 		ChromeOptions options = new ChromeOptions();
 		options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200");
-		driver = new ChromeDriver(options);
 
         openStaticTestSite();
         indexPage = new IndexPage(driver, 1);

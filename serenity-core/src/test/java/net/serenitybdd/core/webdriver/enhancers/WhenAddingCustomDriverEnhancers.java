@@ -1,9 +1,8 @@
 package net.serenitybdd.core.webdriver.enhancers;
 
-import io.github.bonigarcia.wdm.WebDriverManager;
 import net.serenitybdd.core.webdriver.driverproviders.EnhanceDriver;
+import net.thucydides.core.environment.MockEnvironmentVariables;
 import net.thucydides.core.util.EnvironmentVariables;
-import net.thucydides.core.util.MockEnvironmentVariables;
 import org.junit.Test;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -22,10 +21,8 @@ public class WhenAddingCustomDriverEnhancers {
         // Given
         EnvironmentVariables environmentVariables = new MockEnvironmentVariables();
         environmentVariables.setProperty("serenity.extension.packages","net.serenitybdd.core.webdriver.enhancers");
-
-        WebDriverManager.chromedriver().setup();
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless", "--disable-gpu", "--window-size=1920,1200");
+        options.setHeadless(true);
         WebDriver driver = new ChromeDriver(options);
 
         // When

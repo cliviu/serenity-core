@@ -8,8 +8,8 @@ import net.thucydides.core.pages.integration.StaticSitePage
 import net.thucydides.core.steps.ExecutedStepDescription
 import net.thucydides.core.steps.StepEventBus
 import net.thucydides.core.steps.StepFailure
-import net.thucydides.core.util.MockEnvironmentVariables
-import net.thucydides.core.util.SystemEnvironmentVariables
+import net.thucydides.core.environment.MockEnvironmentVariables
+import net.thucydides.core.environment.SystemEnvironmentVariables
 import net.thucydides.core.webdriver.WebDriverFacade
 import net.thucydides.core.webdriver.WebDriverFactory
 import net.thucydides.core.webdriver.exceptions.ElementShouldBeDisabledException
@@ -56,7 +56,8 @@ class WhenManagingWebdriverTimeouts extends Specification {
     }
 
     WebDriver newDriver() {
-        def desiredCapabilities = DesiredCapabilities.chrome();
+
+        def desiredCapabilities = new DesiredCapabilities();
         def chromeOptions = new ChromeOptions();
         chromeOptions.addArguments("--headless");
         desiredCapabilities.setCapability(ChromeOptions.CAPABILITY, chromeOptions);
@@ -116,7 +117,7 @@ class WhenManagingWebdriverTimeouts extends Specification {
     }
 
     private StaticSitePage openStaticPage() {
-        def driver = new WebDriverFacade(driver, new WebDriverFactory(), new SystemEnvironmentVariables()); // HtmlUnitDriver();
+        def driver = new WebDriverFacade(driver, new WebDriverFactory()); // HtmlUnitDriver();
         def page = new StaticSitePage(driver)
         page.open()
         return page

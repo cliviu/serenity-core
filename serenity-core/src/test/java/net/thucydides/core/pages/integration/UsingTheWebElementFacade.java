@@ -17,8 +17,6 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-
-
 public class UsingTheWebElementFacade extends FluentElementAPITestsBaseClass {
 
     static WebDriver driver;
@@ -96,7 +94,7 @@ public class UsingTheWebElementFacade extends FluentElementAPITestsBaseClass {
 
     @Test
     public void page_level_queries_should_return_elements_using_successive_filters_of_locatorsas_a_stream() {
-        Stream<net.serenitybdd.core.pages.WebElementFacade> elements = page.findEach(By.id("demo"),By.id("firstname"));
+        Stream<net.serenitybdd.core.pages.WebElementFacade> elements = page.findEach(By.id("demo"), By.id("firstname"));
         assertThat(elements.collect(Collectors.toList())).isNotEmpty();
     }
 
@@ -255,6 +253,7 @@ public class UsingTheWebElementFacade extends FluentElementAPITestsBaseClass {
         page.fieldDoesNotExist.shouldBeCurrentlyVisible();
     }
 
+    @Test
     public void should_check_element_as_visible_quickly_if_not_present_right_now() {
         page.firstName.shouldBeCurrentlyVisible();
     }

@@ -13,6 +13,7 @@ import net.serenitybdd.core.time.SystemClock;
 import net.thucydides.core.batches.BatchManager;
 import net.thucydides.core.batches.BatchManagerProvider;
 import net.thucydides.core.configuration.SystemPropertiesConfiguration;
+import net.thucydides.core.environment.SystemEnvironmentVariables;
 import net.thucydides.core.issues.IssueTracking;
 import net.thucydides.core.issues.SystemPropertiesIssueTracking;
 import net.thucydides.core.logging.ConsoleLoggingListener;
@@ -22,8 +23,6 @@ import net.thucydides.core.reports.json.JSONConverter;
 import net.thucydides.core.reports.json.gson.GsonJSONConverter;
 import net.thucydides.core.reports.remoteTesting.LinkGenerator;
 import net.thucydides.core.reports.remoteTesting.RemoteTestingLinkManager;
-import net.thucydides.core.reports.templates.FreeMarkerTemplateManager;
-import net.thucydides.core.reports.templates.TemplateManager;
 import net.thucydides.core.requirements.ClasspathRequirementsProviderService;
 import net.thucydides.core.requirements.MultiSourceRequirementsService;
 import net.thucydides.core.requirements.RequirementsProviderService;
@@ -36,7 +35,6 @@ import net.thucydides.core.steps.StepListener;
 import net.thucydides.core.steps.di.ClasspathDependencyInjectorService;
 import net.thucydides.core.steps.di.DependencyInjectorService;
 import net.thucydides.core.util.EnvironmentVariables;
-import net.thucydides.core.util.SystemEnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
 
 public class ThucydidesModule extends AbstractModule {
@@ -66,7 +64,6 @@ public class ThucydidesModule extends AbstractModule {
     }
 
     @Provides
-    @Singleton
     public EnvironmentVariables provideEnvironmentVariables() {
         return SystemEnvironmentVariables.createEnvironmentVariables();
     }

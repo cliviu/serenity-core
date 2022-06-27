@@ -62,6 +62,10 @@ public enum SupportedWebDriver {
      */
     SAFARI(SafariDriver.class),
 
+//    /**
+//     * HtmlUnit
+//     */
+//    HTMLUNIT(HtmlUnitDriver.class),
     /**
      * Appium
      */

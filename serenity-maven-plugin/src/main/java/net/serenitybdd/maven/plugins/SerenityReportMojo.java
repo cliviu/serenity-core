@@ -3,10 +3,9 @@ package net.serenitybdd.maven.plugins;
 import com.google.common.base.Splitter;
 import net.serenitybdd.core.Serenity;
 import net.thucydides.core.ThucydidesSystemProperty;
+import net.thucydides.core.environment.SystemEnvironmentVariables;
 import net.thucydides.core.guice.Injectors;
 import net.thucydides.core.reports.ExtendedReports;
-import net.thucydides.core.reports.UserStoryTestReporter;
-import net.thucydides.core.reports.html.HtmlAggregateStoryReporter;
 import net.thucydides.core.util.EnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
 import org.apache.commons.lang3.StringUtils;
@@ -17,17 +16,12 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Generate extended reports.
@@ -36,8 +30,6 @@ import java.util.stream.Collectors;
  */
 @Mojo(name = "reports", requiresProject = false, requiresDependencyResolution = ResolutionScope.RUNTIME)
 public class SerenityReportMojo extends AbstractMojo {
-
-    private final static Logger LOGGER = LoggerFactory.getLogger(SerenityReportMojo.class);
 
     /**
      * Reports are generated here
@@ -110,10 +102,7 @@ public class SerenityReportMojo extends AbstractMojo {
     }
 
     private EnvironmentVariables getEnvironmentVariables() {
-        if (environmentVariables == null) {
-            environmentVariables = Injectors.getInjector().getProvider(EnvironmentVariables.class).get();
-        }
-        return environmentVariables;
+        return SystemEnvironmentVariables.currentEnvironmentVariables();
     }
 
     private Configuration getConfiguration() {

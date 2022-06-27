@@ -1,5 +1,6 @@
 package net.serenitybdd.screenplay
 
+import net.thucydides.core.environment.TestLocalEnvironmentVariables
 import net.thucydides.core.guice.Injectors
 import net.thucydides.core.model.TestResult
 import net.thucydides.core.steps.BaseStepListener
@@ -13,7 +14,6 @@ import static net.serenitybdd.screenplay.Tasks.instrumented
 import static net.thucydides.core.ThucydidesSystemProperty.MANUAL_TASK_INSTRUMENTATION
 
 class WhenInstrumentingTasks extends Specification {
-
 
     File temporaryDirectory
     BaseStepListener listener = new BaseStepListener(temporaryDirectory)
@@ -149,34 +149,8 @@ class WhenInstrumentingTasks extends Specification {
     def "The @Step annotation is ignored in test output if task is manually instantiated and MANUAL_TASK_INSTRUMENTATION is true"() {
 
         given:
-        environmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
+        TestLocalEnvironmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
         Performable basicTask = new EatsAnOrange()
-        when:
-        Actor.named("Annie").attemptsTo(basicTask);
-        then:
-        testPassed()
-        and:
-        testOutcomeContainsNoSteps()
-    }
-
-    def "There should be no test output if an immmutable task with no @Step annotation and arguments is instrumented and MANUAL_TASK_INSTRUMENTATION is true"() {
-
-        given:
-        environmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
-        Performable basicTask = EatsImmutableFruit.ofType("pear")
-        when:
-        Actor.named("Annie").attemptsTo(basicTask);
-        then:
-        testPassed()
-        and:
-        testOutcomeContainsNoSteps()
-    }
-
-    def "There should be no test output if a task with no @Step annotation with no arguments is instrumented and MANUAL_TASK_INSTRUMENTATION is true"() {
-
-        given:
-        environmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
-        Performable basicTask = instrumented(EatsAnApple)
         when:
         Actor.named("Annie").attemptsTo(basicTask);
         then:
@@ -188,7 +162,7 @@ class WhenInstrumentingTasks extends Specification {
     def "There should be no test output if a task is manually instantiated and MANUAL_TASK_INSTRUMENTATION is true"() {
 
         given:
-        environmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
+        TestLocalEnvironmentVariables.setProperty(MANUAL_TASK_INSTRUMENTATION.toString(), "true");
         Performable basicTask = EatsFruit.loudly()
         when:
         Actor.named("Eddie").attemptsTo(basicTask);
