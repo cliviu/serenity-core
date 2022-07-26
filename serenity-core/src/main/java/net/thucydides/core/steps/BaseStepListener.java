@@ -31,6 +31,7 @@ import net.thucydides.core.model.stacktrace.FailureCause;
 import net.thucydides.core.pages.Pages;
 import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.screenshots.ScreenshotException;
+import net.thucydides.core.util.ConfigCache;
 import net.thucydides.core.webdriver.*;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.SessionId;
@@ -934,6 +935,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     @Override
     public void testRunFinished() {
         closeDarkroom();
+        ConfigCache.instance().clear();
     }
 
     public void currentStepDone(TestResult result) {
@@ -983,7 +985,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void take(final ScreenshotType screenshotType, TestResult result) {
-        if (shouldTakeScreenshots()) {
+        if (shouldTakeScreenshots(result)) {
             try {
                 grabScreenshots(result).forEach(
                         screenshot -> recordScreenshotIfRequired(screenshotType, screenshot)
@@ -995,12 +997,12 @@ public class BaseStepListener implements StepListener, StepPublisher {
         }
     }
 
-    private boolean shouldTakeScreenshots() {
+    private boolean shouldTakeScreenshots(TestResult result) {
         if (StepEventBus.getEventBus().webdriverCallsAreSuspended() && !StepEventBus.getEventBus().softAssertsActive()) {
             return false;
         }
 
-        if (screenshots().areDisabledForThisAction()) {
+        if (screenshots().areDisabledForThisAction(result)) {
             return false;
         }
 
@@ -1111,10 +1113,10 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private boolean shouldTakeEndOfStepScreenshotFor(final TestResult result) {
-        if (result == FAILURE) {
-            return screenshots().areAllowed(TakeScreenshots.FOR_FAILURES);
+        if (result.isAtLeast(FAILURE)) {
+            return screenshots().areAllowed(TakeScreenshots.FOR_FAILURES, result);
         } else {
-            return screenshots().areAllowed(TakeScreenshots.AFTER_EACH_STEP);
+            return screenshots().areAllowed(TakeScreenshots.AFTER_EACH_STEP, result);
         }
     }
 
@@ -1235,7 +1237,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     public void notifyUIError() {
         if (currentTestIsABrowserTest() && screenshots().areAllowed(TakeScreenshots.FOR_FAILURES)) {
-            take(OPTIONAL_SCREENSHOT);
+            take(OPTIONAL_SCREENSHOT, FAILURE);
         }
     }
 

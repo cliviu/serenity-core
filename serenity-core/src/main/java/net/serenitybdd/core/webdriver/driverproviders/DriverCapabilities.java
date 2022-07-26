@@ -38,8 +38,11 @@ public class DriverCapabilities {
             driverName = REMOTE_DRIVER;
         }
         SupportedWebDriver driverType = driverTypeFor(driverComponentof(driverName));
-
         Preconditions.checkNotNull(driverType, "Unsupported remote driver type: " + driverName);
+
+        MutableCapabilities capabilities = W3CCapabilities.definedIn(environmentVariables)
+                                                          .withPrefix("webdriver.capabilities")
+                                                          .forDriver(driverType);
 
         if (shouldUseARemoteDriver()) {
             return enhancer.enhanced(remoteCapabilities(options), driverType);
@@ -90,7 +93,7 @@ public class DriverCapabilities {
 
         MutableCapabilities capabilities;
 
-        String remoteBrowser = ThucydidesSystemProperty.WEBDRIVER_REMOTE_DRIVER.from(environmentVariables, getDriverFrom(environmentVariables));
+        String remoteBrowser = RemoteDriverName.definedIn(environmentVariables);
         if (!isUndefined(remoteBrowser)) {
             capabilities = realBrowserCapabilities(driverTypeFor(remoteBrowser), options);
         } else {
@@ -114,9 +117,7 @@ public class DriverCapabilities {
         }
 
         // Legacy support for W3C capabilities in the webdriver section
-        capabilities.merge(W3CCapabilities.definedIn(environmentVariables).withPrefix("webdriver"));
-        // New support for a dedicated w3c section containing W3C capabilities
-        capabilities.merge(W3CCapabilities.definedIn(environmentVariables).withPrefix("w3c"));
+        capabilities.merge(W3CCapabilities.definedIn(environmentVariables).withPrefix("webdriver.capabilities").asDesiredCapabilities());
         return capabilities;
     }
 
