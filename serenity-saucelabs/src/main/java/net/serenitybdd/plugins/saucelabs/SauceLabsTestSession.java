@@ -1,6 +1,8 @@
 package net.serenitybdd.plugins.saucelabs;
 
 import io.restassured.RestAssured;
+import net.serenitybdd.core.model.TestOutcomeName;
+import net.serenitybdd.plugins.CapabilityTags;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.model.TestResult;
 import org.apache.commons.codec.binary.Hex;
@@ -45,7 +47,7 @@ public class SauceLabsTestSession {
     }
 
     public String getTestLink() {
-        if (sauceLabsKey != null) {
+        if ((sauceLabsKey != null) && (sessionId != null)) {
             return noLoginLink();
         } else {
             return String.format(APP_TEST_LINK_TEMPLATE, sessionId);

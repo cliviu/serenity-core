@@ -5,7 +5,7 @@
     <parent>
         <artifactId>serenity-bdd</artifactId>
         <groupId>net.serenity-bdd</groupId>
-        <version>3.3.1-SNAPSHOT</version>
+        <version>3.3.3-SNAPSHOT</version>
     </parent>
     <artifactId>serenity-junit5</artifactId>
     <packaging>jar</packaging>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>org.junit.platform</groupId>
             <artifactId>junit-platform-launcher</artifactId>
-            <version>1.8.1</version>
+            <version>1.9.0</version>
             <scope>compile</scope>
         </dependency>
 
@@ -94,7 +94,7 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
             <version>${spring.version}</version>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

@@ -742,6 +742,7 @@ public enum ThucydidesSystemProperty {
 
     /**
      * Arguments to be passed to the Chrome driver, separated by commas.
+     * @Deprecated: this option is no longer supported as of 3.3.0, use the W3C options instead.
      */
     CHROME_SWITCHES,
 
@@ -1089,10 +1090,13 @@ public enum ThucydidesSystemProperty {
     SERENITY_TEST_REQUIREMENTS_BASEDIR,
 
     /**
-     * Set to true if you want the HTML source code to be recorded as well as the screenshots.
-     * This is not currently used in the reports.
+     * Configure whether to store the HTML source with screenshots. Possible values are:
+     *  - ALWAYS - store HTML source code for every screenshot
+     *  - FAILURES - store HTML source code for failing tests
+     *  - NEVER - don't store HTML source code
+     * Set to FAILURES by default.
      */
-    //    THUCYDIDES_STORE_HTML_SOURCE,
+    SERENITY_STORE_HTML,
 
     @Deprecated
     THUCYDIDES_KEEP_UNSCALED_SCREENSHOTS,

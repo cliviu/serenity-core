@@ -45,14 +45,12 @@ public class ChromiumOptionsBuilder {
                 switch (optionName) {
                     // Arguments
                     case "args":
-                        if (options.get("args") instanceof List) {
-                            List<String> args = ListOfValues.from(options).forProperty("args");
-                            if (!args.isEmpty()) {
-                                chromiumOptions.addArguments(args);
-                            }
-                            if (args.contains("headless") || args.contains("--headless")) {
-                                chromiumOptions.setHeadless(true);
-                            }
+                        List<String> args = ListOfValues.from(options).forProperty("args");
+                        if (!args.isEmpty()) {
+                            chromiumOptions.addArguments(args);
+                        }
+                        if (args.contains("headless") || args.contains("--headless")) {
+                            chromiumOptions.setHeadless(true);
                         }
                         break;
                     // Extensions
@@ -92,6 +90,9 @@ public class ChromiumOptionsBuilder {
                     case "prefs":
                         chromiumOptions.setExperimentalOption("prefs", NestedMap.called("prefs").from(options));
                         break;
+                    case "excludeSwitches":
+                        chromiumOptions.setExperimentalOption("excludeSwitches", ListOfValues.from(options).forProperty("args"));
+                        break;
                     default:
                         extraOptions.put(optionName, options.get(optionName));
                 }
@@ -107,6 +108,7 @@ public class ChromiumOptionsBuilder {
         } else if (capabilities.getCapability(EdgeOptions.LOGGING_PREFS) != null) {
             setChromiumLoggingPreferences(capabilities, chromiumOptions);
         }
+
         return chromiumOptions;
     }
 
