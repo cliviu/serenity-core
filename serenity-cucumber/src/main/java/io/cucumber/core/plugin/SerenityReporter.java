@@ -127,9 +127,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
     private FeaturePathFormatter featurePathFormatter = new FeaturePathFormatter();
 
     private StepEventBus getStepEventBus(URI featurePath) {
-        System.out.println("XXXStepEventBus " + featurePath);
         URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(featurePath);
-        System.out.println("XXXPrefixedPath " + prefixedPath);
         return StepEventBus.eventBusFor(prefixedPath);
     }
 

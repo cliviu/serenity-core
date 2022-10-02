@@ -285,7 +285,6 @@ class ScenarioContext {
 
     public synchronized StepEventBus stepEventBus(URI featurePath) {
         URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(featurePath);
-        System.out.println("XXXPrefixedPath " + prefixedPath);
         return StepEventBus.eventBusFor(prefixedPath);
     }
 
