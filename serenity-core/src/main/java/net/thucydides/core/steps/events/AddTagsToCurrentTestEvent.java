@@ -1,4 +1,4 @@
-package io.cucumber.core.plugin.events;
+package net.thucydides.core.steps.events;
 
 import net.thucydides.core.model.TestTag;
 import net.thucydides.core.steps.StepEventBus;

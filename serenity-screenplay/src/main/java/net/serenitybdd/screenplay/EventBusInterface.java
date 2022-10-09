@@ -4,11 +4,19 @@ import net.thucydides.core.model.stacktrace.FailureCause;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.StepFailure;
+import net.thucydides.core.steps.events.StepStartedEvent;
+import net.thucydides.core.steps.events.UpdateOverallResultsEvent;
+import net.thucydides.core.steps.session.TestSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
 
 public class EventBusInterface {
+
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(EventBusInterface.class);
 
     public static void castActor(String name) {
         if (!StepEventBus.getEventBus().isBaseStepListenerRegistered()) {
@@ -37,7 +45,15 @@ public class EventBusInterface {
 
     public void updateOverallResult() {
         if (StepEventBus.getEventBus().isBaseStepListenerRegistered()) {
-            StepEventBus.getEventBus().updateOverallResults();
+            LOGGER.info("ZZZ Actor updateOverall Result " + TestSession.isSessionStarted() + " " +  Thread.currentThread());
+            if(!TestSession.isSessionStarted()) {
+                StepEventBus.getEventBus().updateOverallResults();
+            }
+            else {
+                UpdateOverallResultsEvent updateOverallResultsEvent = new UpdateOverallResultsEvent(StepEventBus.getEventBus());
+                LOGGER.info("ZZZ Actor started event in session " + updateOverallResultsEvent + " " +  Thread.currentThread());
+                TestSession.addEvent(updateOverallResultsEvent);
+            }
         }
     }
 

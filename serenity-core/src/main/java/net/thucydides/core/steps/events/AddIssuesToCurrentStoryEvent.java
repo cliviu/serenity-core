@@ -1,15 +1,15 @@
-package io.cucumber.core.plugin.events;
+package net.thucydides.core.steps.events;
 
 import net.thucydides.core.steps.StepEventBus;
 
 import java.util.List;
 
-public class AddIssuesToCurrentTestEvent extends StepEventBusEventBase {
+public class AddIssuesToCurrentStoryEvent extends StepEventBusEventBase {
 
 	private List<String> issues;
 
 
-	public AddIssuesToCurrentTestEvent(StepEventBus eventBus, List<String> issues) {
+	public AddIssuesToCurrentStoryEvent(StepEventBus eventBus, List<String> issues) {
 		super(eventBus);
 		this.issues = issues;
 	}

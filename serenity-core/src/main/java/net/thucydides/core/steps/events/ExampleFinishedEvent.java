@@ -1,8 +1,6 @@
-package io.cucumber.core.plugin.events;
+package net.thucydides.core.steps.events;
 
 import net.thucydides.core.steps.StepEventBus;
-
-import java.util.Map;
 
 public class ExampleFinishedEvent extends StepEventBusEventBase {
 

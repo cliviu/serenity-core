@@ -1,4 +1,4 @@
-package io.cucumber.core.plugin.events;
+package net.thucydides.core.steps.events;
 
 public interface StepEventBusEvent {
 	public void play();

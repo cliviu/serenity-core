@@ -1,7 +1,7 @@
 package io.cucumber.core.plugin;
 
 
-import io.cucumber.core.plugin.events.StepEventBusEvent;
+import net.thucydides.core.steps.events.StepEventBusEvent;
 import io.cucumber.messages.types.Examples;
 import io.cucumber.messages.types.Scenario;
 import io.cucumber.messages.types.Step;
@@ -13,6 +13,7 @@ import net.thucydides.core.model.DataTableRow;
 import net.thucydides.core.model.TestTag;
 import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.StepEventBus;
+import net.thucydides.core.steps.session.TestSession;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,10 @@ class ScenarioContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
     //private final Queue<Step> stepQueue = new LinkedList<>();
 
-    private Map<UUID,LinkedList<StepEventBusEvent>> stepEventBusEvents = Collections.synchronizedMap(new HashMap<>());
+    private Map<UUID,List<StepEventBusEvent>> stepEventBusEvents = Collections.synchronizedMap(new HashMap<>());
 
+    //private final Queue<Step> simpleStepQueue = new LinkedList<>();
+    //private final Queue<TestStep> simpleStepTestQueue = new LinkedList<>();
     private final Map<UUID,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
     private final Map<UUID,Queue<TestStep>> testStepQueue = Collections.synchronizedMap(new HashMap<>());
 
@@ -51,7 +54,8 @@ class ScenarioContext {
 
     private String currentScenarioId;
 
-    private Scenario currentScenarioDefinition;
+    //private Scenario currentScenarioDefinition;
+    private Map<UUID,Scenario> currentScenarioDefinitionMap = Collections.synchronizedMap(new HashMap<>());
 
     private String currentScenario;
 
@@ -68,6 +72,8 @@ class ScenarioContext {
 
     private URI featureURI;
 
+    //ThreadLocal<List<StepEventBusEvent>> stepEventBusEvents = ThreadLocal.withInitial(()->Collections.synchronizedList(new LinkedList<>()));
+
 
     public ScenarioContext(){
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
@@ -82,8 +88,8 @@ class ScenarioContext {
         currentFeaturePath = featurePath;
     }*/
 
-    public synchronized Scenario currentScenarioOutline() {
-        return  currentScenarioDefinition;
+    public synchronized Scenario currentScenarioOutline(TestCase testCase) {
+        return currentScenarioDefinitionMap.get(testCase.getId());
     }
 
     /*public synchronized URI currentFeaturePath() {
@@ -93,11 +99,13 @@ class ScenarioContext {
     public synchronized Queue<Step> getStepQueue(TestCase testCase) {
         stepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
         return stepQueue.get(testCase.getId());
+        //return simpleStepQueue;
     }
 
     public synchronized Queue<TestStep> getTestStepQueue(TestCase testCase) {
         testStepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
         return testStepQueue.get(testCase.getId());
+        //return simpleStepTestQueue;
     }
 
     public synchronized boolean examplesAreRunning() {
@@ -142,8 +150,8 @@ class ScenarioContext {
         currentScenarioId = scenarioId;
     }
 
-    public synchronized Scenario getCurrentScenarioDefinition() {
-        return currentScenarioDefinition;
+    public synchronized Scenario getCurrentScenarioDefinition(TestCase testCase) {
+        return currentScenarioDefinitionMap.get(testCase.getId());
     }
 
     public synchronized String getCurrentScenario() {
@@ -170,12 +178,13 @@ class ScenarioContext {
         this.featureTags = new ArrayList<>(tags);
     }
 
-    public synchronized void setCurrentScenarioDefinitionFrom(TestSourcesModel.AstNode astNode) {
-        this.currentScenarioDefinition = TestSourcesModel.getScenarioDefinition(astNode);
+    public synchronized void setCurrentScenarioDefinitionFrom(TestCase testCase,TestSourcesModel.AstNode astNode) {
+        this.currentScenarioDefinitionMap.put(testCase.getId(), TestSourcesModel.getScenarioDefinition(astNode));
     }
 
-    public synchronized boolean isAScenarioOutline() {
-        return currentScenarioDefinition.getExamples().size() > 0;
+    public synchronized boolean isAScenarioOutline(TestCase testCase) {
+        return currentScenarioDefinitionMap.containsKey(testCase.getId())  &&
+                currentScenarioDefinitionMap.get(testCase.getId()).getExamples().size() > 0;
     }
 
     public synchronized void startNewExample(URI featurePath, TestCase testCase) {
@@ -188,7 +197,7 @@ class ScenarioContext {
         this.examplesRunning = examplesRunning;
     }
 
-    public synchronized List<Tag> getScenarioTags() {
+    /*public synchronized List<Tag> getScenarioTags() {
         return currentScenarioDefinition.getTags();
     }
 
@@ -198,7 +207,7 @@ class ScenarioContext {
 
     public synchronized List<Examples> getScenarioExamples() {
         return currentScenarioDefinition.getExamples();
-    }
+    }*/
 
     public synchronized void clearStepQueue(TestCase testCase) {
         getStepQueue(testCase).clear();
@@ -207,10 +216,12 @@ class ScenarioContext {
     public synchronized void clearStepQueue() {
         //TODO check
         stepQueue.clear();
+        //simpleStepQueue.clear();
     }
 
     public synchronized void clearTestStepQueue() {
         testStepQueue.clear();
+        //simpleStepTestQueue.clear();
     }
 
     public synchronized void queueStep(TestCase testCase,Step step) {
@@ -331,15 +342,32 @@ class ScenarioContext {
     }
 
     public void addStepEventBusEvent(TestCase testCase, StepEventBusEvent event) {
-        LinkedList<StepEventBusEvent> eventList = stepEventBusEvents.computeIfAbsent(testCase.getId(),k->new LinkedList<>());
+        List<StepEventBusEvent> eventList = stepEventBusEvents.computeIfAbsent(testCase.getId(),k->Collections.synchronizedList(new LinkedList<>()));
         eventList.add(event);
+        if(TestSession.isSessionStarted()) {
+
+            TestSession.addEvent(event);
+        } else {
+            LOGGER.info("ZZZ ignored event " + event + " " +  Thread.currentThread() + " because session not opened for test case id " + testCase.getId());
+        }
+        //stepEventBusEvents.get().add(event);
     }
 
     public void playAllStepEventBusEvents(TestCase testCase){
-        LinkedList<StepEventBusEvent> stepEventBusEvents = this.stepEventBusEvents.get(testCase.getId());
+        /*List<StepEventBusEvent> stepEventBusEvents = this.stepEventBusEvents.get(testCase.getId());
         for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
             LOGGER.info("ZZZ PLAY event  " + currentStepBusEvent + " " +  Thread.currentThread());
             currentStepBusEvent.play();
+        }*/
+        if(TestSession.isSessionStarted()) {
+             TestSession.closeSession();
+             List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
+             for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
+                LOGGER.info("ZZZ PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
+                currentStepBusEvent.play();
+            }
+            TestSession.cleanupSession();
+            stepEventBusEvents.clear();
         }
     }
 }

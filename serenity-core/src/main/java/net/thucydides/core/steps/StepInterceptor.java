@@ -17,8 +17,12 @@ import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.adapters.TestFramework;
 import net.thucydides.core.annotations.*;
 import net.thucydides.core.model.stacktrace.StackTraceSanitizer;
+import net.thucydides.core.steps.events.StepFinishedEvent;
+import net.thucydides.core.steps.events.StepStartedEvent;
+import net.thucydides.core.steps.events.UpdateOverallResultsEvent;
 import net.thucydides.core.steps.interception.DynamicExampleStepInterceptionListener;
 import net.thucydides.core.steps.interception.StepInterceptionListener;
+import net.thucydides.core.steps.session.TestSession;
 import net.thucydides.core.util.EnvironmentVariables;
 import org.apache.commons.lang3.StringUtils;
 import org.mockito.Mockito;
@@ -511,7 +515,16 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void notifyStepFinishedFor(final Method method, final Object[] args) {
-        StepEventBus.getEventBus().stepFinished();
+         if(!TestSession.isSessionStarted()) {
+            StepEventBus.getEventBus().stepFinished();
+         }
+        else {
+            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
+            LOGGER.info("ZZZ Actor started event in session " + stepFinishedEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepFinishedEvent);
+        }
+
+
     }
 
     private void notifySkippedStepFinishedFor(final Method method, final Object[] args) {
@@ -567,7 +580,15 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     private void notifyStepStarted(final Object object, final Method method, final Object[] args) {
         ExecutedStepDescription description = ExecutedStepDescription.of(testStepClass, getTestNameFrom(method, args), args)
                         .withDisplayedFields(fieldValuesIn(object));
-        StepEventBus.getEventBus().stepStarted(description);
+         if(!TestSession.isSessionStarted()) {
+            StepEventBus.getEventBus().stepStarted(description);
+         }
+        else {
+            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(),description);
+            LOGGER.info("ZZZ Actor started event in session " + stepStartedEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepStartedEvent);
+        }
+
     }
 
     private Map<String, Object> fieldValuesIn(Object object) {

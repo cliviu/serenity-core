@@ -15,7 +15,12 @@ import net.thucydides.core.annotations.Step;
 import net.thucydides.core.environment.SystemEnvironmentVariables;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
+import net.thucydides.core.steps.events.StepFinishedEvent;
+import net.thucydides.core.steps.events.StepStartedEvent;
+import net.thucydides.core.steps.session.TestSession;
 import net.thucydides.core.util.EnvironmentVariables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -191,6 +196,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     public final void attemptsTo(ErrorHandlingMode mode, Performable... tasks) {
+        LOGGER.info("ZZZ Actor attempts to " + tasks);
         beginPerformance();
         for (Performable task : tasks) {
             if (isNestedInSilentTask()) {
@@ -251,6 +257,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     private <T extends Performable> void perform(T todo) {
+        LOGGER.info("ZZZ Actor perform" + todo + " " + Thread.currentThread() );
         if (isPending(todo)) {
             StepEventBus.getEventBus().stepPending();
         }
@@ -320,12 +327,36 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
         try {
             String groupTitle = injectActorInto(groupStepName);
-            StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(groupTitle));
+            //StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(groupTitle));
+            stepStarted(groupTitle);
             should(consequences);
 
         } catch (Throwable error) {
             throw error;
         } finally {
+            //StepEventBus.getEventBus().stepFinished();
+            stepFinished();
+        }
+    }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Actor.class);
+
+    private void stepStarted(String groupTitle) {
+        if(TestSession.isSessionStarted()) {
+            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(), ExecutedStepDescription.withTitle(groupTitle));
+            LOGGER.info("ZZZ Actor  started event in session " + stepStartedEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepStartedEvent);
+        } else {
+            LOGGER.info("ZZZ Actor  started event normal because no session available " +  Thread.currentThread());
+            StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(groupTitle));
+        }
+    }
+
+    private void stepFinished() {
+        if(TestSession.isSessionStarted()) {
+            StepFinishedEvent stepStartedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
+            TestSession.addEvent(stepStartedEvent);
+        } else {
             StepEventBus.getEventBus().stepFinished();
         }
     }

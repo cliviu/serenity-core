@@ -1,4 +1,4 @@
-package io.cucumber.core.plugin.events;
+package net.thucydides.core.steps.events;
 
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
@@ -18,6 +18,6 @@ public class StepStartedEvent extends StepEventBusEventBase {
 	}
 
 	public String toString() {
-		return("EventBusEvent STEP_STARTED_EVENT " + stepDescription);
+		return("EventBusEvent STEP_STARTED_EVENT " + stepDescription.getName() + " " + stepDescription.getTitle());
 	}
 }
