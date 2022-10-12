@@ -112,8 +112,13 @@ class ScenarioContext {
     }
 
     public synchronized boolean examplesAreRunning(String scenarioId) {
-        if(!examplesRunningMap.containsKey(scenarioId))
+        //LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + examplesRunning);
+        //return examplesRunning;
+        if(!examplesRunningMap.containsKey(scenarioId)) {
+            LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + false);
             return false;
+        }
+        LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + examplesRunningMap.get(scenarioId));
         return examplesRunningMap.get(scenarioId);
     }
 
@@ -211,12 +216,15 @@ class ScenarioContext {
     public synchronized void startNewExample(URI featurePath, String scenarioId) {
 
         //examplesRunning = true;
-        examplesRunningMap.put(scenarioId,true);
+        LOGGER.info("ZZZEx1 startNewExample " + Thread.currentThread() + " " + scenarioId);
+        //examplesRunningMap.put(scenarioId,true);
         addingScenarioOutlineStepsMap.put(scenarioId,true);
     }
 
     public synchronized void setExamplesRunning(String scenarioId,boolean examplesRunning) {
         examplesRunningMap.put(scenarioId, examplesRunning);
+        LOGGER.info("ZZZEx1 setExamplesAreRunning " + examplesRunning + " " +  Thread.currentThread() + " " + scenarioId);
+        //this.examplesRunning = examplesRunning;
     }
 
     /*public synchronized List<Tag> getScenarioTags() {
