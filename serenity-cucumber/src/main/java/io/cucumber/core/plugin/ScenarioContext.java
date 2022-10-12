@@ -192,8 +192,8 @@ class ScenarioContext {
         return featureTags;
     }
 
-    public synchronized boolean isAddingScenarioOutlineSteps(TestCase testCase) {
-        return addingScenarioOutlineStepsMap.get(testCase.getId()) != null ? addingScenarioOutlineStepsMap.get(testCase.getId()) : false;
+    public synchronized boolean isAddingScenarioOutlineSteps(String scenarioId) {
+        return addingScenarioOutlineStepsMap.get(scenarioId) != null ? addingScenarioOutlineStepsMap.get(scenarioId) : false;
     }
 
     public synchronized void doneAddingScenarioOutlineSteps(String scenarioId) {

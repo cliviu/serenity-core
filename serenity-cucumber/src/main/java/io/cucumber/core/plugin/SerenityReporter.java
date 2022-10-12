@@ -433,7 +433,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
                 if (astNode != null) {
                     //io.cucumber.core.internal.gherkin.ast.Step step = (io.cucumber.core.internal.gherkin.ast.Step) astNode.node;
                     io.cucumber.messages.types.Step step = (io.cucumber.messages.types.Step) astNode.node;
-                    if (!getContext(featurePath).isAddingScenarioOutlineSteps(event.getTestCase())) {
+                    if (!getContext(featurePath).isAddingScenarioOutlineSteps(scenarioId)) {
                         getContext(featurePath).queueStep(event.getTestCase(),step);
                         getContext(featurePath).queueTestStep(event.getTestCase(),event.getTestStep());
                     }
