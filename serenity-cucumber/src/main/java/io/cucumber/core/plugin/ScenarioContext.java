@@ -217,7 +217,7 @@ class ScenarioContext {
 
         //examplesRunning = true;
         LOGGER.info("ZZZEx1 startNewExample " + Thread.currentThread() + " " + scenarioId);
-        //examplesRunningMap.put(scenarioId,true);
+        examplesRunningMap.put(scenarioId,true);
         addingScenarioOutlineStepsMap.put(scenarioId,true);
     }
 
