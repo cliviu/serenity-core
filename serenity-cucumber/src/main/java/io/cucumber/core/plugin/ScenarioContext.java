@@ -29,35 +29,38 @@ import static java.util.stream.Collectors.toList;
 class ScenarioContext {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
-    //private final Queue<Step> stepQueue = new LinkedList<>();
 
     private Map<UUID,List<StepEventBusEvent>> stepEventBusEvents = Collections.synchronizedMap(new HashMap<>());
-
-    //private final Queue<Step> simpleStepQueue = new LinkedList<>();
-    //private final Queue<TestStep> simpleStepTestQueue = new LinkedList<>();
     private final Map<UUID,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
     private final Map<UUID,Queue<TestStep>> testStepQueue = Collections.synchronizedMap(new HashMap<>());
 
-    private boolean examplesRunning;
-    private boolean addingScenarioOutlineSteps = false;
-    private DataTable table;
+    //private boolean examplesRunning;
+    private Map<String,Boolean> examplesRunningMap = Collections.synchronizedMap(new HashMap<>());
+    //private boolean addingScenarioOutlineSteps = false;
+    private Map<String,Boolean> addingScenarioOutlineStepsMap = Collections.synchronizedMap(new HashMap<>());
+    private Map<String,DataTable> tableMap = Collections.synchronizedMap(new HashMap<>());;
 
     //keys are line numbers, entries are example rows (key=header, value=rowValue )
-    private Map<Long, Map<String, String>> exampleRows;
+    //private Map<Long, Map<String, String>> exampleRows;
+    private Map<String,Map<Long, Map<String, String>>> exampleRowsMap = Collections.synchronizedMap(new HashMap<>());
 
     //keys are line numbers
     private Map<Long, List<Tag>> exampleTags;
 
-    private AtomicInteger exampleCount = new AtomicInteger(0);
+    //private AtomicInteger exampleCount = new AtomicInteger(0);
+    private Map<String,AtomicInteger> exampleCountMap = Collections.synchronizedMap(new HashMap<>());
 
     private boolean waitingToProcessBackgroundSteps = false;
 
-    private String currentScenarioId;
+    //private String currentScenarioId;
+    //private Map<UUID,String> currentScenarioIdMap = Collections.synchronizedMap(new HashMap<>());
+    private List<String> currentScenarioIdList = Collections.synchronizedList(new ArrayList<>());
 
     //private Scenario currentScenarioDefinition;
-    private Map<UUID,Scenario> currentScenarioDefinitionMap = Collections.synchronizedMap(new HashMap<>());
+    private Map<String,Scenario> currentScenarioDefinitionMap = Collections.synchronizedMap(new HashMap<>());
 
-    private String currentScenario;
+    //private String currentScenario;
+    private Map<String,String> currentScenarioMap =  Collections.synchronizedMap(new HashMap<>());;
 
     private List<Tag> featureTags = new ArrayList<>();
 
@@ -88,8 +91,8 @@ class ScenarioContext {
         currentFeaturePath = featurePath;
     }*/
 
-    public synchronized Scenario currentScenarioOutline(TestCase testCase) {
-        return currentScenarioDefinitionMap.get(testCase.getId());
+    public synchronized Scenario currentScenarioOutline(String scenarioId) {
+        return currentScenarioDefinitionMap.get(scenarioId);
     }
 
     /*public synchronized URI currentFeaturePath() {
@@ -108,16 +111,18 @@ class ScenarioContext {
         //return simpleStepTestQueue;
     }
 
-    public synchronized boolean examplesAreRunning() {
-        return examplesRunning;
+    public synchronized boolean examplesAreRunning(String scenarioId) {
+        if(!examplesRunningMap.containsKey(scenarioId))
+            return false;
+        return examplesRunningMap.get(scenarioId);
     }
 
-    public synchronized Map<Long, Map<String, String>> getExampleRows() {
-        return exampleRows;
+    public synchronized Map<Long, Map<String, String>> getExampleRows(String scenarioId) {
+        return exampleRowsMap.get(scenarioId);
     }
 
-    public synchronized void setExampleRows(Map<Long, Map<String, String>> exampleRows) {
-        this.exampleRows = exampleRows;
+    public synchronized void setExampleRows(String scenarioId,Map<Long, Map<String, String>> exampleRows) {
+        this.exampleRowsMap.put(scenarioId,exampleRows);
     }
 
     public synchronized Map<Long, List<Tag>> getExampleTags() {
@@ -128,16 +133,25 @@ class ScenarioContext {
         this.exampleTags =  exampleTags;
     }
 
-    public synchronized int getExampleCount() {
-        return exampleCount.get();
+    public synchronized int getExampleCount(String scenarioId)  {
+        LOGGER.info("ZZZEx getExampleCount " + scenarioId + " " +   Thread.currentThread() + " " + exampleCountMap.get(scenarioId));
+        if(exampleCountMap.containsKey(scenarioId))
+            return exampleCountMap.get(scenarioId).get();
+        else
+            return 0;
     }
 
-    public synchronized int decrementExampleCount() {
-        return exampleCount.decrementAndGet();
+    public synchronized int decrementExampleCount(String scenarioId) {
+        LOGGER.info("ZZZEx decrement ExampleCount " +scenarioId + " " +   Thread.currentThread() + " " + exampleCountMap.get(scenarioId));
+        if(exampleCountMap.get(scenarioId) != null) {
+            return exampleCountMap.get(scenarioId).decrementAndGet();
+        }
+        else //single example
+        return 0;
     }
 
-    public synchronized DataTable getTable() {
-        return table;
+    public synchronized DataTable getTable(String scenarioId) {
+        return tableMap.get(scenarioId);
     }
 
     public synchronized boolean isWaitingToProcessBackgroundSteps() {
@@ -146,55 +160,63 @@ class ScenarioContext {
 
 
 
-    public synchronized void setCurrentScenarioId(String scenarioId) {
-        currentScenarioId = scenarioId;
+    public synchronized void addCurrentScenarioId(String scenarioId) {
+
+        LOGGER.info("ZZZEx SetCurrentScenario called " + Thread.currentThread() + " " + scenarioId);
+        if(scenarioId != null)
+            currentScenarioIdList.add(scenarioId);
+        else
+           currentScenarioIdList.clear();
     }
 
-    public synchronized Scenario getCurrentScenarioDefinition(TestCase testCase) {
-        return currentScenarioDefinitionMap.get(testCase.getId());
+    public synchronized Scenario getCurrentScenarioDefinition(String scenarioId) {
+        return currentScenarioDefinitionMap.get(scenarioId);
     }
 
-    public synchronized String getCurrentScenario() {
-        return currentScenario;
+    public synchronized String getCurrentScenario(String scenarioId) {
+        LOGGER.info("ZZZGetCurrentScenario called " + Thread.currentThread() + " " + currentScenarioMap.get(scenarioId));
+        return currentScenarioMap.get(scenarioId);
     }
 
-    public synchronized void setCurrentScenario(String currentScenario) {
-        this.currentScenario = currentScenario;
+    public synchronized void setCurrentScenario(String scenarioId,String currentScenario) {
+        LOGGER.info("SetCurrentScenario called " + Thread.currentThread() + " " + currentScenario);
+        this.currentScenarioMap.put(scenarioId,currentScenario);
     }
 
     public synchronized List<Tag> getFeatureTags() {
         return featureTags;
     }
 
-    public synchronized boolean isAddingScenarioOutlineSteps() {
-        return addingScenarioOutlineSteps;
+    public synchronized boolean isAddingScenarioOutlineSteps(TestCase testCase) {
+        return addingScenarioOutlineStepsMap.get(testCase.getId()) != null ? addingScenarioOutlineStepsMap.get(testCase.getId()) : false;
     }
 
-    public synchronized void doneAddingScenarioOutlineSteps() {
-        this.addingScenarioOutlineSteps = false;
+    public synchronized void doneAddingScenarioOutlineSteps(String scenarioId) {
+        this.addingScenarioOutlineStepsMap.put(scenarioId,false);
     }
 
     public synchronized void setFeatureTags(List<Tag> tags) {
         this.featureTags = new ArrayList<>(tags);
     }
 
-    public synchronized void setCurrentScenarioDefinitionFrom(TestCase testCase,TestSourcesModel.AstNode astNode) {
-        this.currentScenarioDefinitionMap.put(testCase.getId(), TestSourcesModel.getScenarioDefinition(astNode));
+    public synchronized void setCurrentScenarioDefinitionFrom(String scenarioId,TestSourcesModel.AstNode astNode) {
+        this.currentScenarioDefinitionMap.put(scenarioId, TestSourcesModel.getScenarioDefinition(astNode));
     }
 
-    public synchronized boolean isAScenarioOutline(TestCase testCase) {
-        return currentScenarioDefinitionMap.containsKey(testCase.getId())  &&
-                currentScenarioDefinitionMap.get(testCase.getId()).getExamples().size() > 0;
+    public synchronized boolean isAScenarioOutline(String scenarioId) {
+        return currentScenarioDefinitionMap.get(scenarioId) != null  &&
+                currentScenarioDefinitionMap.get(scenarioId).getExamples().size() > 0;
     }
 
-    public synchronized void startNewExample(URI featurePath, TestCase testCase) {
+    public synchronized void startNewExample(URI featurePath, String scenarioId) {
 
-        examplesRunning = true;
-        addingScenarioOutlineSteps = true;
+        //examplesRunning = true;
+        examplesRunningMap.put(scenarioId,true);
+        addingScenarioOutlineStepsMap.put(scenarioId,true);
     }
 
-    public synchronized void setExamplesRunning(boolean examplesRunning) {
-        this.examplesRunning = examplesRunning;
+    public synchronized void setExamplesRunning(String scenarioId,boolean examplesRunning) {
+        examplesRunningMap.put(scenarioId, examplesRunning);
     }
 
     /*public synchronized List<Tag> getScenarioTags() {
@@ -249,19 +271,24 @@ class ScenarioContext {
     }
 
     public synchronized boolean hasScenarioId(String scenarioId) {
-        return (currentScenarioId != null) && (currentScenarioId.equals(scenarioId));
+        boolean hasScenario =  (currentScenarioIdList.contains(scenarioId));
+        LOGGER.info("ZZZEx HasCurrentScenarioId called " + Thread.currentThread() + " " + scenarioId + " has scenario " + hasScenario + " " + currentScenarioIdList);
+        return hasScenario;
     }
 
-    public synchronized void setTable(DataTable table) {
-        this.table = table;
-        exampleCount.set(table.getSize());
+    public synchronized void setTable(String scenarioId,DataTable table) {
+        this.tableMap.put(scenarioId,table);
+        LOGGER.info("ZZZEx setTable " + table + " " + scenarioId + " " + Thread.currentThread() + " " + table.getSize());
+        exampleCountMap.put(scenarioId,new AtomicInteger(table.getSize()));
+        //exampleCount.set(table.getSize());
     }
 
-    public synchronized void addTableRows(List<String> headers,
+    public synchronized void addTableRows(String scenarioId,List<String> headers,
                              List<Map<String, String>> rows,
                              String name,
                              String description,
                              Map<Integer, Long> lineNumbersOfEachRow) {
+        DataTable table = tableMap.get(scenarioId);
         table.startNewDataSet(name, description);
 
         AtomicInteger rowNumber = new AtomicInteger();
@@ -269,7 +296,8 @@ class ScenarioContext {
                 row -> table.appendRow(newRow(headers, lineNumbersOfEachRow, rowNumber.getAndIncrement(), row))
         );
         table.updateLineNumbers(lineNumbersOfEachRow);
-        exampleCount.set(table.getSize());
+        LOGGER.info("ZZZEx addTableRows " + table + " " + scenarioId + Thread.currentThread() + " " + table.getSize());
+        exampleCountMap.put(scenarioId,new AtomicInteger(table.getSize()));
     }
 
     @NotNull
@@ -286,12 +314,16 @@ class ScenarioContext {
         return headers.stream().map(row::get).collect(toList());
     }
 
-    public synchronized void addTableTags(List<TestTag> tags) {
+    public synchronized void addTableTags(String scenarioId,List<TestTag> tags) {
+        DataTable table = tableMap.get(scenarioId);
         table.addTagsToLatestDataSet(tags);
     }
 
-    public synchronized void clearTable() {
-        table = null;
+    public synchronized void clearTable(TestCase testCase) {
+        tableMap.clear();
+        //tableMap.put(testCase.getId(),null);
+        //DataTable table = tableMap.get(testCase.getId());
+        //table = null;
     }
 
     public synchronized StepEventBus stepEventBus(URI featurePath) {
