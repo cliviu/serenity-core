@@ -131,9 +131,6 @@ public class EventBusInterface {
         StepEventBus.getEventBus().disableSoftAsserts();
     }
 
-    public boolean stepsAreRunning() {
-        return StepEventBus.getEventBus().areStepsRunning();
-    }
 
     public void assignFactToActor(Actor actor, String fact) {
         if (!StepEventBus.getEventBus().isBaseStepListenerRegistered()) {

@@ -31,8 +31,8 @@ class ScenarioContext {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
 
     private Map<UUID,List<StepEventBusEvent>> stepEventBusEvents = Collections.synchronizedMap(new HashMap<>());
-    private final Map<UUID,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
-    private final Map<UUID,Queue<TestStep>> testStepQueue = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String,Queue<TestStep>> testStepQueue = Collections.synchronizedMap(new HashMap<>());
 
     //private boolean examplesRunning;
     private Map<String,Boolean> examplesRunningMap = Collections.synchronizedMap(new HashMap<>());
@@ -77,6 +77,9 @@ class ScenarioContext {
 
     //ThreadLocal<List<StepEventBusEvent>> stepEventBusEvents = ThreadLocal.withInitial(()->Collections.synchronizedList(new LinkedList<>()));
 
+    //Maybe index after feature file also
+     Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
+
 
     public ScenarioContext(){
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
@@ -99,15 +102,15 @@ class ScenarioContext {
         return currentFeaturePath;
     }*/
 
-    public synchronized Queue<Step> getStepQueue(TestCase testCase) {
-        stepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
-        return stepQueue.get(testCase.getId());
+    public synchronized Queue<Step> getStepQueue(String scenarioId) {
+        stepQueue.computeIfAbsent(scenarioId, k -> new LinkedList<>());
+        return stepQueue.get(scenarioId);
         //return simpleStepQueue;
     }
 
-    public synchronized Queue<TestStep> getTestStepQueue(TestCase testCase) {
-        testStepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
-        return testStepQueue.get(testCase.getId());
+    public synchronized Queue<TestStep> getTestStepQueue(String scenarioId) {
+        testStepQueue.computeIfAbsent(scenarioId, k -> new LinkedList<>());
+        return testStepQueue.get(scenarioId);
         //return simpleStepTestQueue;
     }
 
@@ -239,8 +242,8 @@ class ScenarioContext {
         return currentScenarioDefinition.getExamples();
     }*/
 
-    public synchronized void clearStepQueue(TestCase testCase) {
-        getStepQueue(testCase).clear();
+    public synchronized void clearStepQueue(String scenarioId) {
+        getStepQueue(scenarioId).clear();
     }
 
     public synchronized void clearStepQueue() {
@@ -254,28 +257,28 @@ class ScenarioContext {
         //simpleStepTestQueue.clear();
     }
 
-    public synchronized void queueStep(TestCase testCase,Step step) {
-        getStepQueue(testCase).add(step);
+    public synchronized void queueStep(String scenarioId,Step step) {
+        getStepQueue(scenarioId).add(step);
     }
 
-    public synchronized void queueTestStep(TestCase testCase,TestStep testStep) {
-        getTestStepQueue(testCase).add(testStep);
+    public synchronized void queueTestStep(String scenarioId,TestStep testStep) {
+        getTestStepQueue(scenarioId).add(testStep);
     }
 
-    public synchronized Step getCurrentStep(TestCase testCase) {
-        return getStepQueue(testCase).peek();
+    public synchronized Step getCurrentStep(String scenarioId) {
+        return getStepQueue(scenarioId).peek();
     }
 
-    public synchronized Step nextStep(TestCase testCase) {
-        return getStepQueue(testCase).poll();
+    public synchronized Step nextStep(String scenarioId) {
+        return getStepQueue(scenarioId).poll();
     }
 
-    public synchronized TestStep nextTestStep(TestCase testCase) {
-        return getTestStepQueue(testCase).poll();
+    public synchronized TestStep nextTestStep(String scenarioId) {
+        return getTestStepQueue(scenarioId).poll();
     }
 
-    public synchronized boolean noStepsAreQueued(TestCase testCase) {
-        return getStepQueue(testCase).isEmpty();
+    public synchronized boolean noStepsAreQueued(String scenarioId) {
+        return getStepQueue(scenarioId).isEmpty();
     }
 
     public synchronized boolean hasScenarioId(String scenarioId) {
@@ -393,7 +396,7 @@ class ScenarioContext {
         //stepEventBusEvents.get().add(event);
     }
 
-    public void playAllStepEventBusEvents(TestCase testCase){
+    public void playAllStepEventBusEvents(int line,TestCase testCase){
         /*List<StepEventBusEvent> stepEventBusEvents = this.stepEventBusEvents.get(testCase.getId());
         for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
             LOGGER.info("ZZZ PLAY event  " + currentStepBusEvent + " " +  Thread.currentThread());
@@ -402,13 +405,22 @@ class ScenarioContext {
         if(TestSession.isSessionStarted()) {
              TestSession.closeSession();
              List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
-             for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
-                LOGGER.info("ZZZ PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
-                currentStepBusEvent.play();
-            }
-            TestSession.cleanupSession();
-            stepEventBusEvents.clear();
+            //replayAllTestCaseEvents(stepEventBusEvents);
+            allTestEvents.put(line,stepEventBusEvents);
+            //TestSession.cleanupSession();
+            //stepEventBusEvents.clear();
         }
+    }
+
+    private void replayAllTestCaseEvents(List<StepEventBusEvent> stepEventBusEvents) {
+        for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
+           LOGGER.info("ZZZ PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
+           currentStepBusEvent.play();
+       }
+    }
+
+    public synchronized void playAll() {
+        allTestEvents.values().forEach(this::replayAllTestCaseEvents);
     }
 }
 
