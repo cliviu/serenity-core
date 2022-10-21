@@ -717,17 +717,24 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
     }
 
     private void startOfScenarioLifeCycle(String mainScenarioId,URI featurePath, TestCase testCase, Feature feature, String scenarioName, Scenario scenario, Integer currentLine) {
-
-        boolean newScenario = !scenarioIdFrom(TestSourcesModel.convertToId(feature.getName()), TestSourcesModel.convertToId(scenario.getName())).equals(getContext(featurePath).getCurrentScenario(mainScenarioId));
+        ScenarioContext context = getContext(featurePath);
+        StepEventBus stepEventBus = context.stepEventBus(testCase);
+        boolean newScenario = !scenarioIdFrom(TestSourcesModel.convertToId(feature.getName()), TestSourcesModel.convertToId(scenario.getName())).equals(context.getCurrentScenario(mainScenarioId));
         String currentScenarioId = scenarioIdFrom(TestSourcesModel.convertToId(feature.getName()), TestSourcesModel.convertToId(scenario.getName()));
-        getContext(featurePath).setCurrentScenario(mainScenarioId,currentScenarioId);
-        if (getContext(featurePath).examplesAreRunning(mainScenarioId)) {
+        context.setCurrentScenario(mainScenarioId,currentScenarioId);
+        if (context.examplesAreRunning(mainScenarioId)) {
             if (newScenario) {
                 startScenario(mainScenarioId,featurePath,testCase, feature, scenario, scenario.getName());
-                getContext(featurePath).stepEventBus(testCase).useExamplesFrom(getContext(featurePath).getTable(mainScenarioId));
-                getContext(featurePath).stepEventBus(testCase).useScenarioOutline(ScenarioOutlineDescription.from(scenario).getDescription());
+                //getContext(featurePath).stepEventBus(testCase).useExamplesFrom(getContext(featurePath).getTable(mainScenarioId));
+                context.addStepEventBusEvent(testCase,
+                    new UseExamplesFromEvent(stepEventBus, context.getTable(mainScenarioId)));
+                //context.stepEventBus(testCase).useScenarioOutline(ScenarioOutlineDescription.from(scenario).getDescription());
+                context.addStepEventBusEvent(testCase,
+                    new UseScenarioOutlineEvent(stepEventBus, ScenarioOutlineDescription.from(scenario).getDescription()));
             } else {
-                getContext(featurePath).stepEventBus(testCase).addNewExamplesFrom(getContext(featurePath).getTable(mainScenarioId));
+                //context.stepEventBus(testCase).addNewExamplesFrom(context.getTable(mainScenarioId));
+                context.addStepEventBusEvent(testCase,
+                    new AddNewExamplesFromEvent(stepEventBus, context.getTable(mainScenarioId)));
             }
             startProcessingExampleLine(mainScenarioId,featurePath,testCase, Long.valueOf(currentLine), scenarioName);
         } else {
