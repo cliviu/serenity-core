@@ -336,7 +336,10 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
             }
             io.cucumber.messages.types.Rule rule = getRuleForTestCase(astNode);
             if (rule != null) {
-                getContext(featurePath).stepEventBus(event.getTestCase()).setRule(Rule.from(rule));
+                //getContext(featurePath).stepEventBus(event.getTestCase()).setRule(Rule.from(rule));
+                getContext(featurePath).addStepEventBusEvent(event.getTestCase(),
+                            new SetRuleEvent(getContext(featurePath).stepEventBus(event.getTestCase()),Rule.from(rule)));
+
             }
         }catch(Throwable t) {
             t.printStackTrace();
@@ -743,9 +746,13 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
     }
 
     private void startScenario(String scenarioId,URI featurePath, TestCase testCase,Feature currentFeature, Scenario scenarioDefinition, String scenarioName) {
-        getContext(featurePath).stepEventBus(testCase).setTestSource(TestSourceType.TEST_SOURCE_CUCUMBER.getValue());
         ScenarioContext context = getContext(featurePath);
         StepEventBus stepEventBus = context.stepEventBus(testCase);
+        //getContext(featurePath).stepEventBus(testCase).setTestSource(TestSourceType.TEST_SOURCE_CUCUMBER.getValue());
+
+        context.addStepEventBusEvent(testCase,
+                new SetTestSourceEvent(stepEventBus, TestSourceType.TEST_SOURCE_CUCUMBER.getValue()));
+
         //context.addStepEventBusEvent(testCase, new SetTestSourceEvent(stepEventBus, TestSourceType.TEST_SOURCE_CUCUMBER.getValue()));
 
         LOGGER.info("ZZZ startTest(addOutcome) "  + " " + featurePath +  " "
@@ -957,7 +964,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         if (backgroundDescription == null) {
             backgroundDescription = "";
         }
-        getContext(featurePath).stepEventBus(testCase).setBackgroundDescription(backgroundDescription);
+        //getContext(featurePath).stepEventBus(testCase).setBackgroundDescription(backgroundDescription);
         getContext(featurePath).addStepEventBusEvent(testCase,
                 new SetBackgroundDescriptionEvent(getContext(featurePath).stepEventBus(testCase),backgroundDescription));
 
@@ -1188,7 +1195,10 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     public List<TestOutcome> getAllTestOutcomes() {
         List<BaseStepListener> allBaseStepListeners =  new ArrayList<>();
-        localContexts.forEach((uri,context)->context.collectAllBaseStepListeners(allBaseStepListeners));
+        localContexts.forEach((uri,context)->{
+            System.out.println("ZZZAllTestOutcomes for uri "  + uri );
+            context.collectAllBaseStepListeners(allBaseStepListeners);}
+        );
         return allBaseStepListeners.stream().map(BaseStepListener::getTestOutcomes).flatMap(List::stream)
                 .collect(Collectors.toList());
     }
