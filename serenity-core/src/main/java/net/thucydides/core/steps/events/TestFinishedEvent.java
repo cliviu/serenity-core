@@ -6,8 +6,9 @@ public class TestFinishedEvent extends StepEventBusEventBase {
 
 	private boolean inDataTest;
 
-	public TestFinishedEvent(StepEventBus eventBus,boolean inDataDrivenTest) {
-		super(eventBus);
+
+	public TestFinishedEvent(StepEventBus eventBus,String scenarioId,boolean inDataDrivenTest) {
+		super(eventBus,scenarioId);
 		this.inDataTest = inDataDrivenTest;
 	}
 

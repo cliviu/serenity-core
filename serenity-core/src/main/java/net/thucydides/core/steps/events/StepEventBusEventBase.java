@@ -6,12 +6,23 @@ public abstract class StepEventBusEventBase implements StepEventBusEvent {
 
 	private StepEventBus stepEventBus;
 
+	private String scenarioId;
+
 	public StepEventBusEventBase(StepEventBus stepEventBus) {
+		this(stepEventBus,"")
+;	}
+
+	public StepEventBusEventBase(StepEventBus stepEventBus,String scenarioId) {
 		this.stepEventBus = stepEventBus;
+		this.scenarioId = scenarioId;
 	}
 
 	public StepEventBus getStepEventBus() {
 		return stepEventBus;
+	}
+
+	public String getScenarioId (){
+		return scenarioId;
 	}
 
 

@@ -9,8 +9,8 @@ public class TestStartedEvent extends StepEventBusEventBase {
 
 	private String id;
 
-	public TestStartedEvent(StepEventBus eventBus, final String testName, final String id) {
-		super(eventBus);
+	public TestStartedEvent(StepEventBus eventBus,String scenarioId, final String testName, final String id) {
+		super(eventBus,scenarioId);
 		this.testName =  testName;
 		this.id = id;
 	}
