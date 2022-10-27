@@ -78,8 +78,8 @@ class ScenarioContext {
     //ThreadLocal<List<StepEventBusEvent>> stepEventBusEvents = ThreadLocal.withInitial(()->Collections.synchronizedList(new LinkedList<>()));
 
     //Maybe index after feature file also
-     //Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
-     Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new LinkedHashMap<Integer, List<StepEventBusEvent>>());
+     Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
+     //Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new LinkedHashMap<Integer, List<StepEventBusEvent>>());
 
 
     public ScenarioContext(){
@@ -410,8 +410,9 @@ class ScenarioContext {
              TestSession.closeSession();
              List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
             //replayAllTestCaseEvents(stepEventBusEvents);
-            allTestEvents.put(line,stepEventBusEvents);
-            //TestSession.cleanupSession();
+            List<StepEventBusEvent> clonedEvents = new ArrayList<>(stepEventBusEvents);
+            allTestEvents.put(line,clonedEvents);
+            TestSession.cleanupSession();
             //stepEventBusEvents.clear();
         }
     }
