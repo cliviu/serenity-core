@@ -15,5 +15,9 @@ public class SetTestSourceEvent extends StepEventBusEventBase {
 	@Override
 	public void play() {
 		getStepEventBus().setTestSource(testSource);
+		//TODO - to be fixed - TestOutcome.get
+		// Base StepListener : newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
+		StepEventBus.getEventBus().setTestSource(testSource);
+
 	}
 }

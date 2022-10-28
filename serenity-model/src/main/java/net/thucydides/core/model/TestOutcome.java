@@ -2703,6 +2703,8 @@ public class TestOutcome {
     }
 
     public void setTestSource(String testSource) {
+        System.out.println("ZZZSetTestSource " + testSource);
+        Thread.dumpStack();
         this.testSource = testSource;
     }
 
