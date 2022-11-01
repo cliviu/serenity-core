@@ -4,6 +4,7 @@ import net.thucydides.core.logging.LoggingLevel;
 import net.thucydides.core.model.DataTable;
 import net.thucydides.core.model.Story;
 import net.thucydides.core.model.TestOutcome;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.statistics.TestCount;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepFailure;
@@ -12,6 +13,7 @@ import net.thucydides.core.util.EnvironmentVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 import static net.thucydides.core.ThucydidesSystemProperty.SERENITY_DISPLAY_TEST_NUMBERS;
@@ -99,6 +101,11 @@ public class TestCountListener implements StepListener {
     public void stepFinished() {
     }
 
+    @Override
+    public void stepFinished(List<ScreenshotAndHtmlSource> screenshotList) {
+
+    }
+
 
     public void testFailed(TestOutcome testOutcome, Throwable cause) {
     }
@@ -151,6 +158,11 @@ public class TestCountListener implements StepListener {
 
     @Override
     public void testRunFinished() {
+
+    }
+
+    @Override
+    public void takeScreenshots(List<ScreenshotAndHtmlSource> screenshots) {
 
     }
 }

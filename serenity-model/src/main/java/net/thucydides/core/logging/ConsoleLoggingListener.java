@@ -9,6 +9,7 @@ import net.thucydides.core.model.Story;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.model.TestResult;
 import net.thucydides.core.model.failures.FailureAnalysis;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepFailure;
 import net.thucydides.core.steps.StepListener;
@@ -297,6 +298,11 @@ public class ConsoleLoggingListener implements StepListener {
         stepOut();
     }
 
+    @Override
+    public void stepFinished(List<ScreenshotAndHtmlSource> screenshotList) {
+
+    }
+
     public void stepFailed(StepFailure failure) {
 
         if (loggingLevelIsAtLeast(LoggingLevel.VERBOSE)) {
@@ -407,6 +413,11 @@ public class ConsoleLoggingListener implements StepListener {
         if (loggingLevelIsAtLeast(LoggingLevel.VERBOSE)) {
             getLogger().info("FINISHING TEST RUN");
         }
+    }
+
+    @Override
+    public void takeScreenshots(List<ScreenshotAndHtmlSource> screenshots) {
+
     }
 
 }

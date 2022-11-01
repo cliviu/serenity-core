@@ -1277,7 +1277,10 @@ public class TestOutcome {
     }
 
     public boolean hasScreenshots() {
+
+        LOGGER.info("ZZZTake6 - hasScreenshots " + !getScreenshots().isEmpty() + " " + getScreenshots());
         return !getScreenshots().isEmpty();
+
     }
 
     public boolean hasRestQueries() {
@@ -2703,8 +2706,6 @@ public class TestOutcome {
     }
 
     public void setTestSource(String testSource) {
-        System.out.println("ZZZSetTestSource " + testSource);
-        Thread.dumpStack();
         this.testSource = testSource;
     }
 

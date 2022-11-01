@@ -117,6 +117,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
         this.eventBus = eventBus;
     }
 
+
     public StepEventBus getEventBus() {
         if (eventBus == null) {
             eventBus = StepEventBus.getEventBus();
@@ -135,12 +136,12 @@ public class BaseStepListener implements StepListener, StepPublisher {
         return outputDirectory;
     }
 
-    public java.util.Optional<TestStep> cloneCurrentStep() {
+    public Optional<TestStep> cloneCurrentStep() {
         return ((currentStepExists()) ? Optional.of(getCurrentStep().clone()) : Optional.empty());
     }
 
-    public java.util.Optional<TestResult> getAnnotatedResult() {
-        return java.util.Optional.ofNullable(getCurrentTestOutcome().getAnnotatedResult());
+    public Optional<TestResult> getAnnotatedResult() {
+        return Optional.ofNullable(getCurrentTestOutcome().getAnnotatedResult());
     }
 
     public void setAllStepsTo(TestResult result) {
@@ -554,6 +555,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void recordNewTestOutcome(String testMethod, TestOutcome newTestOutcome) {
+        System.out.println("ZZZ RecordNewTestOutcome  " + testMethod + " " + newTestOutcome  );
         newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
         synchronized (testOutcomes) {
             testOutcomes.add(newTestOutcome);
@@ -611,6 +613,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     public void testFinished(final TestOutcome outcome) {
         testFinished(outcome, false);
     }
+
 
     /**
      * A test has finished.
@@ -674,6 +677,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private boolean currentTestIsABrowserTest() {
+        LOGGER.info("ZZZcurrentTestIsABrowserTest  " +  SerenityJUnitTestCase.inClass(testSuite).isAWebTest() + (testSuite == null) + ThucydidesWebDriverSupport.isDriverInstantiated() );
         return SerenityJUnitTestCase.inClass(testSuite).isAWebTest()
                 || (testSuite == null && ThucydidesWebDriverSupport.isDriverInstantiated());
 //                || (!ThucydidesWebDriverSupport.getDriversUsed().isEmpty());
@@ -820,6 +824,14 @@ public class BaseStepListener implements StepListener, StepPublisher {
         pauseIfRequired();
     }
 
+    public void stepFinished(List<ScreenshotAndHtmlSource> screenshotList) {
+        takeEndOfStepScreenshotFor(SUCCESS,screenshotList, false);
+        currentStepDone(SUCCESS);
+        pauseIfRequired();
+    }
+
+
+
     private void updateExampleTableIfNecessary(TestResult result) {
         if (getCurrentTestOutcome().isDataDriven()) {
             getCurrentTestOutcome().updateCurrentRowResult(result);
@@ -853,6 +865,8 @@ public class BaseStepListener implements StepListener, StepPublisher {
     FailureAnalysis failureAnalysis = new FailureAnalysis();
 
     public void stepFailed(StepFailure failure) {
+
+
         takeEndOfStepScreenshotFor(FAILURE);
 
         TestFailureCause failureCause = TestFailureCause.from(failure.getException());
@@ -939,6 +953,11 @@ public class BaseStepListener implements StepListener, StepPublisher {
         ConfigCache.instance().clear();
     }
 
+    @Override
+    public void takeScreenshots(List<ScreenshotAndHtmlSource> screenshots) {
+        takeEndOfStepScreenshotFor(SUCCESS,screenshots, true);
+    }
+
     public void currentStepDone(TestResult result) {
         if (!currentStepMethodStack.isEmpty()) {
             currentStepMethodStack.pop();
@@ -968,8 +987,13 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void takeEndOfStepScreenshotFor(final TestResult result) {
-        if (currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result)) {
-            take(MANDATORY_SCREENSHOT, result);
+        takeEndOfStepScreenshotFor(result, null,false);
+    }
+
+    private void takeEndOfStepScreenshotFor(final TestResult result,List<ScreenshotAndHtmlSource> screenshots, boolean record) {
+        LOGGER.info("ZZZTakeEndOfStepScreenshotfor " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
+        if ((currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result)) || (screenshots != null && screenshots.size() > 0)) {
+            take(MANDATORY_SCREENSHOT, result,screenshots, record );
         }
     }
 
@@ -982,16 +1006,30 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void take(final ScreenshotType screenshotType) {
-        take(screenshotType, UNDEFINED);
+        take(screenshotType, UNDEFINED,null,false);
     }
 
-    private void take(final ScreenshotType screenshotType, TestResult result) {
-        if (shouldTakeScreenshots(result)) {
+    private void take(final ScreenshotType screenshotType, TestResult result,List<ScreenshotAndHtmlSource> screenshots, boolean record) {
+        LOGGER.info("ZZZTake " + screenshots);
+        if (shouldTakeScreenshots(result) || ((screenshots!= null) && screenshots.size()> 0)) {
+            LOGGER.info("ZZZTake1 " + record);
             try {
                 grabScreenshots(result).forEach(
-                        screenshot -> recordScreenshotIfRequired(screenshotType, screenshot)
+                        screenshot -> {
+                            LOGGER.info("ZZZTake2 " + screenshot);
+                            recordScreenshotIfRequired(screenshotType, screenshot, screenshots,record);
+                        }
                 );
-                removeDuplicatedInitalScreenshotsIfPresent();
+
+                if (!record && screenshots != null) {
+                    screenshots.forEach(screenshot-> {
+                        LOGGER.info("ZZZaddscreenshotinstepo " + screenshot);
+                        currentStep().ifPresent(step -> step.addScreenshot(screenshot));}
+                    );
+                }
+                if(currentStep().isPresent()) {
+                    removeDuplicatedInitalScreenshotsIfPresent();
+                }
             } catch (ScreenshotException e) {
                 LOGGER.warn("Failed to take screenshot", e);
             }
@@ -999,18 +1037,27 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private boolean shouldTakeScreenshots(TestResult result) {
+        LOGGER.info("ZZZShouldTakeScreenshots " + result);
         if (StepEventBus.getEventBus().webdriverCallsAreSuspended() && !StepEventBus.getEventBus().softAssertsActive()) {
+            LOGGER.info("ZZZShouldTakeScreenshots1 " + StepEventBus.getEventBus().webdriverCallsAreSuspended() +  !StepEventBus.getEventBus().softAssertsActive());
             return false;
         }
 
         if (screenshots().areDisabledForThisAction(result)) {
+            LOGGER.info("ZZZShouldTakeScreenshots2 " + screenshots().areDisabledForThisAction(result));
             return false;
         }
 
-        return (currentStepExists()
-                && browserIsOpen()
+        //TODO --currentStepExistrs || record
+        boolean ret =  (/*currentStepExists()
+                &&*/ browserIsOpen()
                 && !StepEventBus.getEventBus().isDryRun()
                 && !StepEventBus.getEventBus().currentTestIsSuspended());
+        LOGGER.info("ZZZShouldTakeScreenshots3 " + currentStepExists()
+                + browserIsOpen()
+                + !StepEventBus.getEventBus().isDryRun()
+                + !StepEventBus.getEventBus().currentTestIsSuspended());
+        return ret;
     }
 
     private void removeDuplicatedInitalScreenshotsIfPresent() {
@@ -1035,11 +1082,21 @@ public class BaseStepListener implements StepListener, StepPublisher {
         return testStep.getScreenshots().get(testStep.getScreenshots().size() - 1);
     }
 
-    private void recordScreenshotIfRequired(ScreenshotType screenshotType, ScreenshotAndHtmlSource screenshotAndHtmlSource) {
+    private void recordScreenshotIfRequired(ScreenshotType screenshotType, ScreenshotAndHtmlSource screenshotAndHtmlSource,
+                                            List<ScreenshotAndHtmlSource> screenshots,boolean record) {
         if (shouldTakeScreenshot(screenshotType, screenshotAndHtmlSource) && screenshotWasTaken(screenshotAndHtmlSource)) {
-            currentStep().ifPresent(
-                    step -> step.addScreenshot(screenshotAndHtmlSource)
-            );
+            LOGGER.info("ZZZTake3 " + currentStep() + " " + screenshots );
+            if(screenshots != null && record) {
+                screenshots.add(screenshotAndHtmlSource);
+                LOGGER.info("ZZZTake3 added to screenshots " + screenshotAndHtmlSource);
+            }
+            else if(screenshots == null && !record){
+                currentStep().ifPresent(
+                        step -> step.addScreenshot(screenshotAndHtmlSource)
+                );
+            }
+        } else {
+                LOGGER.info("ZZZTake3 no currentStep");
         }
     }
 
@@ -1051,7 +1108,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     private boolean shouldTakeScreenshot(ScreenshotType screenshotType,
                                          ScreenshotAndHtmlSource screenshotAndHtmlSource) {
         return (screenshotType == MANDATORY_SCREENSHOT)
-                || getCurrentStep().getScreenshots().isEmpty()
+                || (!currentStep().isPresent() || getCurrentStep().getScreenshots().isEmpty())
                 || shouldTakeOptionalScreenshot(screenshotAndHtmlSource);
     }
 
@@ -1084,16 +1141,20 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private List<ScreenshotAndHtmlSource> grabScreenshots(TestResult result) {
+         LOGGER.info("ZZZGrabScreenshots " + result);
         if (pathOf(outputDirectory) == null) { // Output directory may be null for some tests
             return new ArrayList<>();
         }
+        LOGGER.info("ZZZGrabScreenshots1 ");
 
-        return SerenityWebdriverManager.inThisTestThread()
+        List<ScreenshotAndHtmlSource> screenshots = SerenityWebdriverManager.inThisTestThread()
                 .getCurrentDrivers()
                 .stream()
                 .map(driver -> new ScreenshotAndHtmlSource(screenshotFrom(driver), sourceFrom(result, driver)))
                 .filter(ScreenshotAndHtmlSource::wasTaken)
                 .collect(Collectors.toList());
+        LOGGER.info("ZZZGrabScreenshots2 " + screenshots);
+        return screenshots;
     }
 
     private File screenshotFrom(WebDriver driver) {
@@ -1242,7 +1303,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     public void notifyUIError() {
         if (currentTestIsABrowserTest() && screenshots().areAllowed(TakeScreenshots.FOR_FAILURES)) {
-            take(OPTIONAL_SCREENSHOT, FAILURE);
+            take(OPTIONAL_SCREENSHOT, FAILURE, null,false);
         }
     }
 

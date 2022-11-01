@@ -13,6 +13,7 @@ import net.serenitybdd.screenplay.facts.FactLifecycleListener;
 import net.thucydides.core.annotations.Pending;
 import net.thucydides.core.annotations.Step;
 import net.thucydides.core.environment.SystemEnvironmentVariables;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.events.StepFinishedEvent;
@@ -343,6 +344,7 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     private void stepStarted(String groupTitle) {
         if(TestSession.isSessionStarted()) {
+
             StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(), ExecutedStepDescription.withTitle(groupTitle));
             LOGGER.info("ZZZ Actor  started event in session " + stepStartedEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepStartedEvent);
@@ -354,8 +356,10 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     private void stepFinished() {
         if(TestSession.isSessionStarted()) {
-            StepFinishedEvent stepStartedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
-            TestSession.addEvent(stepStartedEvent);
+            List<ScreenshotAndHtmlSource> screenshotList = TestSession.getTestSessionContext().getStepEventBus().takeScreenshots();
+            LOGGER.info("ZZZtake screenshots from Actor" + screenshotList.size());
+            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus(),screenshotList);
+            TestSession.addEvent(stepFinishedEvent);
         } else {
             StepEventBus.getEventBus().stepFinished();
         }

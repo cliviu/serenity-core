@@ -29,6 +29,7 @@ import net.thucydides.core.model.*;
 import net.thucydides.core.model.screenshots.StepDefinitionAnnotations;
 import net.thucydides.core.model.stacktrace.RootCauseAnalyzer;
 import net.thucydides.core.reports.ReportService;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.*;
 import net.thucydides.core.steps.events.*;
 import net.thucydides.core.steps.session.TestSession;
@@ -138,10 +139,9 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
     }
 
 
-    private StepEventBus getStepEventBus(TestCase testCase) {
-        //StepEventBus.getEventBus();
+    /*private StepEventBus getStepEventBus(TestCase testCase) {
         return StepEventBus.eventBusFor(testCase.getId());
-    }
+    }*/
     private void setStepEventBus(TestCase testCase) {
         StepEventBus.setCurrentBusToEventBusFor(testCase.getId());
     }
@@ -278,7 +278,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
             TestCase testCase = event.getTestCase();
             LOGGER.info("ZZZ handleTestCaseStarted " + " " + testCase.getUri() + " "
                     + Thread.currentThread() + " " + testCase.getId() + " at line " +testCase.getLocation().getLine());
-            TestSession.startSession(testCase.getId().toString());
+            TestSession.startSession(testCase.getId().toString(),getStepEventBus(event.getTestCase().getUri()));
             //setStepEventBus(event.getTestCase());
             URI featurePath = testCase.getUri();
             //initialiseListenersFor(featurePath, event.getTestCase());
@@ -391,7 +391,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         }
         if (Status.FAILED.equals(event.getResult()) && noAnnotatedResultIdDefinedFor(event)) {
             //getStepEventBus(event.getTestCase().getUri()).testFailed(event.getResult().getError());
-            getStepEventBus(event.getTestCase()).testFailed(event.getResult().getError());
+            getStepEventBus(event.getTestCase().getUri()).testFailed(event.getResult().getError());
         } else {
             //getStepEventBus(event.getTestCase()).testFinished(getContext(featurePath).examplesAreRunning());
             getContext(featurePath).addStepEventBusEvent(event.getTestCase(), scenarioId,
@@ -405,7 +405,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     private boolean noAnnotatedResultIdDefinedFor(TestCaseFinished event) {
         //BaseStepListener baseStepListener = getStepEventBus(event.getTestCase().getUri()).getBaseStepListener();
-        BaseStepListener baseStepListener = getStepEventBus(event.getTestCase()).getBaseStepListener();
+        BaseStepListener baseStepListener = getStepEventBus(event.getTestCase().getUri()).getBaseStepListener();
         return (baseStepListener.getTestOutcomes().isEmpty() || (latestOf(baseStepListener.getTestOutcomes()).getAnnotatedResult() == null));
     }
 
@@ -1013,8 +1013,10 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
                 new StepIgnoredEvent(getContext(featurePath).stepEventBus(testCase)));
         } else if (Status.PASSED.equals(result.getStatus())) {
             //getContext(featurePath).stepEventBus(testCase).stepFinished();
+            List<ScreenshotAndHtmlSource> screenshotList = getContext(featurePath).stepEventBus(testCase).takeScreenshots();
+            System.out.println("ZZZtake screenshots " + screenshotList.size());
             getContext(featurePath).addStepEventBusEvent(testCase,"",
-                new StepFinishedEvent(getContext(featurePath).stepEventBus(testCase)));
+                new StepFinishedEvent(getContext(featurePath).stepEventBus(testCase),screenshotList));
         } else if (Status.FAILED.equals(result.getStatus())) {
             //TODO
             failed(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());

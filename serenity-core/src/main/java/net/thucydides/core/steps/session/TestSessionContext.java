@@ -1,5 +1,6 @@
 package net.thucydides.core.steps.session;
 
+import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.events.StepEventBusEvent;
 
 import java.util.Collections;
@@ -10,6 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TestSessionContext {
 
 	private String sessionId;
+
+	private StepEventBus stepEventBus;
 
 	private AtomicBoolean sessionStarted = new AtomicBoolean(false);
 
@@ -29,5 +32,13 @@ public class TestSessionContext {
 
 	public String getSessionId() {
 		return sessionId;
+	}
+
+	public StepEventBus getStepEventBus() {
+		return stepEventBus;
+	}
+
+	public void setStepEventBus(StepEventBus stepEventBus) {
+		this.stepEventBus = stepEventBus;
 	}
 }

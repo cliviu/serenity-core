@@ -4,7 +4,11 @@ package net.thucydides.core.steps;
 import net.thucydides.core.model.DataTable;
 import net.thucydides.core.model.Story;
 import net.thucydides.core.model.TestOutcome;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -102,6 +106,8 @@ public interface StepListener {
      */
     void stepFinished();
 
+    void stepFinished(List<ScreenshotAndHtmlSource> screenshotList);
+
     /**
      * The test failed, but not while executing a step.
      * @param testOutcome The test outcome structure for the failing test
@@ -159,4 +165,6 @@ public interface StepListener {
     void assumptionViolated(String message);
 
     void testRunFinished();
+
+    void takeScreenshots(List<ScreenshotAndHtmlSource> screenshots);
 }

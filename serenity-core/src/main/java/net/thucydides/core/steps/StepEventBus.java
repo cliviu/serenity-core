@@ -14,6 +14,7 @@ import net.thucydides.core.environment.SystemEnvironmentVariables;
 import net.thucydides.core.environment.TestLocalEnvironmentVariables;
 import net.thucydides.core.events.TestLifecycleEvents;
 import net.thucydides.core.model.*;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.util.EnvironmentVariables;
 import net.thucydides.core.webdriver.Configuration;
 import org.slf4j.Logger;
@@ -173,6 +174,11 @@ public class StepEventBus {
     public BaseStepListener getBaseStepListener() {
 
         BaseStepListener currentListener = currentBaseStepListener();
+
+        if(currentListener == null) {
+            LOGGER.error("CurrentListener is null");
+            Thread.dumpStack();
+        }
 
         Preconditions.checkNotNull(currentListener, "No BaseStepListener has been registered - are you running your test using the Serenity runners?");
 
@@ -477,6 +483,14 @@ public class StepEventBus {
         getResultTally().logExecutedTest();
         for (StepListener stepListener : getAllListeners()) {
             stepListener.stepFinished();
+        }
+    }
+
+    public void stepFinished(List<ScreenshotAndHtmlSource> screenshots) {
+        stepDone();
+        getResultTally().logExecutedTest();
+        for (StepListener stepListener : getAllListeners()) {
+            stepListener.stepFinished(screenshots);
         }
     }
 
@@ -1030,4 +1044,12 @@ public class StepEventBus {
         noCleanupForStickyBuses = noCleanup;
     }
 
+    public List<ScreenshotAndHtmlSource> takeScreenshots() {
+        LOGGER.info("ZZZtakeScreenshots");
+        List<ScreenshotAndHtmlSource> screenshots =  new ArrayList<>();
+        for (StepListener stepListener : getAllListeners()) {
+            stepListener.takeScreenshots(screenshots);
+        }
+        return screenshots;
+    }
 }
