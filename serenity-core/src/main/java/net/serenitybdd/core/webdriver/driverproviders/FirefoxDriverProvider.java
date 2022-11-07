@@ -2,6 +2,8 @@ package net.serenitybdd.core.webdriver.driverproviders;
 
 import net.serenitybdd.core.buildinfo.DriverCapabilityRecord;
 import net.serenitybdd.core.di.WebDriverInjectors;
+import net.serenitybdd.core.webdriver.FirefoxOptionsEnhancer;
+import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.fixtureservices.FixtureProviderService;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.util.EnvironmentVariables;
@@ -10,6 +12,7 @@ import net.thucydides.core.webdriver.stubs.WebDriverStub;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.firefox.GeckoDriverService;
 
 public class FirefoxDriverProvider extends DownloadableDriverProvider implements DriverProvider {
 
@@ -31,13 +34,21 @@ public class FirefoxDriverProvider extends DownloadableDriverProvider implements
         // Download the driver using WebDriverManager if required
         downloadDriverIfRequired("firefox", environmentVariables);
         //
+        // Update the binary path if necessary
+        //
+        UpdateDriverEnvironmentProperty.forDriverProperty(GeckoDriverService.GECKO_DRIVER_EXE_PROPERTY);
+        //
         // Load the FirefoxDriver capabilities from the serenity.conf file
         //
         FirefoxOptions firefoxOptions = W3CCapabilities.definedIn(environmentVariables).withPrefix("webdriver.capabilities").firefoxOptions();
+        FirefoxOptionsEnhancer.enhanceOptions(firefoxOptions).using(environmentVariables);
         //
         // Add any arguments passed from the test itself
         //
         firefoxOptions.addArguments(argumentsIn(options));
+        if (ThucydidesSystemProperty.HEADLESS_MODE.booleanFrom(environmentVariables)) {
+            firefoxOptions.setHeadless(ThucydidesSystemProperty.HEADLESS_MODE.booleanFrom(environmentVariables));
+        }
         //
         // Check for extended classes to add extra ChromeOptions configuration
         //
@@ -48,11 +59,5 @@ public class FirefoxDriverProvider extends DownloadableDriverProvider implements
         driverProperties.registerCapabilities("firefox", capabilitiesToProperties(enhancedOptions));
 
         return new FirefoxDriver(enhancedOptions);
-//        return ProvideNewDriver.withConfiguration(environmentVariables,
-//                enhancedOptions,
-//                driverServicePool,
-//                DriverServicePool::newDriver,
-//                (pool, capabilities) -> new FirefoxDriver(enhancedOptions)
-//        );
     }
 }

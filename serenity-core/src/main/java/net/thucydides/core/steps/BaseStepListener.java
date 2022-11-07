@@ -28,12 +28,10 @@ import net.thucydides.core.model.*;
 import net.thucydides.core.model.failures.FailureAnalysis;
 import net.thucydides.core.model.screenshots.ScreenshotPermission;
 import net.thucydides.core.model.stacktrace.FailureCause;
-import net.thucydides.core.pages.Pages;
 import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.screenshots.ScreenshotException;
 import net.thucydides.core.util.ConfigCache;
 import net.thucydides.core.webdriver.*;
-import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.SessionId;
 import org.slf4j.Logger;
@@ -391,45 +389,11 @@ public class BaseStepListener implements StepListener, StepPublisher {
         this.configuration = configuration;
     }
 
-    public BaseStepListener(final File outputDirectory,
-                            final WebdriverManager webdriverManager) {
-        this(outputDirectory);
-        //this.webdriverManager = webdriverManager;
-    }
-
-    /**
-     * Create a step listener using the driver from a given page factory.
-     * If the pages factory is null, a new driver will be created based on the default system values.
-     *
-     * @param outputDirectory reports and screenshots are generated here
-     * @param pages           a pages factory.
-     */
-    public BaseStepListener(final File outputDirectory, final Pages pages) {
-        this(outputDirectory);
-        if (pages != null) {
-            setDriverUsingPagesDriverIfDefined(pages);
-        } else {
-            createNewDriver();
-        }
-    }
-
     protected ScreenshotPermission screenshots() {
         if (screenshots == null) {
             screenshots = new ScreenshotPermission(configuration);
         }
         return screenshots;
-    }
-
-    private void createNewDriver() {
-        setDriver(getProxyFactory().proxyDriver());
-    }
-
-    private void setDriverUsingPagesDriverIfDefined(final Pages pages) {
-        if (pages.getDriver() == null) {
-            ThucydidesWebDriverSupport.initialize();
-            ThucydidesWebDriverSupport.useDriver(getDriver());
-            pages.setDriver(getDriver());
-        }
     }
 
     protected WebdriverProxyFactory getProxyFactory() {
@@ -1107,6 +1071,9 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     private boolean shouldTakeScreenshot(ScreenshotType screenshotType,
                                          ScreenshotAndHtmlSource screenshotAndHtmlSource) {
+        if (screenshots().areDisabled()) {
+            return false;
+        }
         return (screenshotType == MANDATORY_SCREENSHOT)
                 || (!currentStep().isPresent() || getCurrentStep().getScreenshots().isEmpty())
                 || shouldTakeOptionalScreenshot(screenshotAndHtmlSource);

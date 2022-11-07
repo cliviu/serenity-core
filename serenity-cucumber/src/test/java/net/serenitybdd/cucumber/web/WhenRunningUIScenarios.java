@@ -29,7 +29,7 @@ public class WhenRunningUIScenarios {
     @Before
     public void setup() {
         outputDirectory = Files.newTemporaryFolder();
-        environmentVariables.setProperty("webdriver.driver", "chrome");
+        environmentVariables.setProperty("webdriver.driver", "firefox");
         environmentVariables.setProperty("headless.mode", "true");
     }
 
@@ -64,36 +64,6 @@ public class WhenRunningUIScenarios {
         assertThat(testOutcome.getTitle()).isEqualTo("A failing scenario that uses selenium");
         assertThat(testOutcome.isFailure()).isTrue();
         assertThat(testOutcome.getStepCount()).isEqualTo(2);
-    }
-
-    @Test
-    public void shouldUseADifferentBrowserIfRequested() {
-        // Given
-        io.cucumber.core.runtime.Runtime runtime = serenityRunnerForCucumberTestRunner(SimpleSeleniumDifferentBrowserScenario.class, outputDirectory, environmentVariables);
-
-        // When
-        runtime.run();
-
-        List<TestOutcome> recordedTestOutcomes = new TestOutcomeLoader().forFormat(OutcomeFormat.JSON).loadFrom(outputDirectory);
-        TestOutcome testOutcome = recordedTestOutcomes.get(0);
-
-        // Then
-        assertThat(testOutcome.getResult()).isEqualTo(TestResult.SUCCESS);
-    }
-
-    @Test
-    public void shouldBeAbleToUsePageObjectsDirectly() {
-        // Given
-        io.cucumber.core.runtime.Runtime runtime = serenityRunnerForCucumberTestRunner(SimpleSeleniumPageObjects.class, outputDirectory, environmentVariables);
-
-        // When
-        runtime.run();
-
-        List<TestOutcome> recordedTestOutcomes = new TestOutcomeLoader().forFormat(OutcomeFormat.JSON).loadFrom(outputDirectory);
-        TestOutcome testOutcome = recordedTestOutcomes.get(0);
-
-        // Then
-        assertThat(testOutcome.getResult()).isEqualTo(TestResult.SUCCESS);
     }
 
     @Test

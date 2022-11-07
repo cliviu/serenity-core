@@ -406,7 +406,7 @@ public class StepFactory {
     }
 
     private class ParameterAssignementChecker {
-        private static final boolean PARAMETER_CAN_BE_ASSIGNED = false;
+        private static final boolean PARAMETER_CAN_BE_ASSIGNED = true;
         private final Object parameter;
 
         public ParameterAssignementChecker(Object parameter) {
@@ -415,7 +415,7 @@ public class StepFactory {
 
         public boolean cannotBeAssignedTo(Class<?> parameterType) {
             if (parameter == null) {
-                return PARAMETER_CAN_BE_ASSIGNED;
+                return !PARAMETER_CAN_BE_ASSIGNED;
             }
             return (!isAssignableFrom(parameter, parameterType));
         }

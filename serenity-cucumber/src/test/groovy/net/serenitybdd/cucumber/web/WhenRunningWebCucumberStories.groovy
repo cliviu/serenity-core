@@ -81,7 +81,7 @@ class WhenRunningWebCucumberStories extends Specification {
 
     def "a cucumber step library can use page objects directly"()  {
         given:
-        def runtime = serenityRunnerForCucumberTestRunner(SimpleSeleniumPageObjects.class, outputDirectory, environmentVariables);
+        def runtime = serenityRunnerForCucumberTestRunner(WhenInteractingWithSimpleSeleniumPageObjects.class, outputDirectory, environmentVariables);
 
         when:
         runtime.run();
@@ -90,7 +90,6 @@ class WhenRunningWebCucumberStories extends Specification {
 
         then:
         testOutcome.title == "A scenario that uses selenium"
-        testOutcome.isSuccess();
 
         and: "there should be one step for each row in the table"
         testOutcome.stepCount == 2

@@ -49,11 +49,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.partition;
 import static com.google.common.collect.Lists.reverse;
+import static java.util.Arrays.asList;
 import static net.thucydides.core.model.TestType.ANY;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
@@ -259,6 +261,7 @@ public class TestOutcome {
      * Scenario outline text.
      */
     private String scenarioOutline;
+    private String testData;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestOutcome.class);
     private Double durationInSeconds;
@@ -557,7 +560,7 @@ public class TestOutcome {
             String testCaseName = testCase.getName();
             String className = testCaseName.substring(testCaseName.lastIndexOf(".") + 1);
             if (className.contains("$")) {
-                nestPath = Arrays.asList(className.split("\\$"));
+                nestPath = asList(className.split("\\$"));
             }
         }
         return nestPath;
@@ -1394,7 +1397,7 @@ public class TestOutcome {
         overallResults.add(testResultFromFailureClassname);
 
         TestResult testResultFromSteps = TestResultList.overallResultFrom(overallResults);
-        return (annotatedResult != null) ? TestResultList.overallResultFrom(Arrays.asList(testResultFromSteps, annotatedResult)) : testResultFromSteps;
+        return (annotatedResult != null) ? TestResultList.overallResultFrom(asList(testResultFromSteps, annotatedResult)) : testResultFromSteps;
     }
 
     private TestResult testResultFromFailureClassname() {
@@ -2080,7 +2083,7 @@ public class TestOutcome {
 
 
     public int getTestCount() {
-        return isDataDriven() ? getDataTable().getSize() : 1;
+        return isDataDriven() ? getTestStepCount() : 1;
     }
 
     public int getImplementedTestCount() {
@@ -2802,7 +2805,11 @@ public class TestOutcome {
     }
 
     public TestOutcome fromStep(int index) {
-        List<TestStep> specifiedSteps = Arrays.asList(testSteps.get(index));
+        return fromStep(testSteps.get(index));
+    }
+
+    public TestOutcome fromStep(TestStep testStep) {
+        List<TestStep> specifiedSteps = asList(testStep);
         TestOutcome specifiedOutcome = this.copy().withSteps(specifiedSteps);
         Optional<TestFailureCause> failureCause = TestFailureCause.from(specifiedOutcome.getFlattenedTestSteps());
         if (failureCause.isPresent()) {
@@ -2815,5 +2822,70 @@ public class TestOutcome {
 
     public List<String> getNestedTestPath() {
         return nestedTestPath;
+    }
+
+    public TestOutcome withExamplesMatching(Predicate<TestStep> condition) {
+        if (isDataDriven()) {
+            return copy().removeTopLevelStepsNotMatching(condition);
+        } else {
+            return this;
+        }
+    }
+
+    public List<TestOutcome> asTestCases() {
+        if (isDataDriven()) {
+            List<TestOutcome> testCases = new ArrayList<>();
+            int rowNumber = 1;
+            for(TestStep step : testSteps) {
+                testCases.add(testCaseInStep(step, rowNumber++));
+            }
+            return testCases;
+        } else {
+            return asList(this);
+        }
+    }
+
+    private TestOutcome testCaseInStep(TestStep childStep, int rowNumber) {
+        TestOutcome testCaseOutcome = copy().withSteps(asList(childStep));
+        testCaseOutcome.setTitle(stepTitleIn(childStep.getDescription()) + " [" + rowNumber + "]");
+        testCaseOutcome.setTestData(testDataIn(childStep.getDescription()));
+        return testCaseOutcome;
+    }
+
+    private void setTestData(String testData) {
+        this.testData = testData;
+    }
+
+    public String getTestData() {
+        return this.testData;
+    }
+
+    private static String stepTitleIn(String description) {
+        return (description.contains("{")) ? (description.substring(0, description.indexOf("{"))) : description;
+    }
+
+    private static String testDataIn(String description) {
+        return (description.contains("{")) ? trimmedDescription(description.substring(description.indexOf("{"))) : "";
+    }
+
+    private static String trimmedDescription(String description) {
+        int parametersStart = description.indexOf("{") + 1;
+        int parametersEnd = description.lastIndexOf("}");
+        return description.substring(parametersStart, parametersEnd);
+    }
+
+
+    public TestOutcome removeTopLevelStepsNotMatching(Predicate<TestStep> condition) {
+        List<TestStep> updatedSteps = testSteps.stream().filter(condition).collect(Collectors.toList());
+        this.testSteps = updatedSteps;
+        return this;
+    }
+
+    public boolean containsAtLeastOneOutcomeWithResult(TestResult expectedResult) {
+        if (isDataDriven()) {
+            return testSteps.stream().anyMatch(step -> step.getResult().equals(expectedResult));
+        } else {
+            return getResult().equals(expectedResult);
+        }
     }
 }

@@ -5,7 +5,7 @@
     <parent>
         <artifactId>serenity-bdd</artifactId>
         <groupId>net.serenity-bdd</groupId>
-        <version>3.3.3-SNAPSHOT</version>
+        <version>3.4.2-SNAPSHOT</version>
     </parent>
     <artifactId>serenity-reports</artifactId>
     <packaging>jar</packaging>
@@ -51,6 +51,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>serenity-reports-configuration</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.vladsch.flexmark</groupId>
