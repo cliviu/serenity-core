@@ -1,22 +1,16 @@
 package io.cucumber.core.plugin;
 
 
-import net.thucydides.core.steps.events.StepEventBusEvent;
 import io.cucumber.messages.types.Examples;
 import io.cucumber.messages.types.Scenario;
 import io.cucumber.messages.types.Step;
 import io.cucumber.messages.types.Tag;
-import io.cucumber.plugin.event.TestCase;
 import io.cucumber.plugin.event.TestStep;
 import net.thucydides.core.model.DataTable;
 import net.thucydides.core.model.DataTableRow;
 import net.thucydides.core.model.TestTag;
-import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.StepEventBus;
-import net.thucydides.core.steps.session.TestSession;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.*;
@@ -27,280 +21,182 @@ import static java.util.stream.Collectors.toList;
 
 
 class ScenarioContext {
+    private final Queue<Step> stepQueue = new LinkedList<>();
+    private final Queue<TestStep> testStepQueue = new LinkedList<>();
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
-
-    private Map<String,List<StepEventBusEvent>> highPriorityEventBusEvents = Collections.synchronizedMap(new HashMap<>());
-    private final Map<UUID,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
-    private final Map<UUID,Queue<TestStep>> testStepQueue = Collections.synchronizedMap(new HashMap<>());
-
-    //private boolean examplesRunning;
-    private Map<String,Boolean> examplesRunningMap = Collections.synchronizedMap(new HashMap<>());
-    //private boolean addingScenarioOutlineSteps = false;
-    private Map<String,Boolean> addingScenarioOutlineStepsMap = Collections.synchronizedMap(new HashMap<>());
-    private Map<String,DataTable> tableMap = Collections.synchronizedMap(new HashMap<>());;
+    private boolean examplesRunning;
+    private boolean addingScenarioOutlineSteps = false;
+    private DataTable table;
 
     //keys are line numbers, entries are example rows (key=header, value=rowValue )
-    //private Map<Long, Map<String, String>> exampleRows;
-    private Map<String,Map<Long, Map<String, String>>> exampleRowsMap = Collections.synchronizedMap(new HashMap<>());
+    Map<Long, Map<String, String>> exampleRows;
 
     //keys are line numbers
-    private Map<Long, List<Tag>> exampleTags;
+    Map<Long, List<Tag>> exampleTags;
 
-    //private AtomicInteger exampleCount = new AtomicInteger(0);
-    private Map<String,AtomicInteger> exampleCountMap = Collections.synchronizedMap(new HashMap<>());
+    int exampleCount = 0;
 
-    private boolean waitingToProcessBackgroundSteps = false;
+    boolean waitingToProcessBackgroundSteps = false;
 
-    //private String currentScenarioId;
-    //private Map<UUID,String> currentScenarioIdMap = Collections.synchronizedMap(new HashMap<>());
-    private List<String> currentScenarioIdList = Collections.synchronizedList(new ArrayList<>());
+    private String currentScenarioId;
 
-    //private Scenario currentScenarioDefinition;
-    private Map<String,Scenario> currentScenarioDefinitionMap = Collections.synchronizedMap(new HashMap<>());
+    Scenario currentScenarioDefinition;
 
-    //private String currentScenario;
-    private Map<String,String> currentScenarioMap =  Collections.synchronizedMap(new HashMap<>());;
+    String currentScenario;
 
-    private List<Tag> featureTags = new ArrayList<>();
+    List<Tag> featureTags = new ArrayList<>();
 
-    //private URI currentFeaturePath;
+    URI currentFeaturePath;
 
     private FeaturePathFormatter featurePathFormatter = new FeaturePathFormatter();
 
-
-    private final List<BaseStepListener> baseStepListeners;
-
-    private final List<BaseStepListener> parameterizedBaseStepListeners;
-
-    private URI featureURI;
-
-    //ThreadLocal<List<StepEventBusEvent>> stepEventBusEvents = ThreadLocal.withInitial(()->Collections.synchronizedList(new LinkedList<>()));
-
-    //Maybe index after feature file also
-     Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
-     //Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new LinkedHashMap<Integer, List<StepEventBusEvent>>());
-
-
-    public ScenarioContext(){
-        this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
-        this.parameterizedBaseStepListeners = Collections.synchronizedList(new ArrayList<>());
-    }
-
-    public synchronized void setFeatureURI(URI featureURI){
-        this.featureURI = featureURI;
-    }
-
-    /*public synchronized void currentFeaturePathIs(URI featurePath) {
+    public void currentFeaturePathIs(URI featurePath) {
         currentFeaturePath = featurePath;
-    }*/
-
-    public synchronized Scenario currentScenarioOutline(String scenarioId) {
-        return currentScenarioDefinitionMap.get(scenarioId);
     }
 
-    /*public synchronized URI currentFeaturePath() {
+    public Scenario currentScenarioOutline() {
+        return  currentScenarioDefinition;
+    }
+
+    public URI currentFeaturePath() {
         return currentFeaturePath;
-    }*/
-
-    public synchronized Queue<Step> getStepQueue(TestCase testCase/*String scenarioId*/) {
-        stepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
-        return stepQueue.get(testCase.getId());
-        //return simpleStepQueue;
     }
 
-    public synchronized Queue<TestStep> getTestStepQueue(TestCase testCase/*String scenarioId*/) {
-        testStepQueue.computeIfAbsent(testCase.getId(), k -> new LinkedList<>());
-        return testStepQueue.get(testCase.getId());
-        //return simpleStepTestQueue;
+    public Queue<Step> getStepQueue() {
+        return stepQueue;
     }
 
-    public synchronized boolean examplesAreRunning(String scenarioId) {
-        //LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + examplesRunning);
-        //return examplesRunning;
-        if(!examplesRunningMap.containsKey(scenarioId)) {
-            LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + false);
-            return false;
-        }
-        LOGGER.info("ZZZEx1 ExamplesAreRunning " + Thread.currentThread() + " " + scenarioId + " " + examplesRunningMap.get(scenarioId));
-        return examplesRunningMap.get(scenarioId);
+    public boolean examplesAreRunning() {
+        return examplesRunning;
     }
 
-    public synchronized Map<Long, Map<String, String>> getExampleRows(String scenarioId) {
-        return exampleRowsMap.get(scenarioId);
+    public Map<Long, Map<String, String>> getExampleRows() {
+        return exampleRows;
     }
 
-    public synchronized void setExampleRows(String scenarioId,Map<Long, Map<String, String>> exampleRows) {
-        this.exampleRowsMap.put(scenarioId,exampleRows);
-    }
-
-    public synchronized Map<Long, List<Tag>> getExampleTags() {
+    public Map<Long, List<Tag>> getExampleTags() {
         return exampleTags;
     }
 
-    public synchronized void setExampleTags(Map<Long, List<Tag>> exampleTags) {
-        this.exampleTags =  exampleTags;
+    public int getExampleCount() {
+        return exampleCount;
     }
 
-    public synchronized int getExampleCount(String scenarioId)  {
-        LOGGER.info("ZZZEx getExampleCount " + scenarioId + " " +   Thread.currentThread() + " " + exampleCountMap.get(scenarioId));
-        if(exampleCountMap.containsKey(scenarioId))
-            return exampleCountMap.get(scenarioId).get();
-        else
-            return 0;
+    public DataTable getTable() {
+        return table;
     }
 
-    public synchronized int decrementExampleCount(String scenarioId) {
-        LOGGER.info("ZZZEx decrement ExampleCount " +scenarioId + " " +   Thread.currentThread() + " " + exampleCountMap.get(scenarioId));
-        if(exampleCountMap.get(scenarioId) != null) {
-            return exampleCountMap.get(scenarioId).decrementAndGet();
-        }
-        else //single example
-        return 0;
-    }
-
-    public synchronized DataTable getTable(String scenarioId) {
-        return tableMap.get(scenarioId);
-    }
-
-    public synchronized boolean isWaitingToProcessBackgroundSteps() {
+    public boolean isWaitingToProcessBackgroundSteps() {
         return waitingToProcessBackgroundSteps;
     }
 
-
-
-    public synchronized void addCurrentScenarioId(String scenarioId) {
-
-        LOGGER.info("ZZZEx SetCurrentScenario called " + Thread.currentThread() + " " + scenarioId);
-        if(scenarioId != null)
-            currentScenarioIdList.add(scenarioId);
-        else
-           currentScenarioIdList.clear();
+    public String getCurrentScenarioId() {
+        return currentScenarioId;
     }
 
-    public synchronized Scenario getCurrentScenarioDefinition(String scenarioId) {
-        return currentScenarioDefinitionMap.get(scenarioId);
+    public void setCurrentScenarioId(String scenarioId) {
+        currentScenarioId = scenarioId;
     }
 
-    public synchronized String getCurrentScenario(String scenarioId) {
-        LOGGER.info("ZZZGetCurrentScenario called " + Thread.currentThread() + " " + currentScenarioMap.get(scenarioId));
-        return currentScenarioMap.get(scenarioId);
+    public Scenario getCurrentScenarioDefinition() {
+        return currentScenarioDefinition;
     }
 
-    public synchronized void setCurrentScenario(String scenarioId,String currentScenario) {
-        LOGGER.info("SetCurrentScenario called " + Thread.currentThread() + " " + currentScenario);
-        this.currentScenarioMap.put(scenarioId,currentScenario);
+    public String getCurrentScenario() {
+        return currentScenario;
     }
 
-    public synchronized List<Tag> getFeatureTags() {
+    public List<Tag> getFeatureTags() {
         return featureTags;
     }
 
-    public synchronized boolean isAddingScenarioOutlineSteps(String scenarioId) {
-        return addingScenarioOutlineStepsMap.get(scenarioId) != null ? addingScenarioOutlineStepsMap.get(scenarioId) : false;
+    public boolean isAddingScenarioOutlineSteps() {
+        return addingScenarioOutlineSteps;
     }
 
-    public synchronized void doneAddingScenarioOutlineSteps(String scenarioId) {
-        this.addingScenarioOutlineStepsMap.put(scenarioId,false);
+    public void doneAddingScenarioOutlineSteps() {
+        this.addingScenarioOutlineSteps = false;
     }
 
-    public synchronized void setFeatureTags(List<Tag> tags) {
+    public void setFeatureTags(List<Tag> tags) {
         this.featureTags = new ArrayList<>(tags);
     }
 
-    public synchronized void setCurrentScenarioDefinitionFrom(String scenarioId,TestSourcesModel.AstNode astNode) {
-        this.currentScenarioDefinitionMap.put(scenarioId, TestSourcesModel.getScenarioDefinition(astNode));
+    public void setCurrentScenarioDefinitionFrom(TestSourcesModel.AstNode astNode) {
+        this.currentScenarioDefinition = TestSourcesModel.getScenarioDefinition(astNode);
     }
 
-    public synchronized boolean isAScenarioOutline(String scenarioId) {
-        return currentScenarioDefinitionMap.get(scenarioId) != null  &&
-                currentScenarioDefinitionMap.get(scenarioId).getExamples().size() > 0;
+    public boolean isAScenarioOutline() {
+        return currentScenarioDefinition.getExamples().size() > 0;
     }
 
-    public synchronized void startNewExample(URI featurePath, String scenarioId) {
-
-        //examplesRunning = true;
-        LOGGER.info("ZZZEx1 startNewExample " + Thread.currentThread() + " " + scenarioId);
-        examplesRunningMap.put(scenarioId,true);
-        addingScenarioOutlineStepsMap.put(scenarioId,true);
+    public void startNewExample() {
+        examplesRunning = true;
+        addingScenarioOutlineSteps = true;
     }
 
-    public synchronized void setExamplesRunning(String scenarioId,boolean examplesRunning) {
-        examplesRunningMap.put(scenarioId, examplesRunning);
-        LOGGER.info("ZZZEx1 setExamplesAreRunning " + examplesRunning + " " +  Thread.currentThread() + " " + scenarioId);
-        //this.examplesRunning = examplesRunning;
+    public void setExamplesRunning(boolean examplesRunning) {
+        this.examplesRunning = examplesRunning;
     }
 
-    /*public synchronized List<Tag> getScenarioTags() {
+    public List<Tag> getScenarioTags() {
         return currentScenarioDefinition.getTags();
     }
 
-    public synchronized String getScenarioName() {
+    public String getScenarioName() {
         return currentScenarioDefinition.getName();
     }
 
-    public synchronized List<Examples> getScenarioExamples() {
+    public List<Examples> getScenarioExamples() {
         return currentScenarioDefinition.getExamples();
-    }*/
-
-    public synchronized void clearStepQueue(TestCase testCase/*String scenarioId*/) {
-        getStepQueue(testCase).clear();
     }
 
-    public synchronized void clearStepQueue() {
-        //TODO check
+    public void clearStepQueue() {
         stepQueue.clear();
-        //simpleStepQueue.clear();
     }
 
-    public synchronized void clearTestStepQueue() {
+    public void clearTestStepQueue() {
         testStepQueue.clear();
-        //simpleStepTestQueue.clear();
     }
 
-    public synchronized void queueStep(TestCase testCase/*String scenarioId,*/,Step step) {
-        getStepQueue(testCase).add(step);
+    public void queueStep(Step step) {
+        stepQueue.add(step);
     }
 
-    public synchronized void queueTestStep(/*String scenarioId*/TestCase testCase,TestStep testStep) {
-        getTestStepQueue(testCase).add(testStep);
+    public void queueTestStep(TestStep testStep) {
+        testStepQueue.add(testStep);
     }
 
-    public synchronized Step getCurrentStep(TestCase testCase/*String scenarioId*/) {
-        return getStepQueue(testCase/*scenarioId*/).peek();
+    public Step getCurrentStep() {
+        return stepQueue.peek();
     }
 
-    public synchronized Step nextStep(TestCase testCase/*String scenarioId*/) {
-        return getStepQueue(testCase/*scenarioId*/).poll();
+    public Step nextStep() {
+        return stepQueue.poll();
     }
 
-    public synchronized TestStep nextTestStep(TestCase testCase/*String scenarioId*/) {
-        return getTestStepQueue(testCase/*scenarioId*/).poll();
+    public TestStep nextTestStep() {
+        return testStepQueue.poll();
     }
 
-    public synchronized boolean noStepsAreQueued(/*String scenarioId*/TestCase testCase) {
-        return getStepQueue(testCase/*scenarioId*/).isEmpty();
+    public boolean noStepsAreQueued() {
+        return stepQueue.isEmpty();
     }
 
-    public synchronized boolean hasScenarioId(String scenarioId) {
-        boolean hasScenario =  (currentScenarioIdList.contains(scenarioId));
-        LOGGER.info("ZZZEx HasCurrentScenarioId called " + Thread.currentThread() + " " + scenarioId + " has scenario " + hasScenario + " " + currentScenarioIdList);
-        return hasScenario;
+    public boolean hasScenarioId(String scenarioId) {
+        return (currentScenarioId != null) && (currentScenarioId.equals(scenarioId));
     }
 
-    public synchronized void setTable(String scenarioId,DataTable table) {
-        this.tableMap.put(scenarioId,table);
-        LOGGER.info("ZZZEx setTable " + table + " " + scenarioId + " " + Thread.currentThread() + " " + table.getSize());
-        exampleCountMap.put(scenarioId,new AtomicInteger(table.getSize()));
-        //exampleCount.set(table.getSize());
+    public void setTable(DataTable table) {
+        this.table = table;
+        exampleCount = table.getSize();
     }
 
-    public synchronized void addTableRows(String scenarioId,List<String> headers,
+    public void addTableRows(List<String> headers,
                              List<Map<String, String>> rows,
                              String name,
                              String description,
                              Map<Integer, Long> lineNumbersOfEachRow) {
-        DataTable table = tableMap.get(scenarioId);
         table.startNewDataSet(name, description);
 
         AtomicInteger rowNumber = new AtomicInteger();
@@ -308,8 +204,7 @@ class ScenarioContext {
                 row -> table.appendRow(newRow(headers, lineNumbersOfEachRow, rowNumber.getAndIncrement(), row))
         );
         table.updateLineNumbers(lineNumbersOfEachRow);
-        LOGGER.info("ZZZEx addTableRows " + table + " " + scenarioId + Thread.currentThread() + " " + table.getSize());
-        exampleCountMap.put(scenarioId,new AtomicInteger(table.getSize()));
+        exampleCount = table.getSize();
     }
 
     @NotNull
@@ -326,120 +221,17 @@ class ScenarioContext {
         return headers.stream().map(row::get).collect(toList());
     }
 
-    public synchronized void addTableTags(String scenarioId,List<TestTag> tags) {
-        DataTable table = tableMap.get(scenarioId);
+    public void addTableTags(List<TestTag> tags) {
         table.addTagsToLatestDataSet(tags);
     }
 
-    public synchronized void clearTable(TestCase testCase) {
-        tableMap.clear();
-        //tableMap.put(testCase.getId(),null);
-        //DataTable table = tableMap.get(testCase.getId());
-        //table = null;
+    public void clearTable() {
+        table = null;
     }
 
-    public synchronized StepEventBus stepEventBus(URI featurePath) {
-        URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(featurePath);
+    public StepEventBus stepEventBus() {
+        URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(currentFeaturePath());
         return StepEventBus.eventBusFor(prefixedPath);
-    }
-
-    public synchronized StepEventBus stepEventBus(TestCase testCase) {
-
-        URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(testCase.getUri());
-        return StepEventBus.eventBusFor(prefixedPath);
-        //return StepEventBus.eventBusFor(testCase);
-    }
-
-    /*public synchronized List<BaseStepListener> getBaseStepListeners()
-    {
-        return baseStepListeners;
-    }*/
-
-    public void addBaseStepListener(BaseStepListener baseStepListener,TestCase testCase){
-        System.out.println("WWWAddBaseStepListener " + baseStepListener);
-        baseStepListeners.add(baseStepListener);
-        stepEventBus(testCase).registerListener(baseStepListener);
-    }
-
-
-    public void addBaseStepListener(BaseStepListener baseStepListener,URI featurePath){
-        System.out.println("WWWAddBaseStepListener " + baseStepListener);
-        baseStepListeners.add(baseStepListener);
-        stepEventBus(featurePath).registerListener(baseStepListener);
-    }
-
-
-
-
-    public synchronized void collectAllBaseStepListeners(List<BaseStepListener>  allBaseStepListeners){
-        allBaseStepListeners.addAll(baseStepListeners);
-    }
-
-
-    public void setWaitingToProcessBackgroundSteps(boolean waitingToProcessBackgroundSteps) {
-        this.waitingToProcessBackgroundSteps = waitingToProcessBackgroundSteps;
-    }
-
-    public void addParameterizedStepListener(BaseStepListener baseStepListener) {
-        System.out.println("WWWAddParameterizedBaseStepListener " + baseStepListener);
-        parameterizedBaseStepListeners.add(baseStepListener);
-    }
-
-
-    public void addHighPriorityStepEventBusEvent(TestCase testCase, String scenarioId, StepEventBusEvent event) {
-        List<StepEventBusEvent> eventList = highPriorityEventBusEvents.computeIfAbsent(scenarioId,k->Collections.synchronizedList(new LinkedList<>()));
-        eventList.add(event);
-    }
-
-    public void addStepEventBusEvent(TestCase testCase, String scenarioId, StepEventBusEvent event) {
-        if(TestSession.isSessionStarted()) {
-            TestSession.addEvent(event);
-        } else {
-            LOGGER.info("ZZZ ignored event " + event + " " +  Thread.currentThread() + " because session not opened for test case id " + testCase.getId());
-        }
-        //stepEventBusEvents.get().add(event);
-    }
-
-    public void storeAllStepEventBusEventsForLine(int line, TestCase testCase){
-        /*List<StepEventBusEvent> stepEventBusEvents = this.stepEventBusEvents.get(testCase.getId());
-        for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
-            LOGGER.info("ZZZ PLAY event  " + currentStepBusEvent + " " +  Thread.currentThread());
-            currentStepBusEvent.play();
-        }*/
-        if(TestSession.isSessionStarted()) {
-             TestSession.closeSession();
-             List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
-            //replayAllTestCaseEvents(stepEventBusEvents);
-            List<StepEventBusEvent> clonedEvents = new ArrayList<>(stepEventBusEvents);
-            allTestEvents.put(line,clonedEvents);
-            TestSession.cleanupSession();
-            //stepEventBusEvents.clear();
-        }
-    }
-
-    private void replayAllTestCaseEvents(Integer lineNumber,List<StepEventBusEvent> stepEventBusEvents) {
-        LOGGER.info("ZZZ PLAY session events for line   " + lineNumber);
-        Optional<StepEventBusEvent> eventWithScenarioId = stepEventBusEvents.stream().filter(event -> !event.getScenarioId().isEmpty()).findFirst();
-
-        if(eventWithScenarioId.isPresent() && highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId()) != null){
-            LOGGER.info("ZZZ PLAY session events for scenario   " + eventWithScenarioId.get().getScenarioId());
-            List<StepEventBusEvent> highPriorityEvents = highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId());
-            for(StepEventBusEvent currentStepBusEvent : highPriorityEvents) {
-               LOGGER.info("ZZZ PLAY session high priority event  " + currentStepBusEvent + " " +  Thread.currentThread());
-               currentStepBusEvent.play();
-            }
-            highPriorityEventBusEvents.remove(eventWithScenarioId.get().getScenarioId());
-        }
-
-        for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
-           LOGGER.info("ZZZ PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
-           currentStepBusEvent.play();
-       }
-    }
-
-    public synchronized void playAll() {
-        //allTestEvents.values().forEach(this::replayAllTestCaseEvents);
-        allTestEvents.entrySet().forEach((entry) -> replayAllTestCaseEvents(entry.getKey(),entry.getValue()));
     }
 }
 
