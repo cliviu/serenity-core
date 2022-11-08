@@ -81,10 +81,10 @@ class ScenarioContextParallel {
      Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
      //Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new LinkedHashMap<Integer, List<StepEventBusEvent>>());
 
-
-    public ScenarioContextParallel(){
+    public ScenarioContextParallel(URI featureURI) {
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
         this.parameterizedBaseStepListeners = Collections.synchronizedList(new ArrayList<>());
+        this.featureURI = featureURI;
     }
 
     public synchronized void setFeatureURI(URI featureURI){

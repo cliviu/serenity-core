@@ -57,7 +57,7 @@ import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 /**
- * Cucumber Formatter for Serenity.
+ * Cucumber parallel reporter for Serenity.
  *
  * @author L.Carausu (liviu.carausu@gmail.com)
  */
@@ -83,30 +83,16 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private ManualScenarioChecker manualScenarioDateChecker;
 
-    private ThreadLocal<ScenarioContextParallel> localContext = ThreadLocal.withInitial(ScenarioContextParallel::new);
+    private final Set<URI> contextURISet = new CopyOnWriteArraySet<>();
 
-    private Set<URI> contextURISet = new CopyOnWriteArraySet<>();
-
-    //private final List<BaseStepListener> baseStepListeners;
-
-    /*private ScenarioContext getContext() {
-        return localContext.get();
-    }*/
-
+    /**
+     * key = feature URI; value = ScenarioContextParallel
+     */
     private final Map<URI,ScenarioContextParallel> localContexts = Collections.synchronizedMap(new HashMap<>());
+
     private ScenarioContextParallel getContext(URI featureURI) {
-        //System.out.println("XXXGetContextCalled " + featureURI + " _ " + Thread.currentThread().getName());
-        synchronized(localContexts)
-        {
-            ScenarioContextParallel existingContext = localContexts.get(featureURI);
-            if (existingContext == null)
-            {
-                existingContext = new ScenarioContextParallel();
-                existingContext.setFeatureURI(featureURI);
-                localContexts.put(featureURI, existingContext);
-            }
-            //return localContext.get();
-            return existingContext;
+        synchronized(localContexts) {
+            return localContexts.computeIfAbsent(featureURI, uri->new ScenarioContextParallel(uri));
         }
     }
 
@@ -117,13 +103,11 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     public SerenityReporterParallel() {
         this.systemConfiguration = Injectors.getInjector().getInstance(Configuration.class);
         this.manualScenarioDateChecker = new ManualScenarioChecker(systemConfiguration.getEnvironmentVariables());
-        //baseStepListeners = Collections.synchronizedList(new ArrayList<>());
     }
 
     public SerenityReporterParallel(Configuration systemConfiguration) {
         this.systemConfiguration = systemConfiguration;
         this.manualScenarioDateChecker = new ManualScenarioChecker(systemConfiguration.getEnvironmentVariables());
-        //baseStepListeners = Collections.synchronizedList(new ArrayList<>());
     }
 
     private FeaturePathFormatter featurePathFormatter = new FeaturePathFormatter();
@@ -138,32 +122,13 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         StepEventBus.setCurrentBusToEventBusFor(prefixedPath);
     }
 
-
-    /*private StepEventBus getStepEventBus(TestCase testCase) {
-        return StepEventBus.eventBusFor(testCase.getId());
-    }*/
-    private void setStepEventBus(TestCase testCase) {
-        StepEventBus.setCurrentBusToEventBusFor(testCase.getId());
-    }
-
     private void initialiseListenersFor(URI featurePath) {
         if (getStepEventBus(featurePath).isBaseStepListenerRegistered()) {
             return;
         }
         SerenityListeners listeners = new SerenityListeners(getStepEventBus(featurePath), systemConfiguration);
         getContext(featurePath).addBaseStepListener(listeners.getBaseStepListener(),featurePath);
-        //baseStepListeners.add(listeners.getBaseStepListener());
     }
-
-
-    /*private void initialiseListenersFor(URI featurePath,TestCase testCase) {
-
-        if (getStepEventBus(testCase).isBaseStepListenerRegistered()) {
-            return;
-        }
-        SerenityListeners listeners = new SerenityListeners(getStepEventBus(testCase), systemConfiguration);
-        getContext(featurePath).addBaseStepListener(listeners.getBaseStepListener(),testCase);
-    }*/
 
     private EventHandler<TestSourceRead> testSourceReadHandler = this::handleTestSourceRead;
     private EventHandler<TestCaseStarted> caseStartedHandler = this::handleTestCaseStarted;
@@ -175,7 +140,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     private EventHandler<WriteEvent> writeEventHandler = this::handleWrite;
 
     private void handleTestRunStarted(TestRunStarted event) {
-        LOGGER.info("ZZZ handleTestRunStarted "  + " "   +  Thread.currentThread());
+        LOGGER.debug("SRP:handleTestRunStarted {} " ,  Thread.currentThread());
     }
 
     @Override
@@ -191,13 +156,9 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void handleTestSourceRead(TestSourceRead event) {
-        LOGGER.info("ZZZ handleTestSourceRead " + " " + Thread.currentThread());
+        LOGGER.debug("SRP:handleTestSourceRead {}", Thread.currentThread());
         featureLoader.addTestSourceReadEvent(event);
         URI featurePath = event.getUri();
-        //TODO - fix this
-        System.out.println("YYY handleTestSourceRead " + " " + Thread.currentThread());
-
-
         featureFrom(featurePath).ifPresent(
                 feature -> {
                     getContext(featurePath).setFeatureTags(feature.getTags());
@@ -276,20 +237,13 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     private void handleTestCaseStarted(TestCaseStarted event) {
         try {
             TestCase testCase = event.getTestCase();
-            LOGGER.info("ZZZ handleTestCaseStarted " + " " + testCase.getUri() + " "
-                    + Thread.currentThread() + " " + testCase.getId() + " at line " +testCase.getLocation().getLine());
+            LOGGER.debug("SRP:handleTestCaseStarted {} {} {} at line {}" , testCase.getUri(), Thread.currentThread(),
+                            testCase.getId(), testCase.getLocation().getLine());
             TestSession.startSession(testCase.getId().toString(),getStepEventBus(event.getTestCase().getUri()));
-            //setStepEventBus(event.getTestCase());
             URI featurePath = testCase.getUri();
-            //initialiseListenersFor(featurePath, event.getTestCase());
-            //getContext(featurePath).currentFeaturePathIs(featurePath);
             contextURISet.add(featurePath);
             setStepEventBus(featurePath);
             initialiseListenersFor(featurePath);
-
-            //setStepEventBus(event.getTestCase().getUri());
-            //System.out.println("ZZZ testCaseStarted scenrioOutline " + getContext(featurePath).isAScenarioOutline());
-            //initialiseListenersFor(featurePath,event.getTestCase(),getContext(featurePath).isAScenarioOutline());
 
             if (FeatureTracker.isNewFeature(event)) {
                 // Shut down any drivers remaining open from a previous feature, if @singlebrowser is used.
@@ -318,15 +272,14 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
                     configureDriver(currentFeature.get(), event.getTestCase().getUri());
                     if (getContext(featurePath).isAScenarioOutline(scenarioId)) {
                         getContext(featurePath).startNewExample(featurePath, scenarioId);
-                        LOGGER.info("ZZZ startnewexample " + " " + event.getTestCase().getUri() + " "
-                                + Thread.currentThread() + " " + event.getTestCase().getId() + " at line " + event.getTestCase().getLocation().getLine());
+                        LOGGER.debug("SRP:startNewExample {} {} {} at line {} ", event.getTestCase().getUri(), Thread.currentThread(),
+                                      event.getTestCase().getId(), event.getTestCase().getLocation().getLine());
                         handleExamples(scenarioId,featurePath, currentFeature.get(),
                                 getContext(featurePath).currentScenarioOutline(scenarioId).getTags(),
                                 getContext(featurePath).currentScenarioOutline(scenarioId).getName(),
                                 getContext(featurePath).currentScenarioOutline(scenarioId).getExamples());
                     }
                     startOfScenarioLifeCycle(scenarioId,featurePath, event.getTestCase(), currentFeature.get(), scenarioName, getContext(featurePath).getCurrentScenarioDefinition(scenarioId), event.getTestCase().getLocation().getLine());
-                    //scenarioId = scenarioIdFrom(currentFeature.get().getName(), TestSourcesModel.convertToId(getContext(featurePath).getCurrentScenarioDefinition().getName()));
                     getContext(featurePath).setCurrentScenario(scenarioId,scenarioId);
                 } else {
                     if (getContext(featurePath).isAScenarioOutline(scenarioId)) {
@@ -337,12 +290,11 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             }
             io.cucumber.messages.types.Rule rule = getRuleForTestCase(astNode);
             if (rule != null) {
-                //getContext(featurePath).stepEventBus(event.getTestCase()).setRule(Rule.from(rule));
                 getContext(featurePath).addStepEventBusEvent(event.getTestCase(),scenarioId,
                             new SetRuleEvent(getContext(featurePath).stepEventBus(event.getTestCase()),Rule.from(rule)));
 
             }
-        }catch(Throwable t) {
+        }  catch(Throwable t) {
             t.printStackTrace();
             throw t;
         }
