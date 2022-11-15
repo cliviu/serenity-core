@@ -1026,19 +1026,22 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     private void updateCurrentScenarioResultTo(URI featurePath,TestCase testCase,TestResult testResult) {
         StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
         getContext(featurePath).addStepEventBusEvent(testCase,"", new OverrideResultToEvent(stepEventBus,testResult));
-        //getContext(featurePath).stepEventBus(testCase).getBaseStepListener().overrideResultTo(pending);
     }
 
     private void failed(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
         if (!errorOrFailureRecordedForStep(featurePath,testCase, stepTitle, cause)) {
             if (!isEmpty(stepTitle)) {
-                getContext(featurePath).stepEventBus(testCase).updateCurrentStepTitle(stepTitle);
+                //getContext(featurePath).stepEventBus(testCase).updateCurrentStepTitle(stepTitle);
+                getContext(featurePath).addStepEventBusEvent(testCase,"", new UpdateCurrentStepTitleEvent(stepEventBus,stepTitle));
             }
             Throwable rootCause = new RootCauseAnalyzer(cause).getRootCause().toException();
             if (isAssumptionFailure(rootCause)) {
-                getContext(featurePath).stepEventBus(testCase).assumptionViolated(rootCause.getMessage());
+                getContext(featurePath).addStepEventBusEvent(testCase,"", new AssumptionViolatedEvent(stepEventBus,rootCause.getMessage()));
+                //getContext(featurePath).stepEventBus(testCase).assumptionViolated(rootCause.getMessage());
             } else {
-                getContext(featurePath).stepEventBus(testCase).stepFailed(new StepFailure(ExecutedStepDescription.withTitle(normalized(currentStepTitle(featurePath,testCase))), rootCause));
+                getContext(featurePath).addStepEventBusEvent(testCase,"", new StepFailedEvent(stepEventBus,new StepFailure(ExecutedStepDescription.withTitle(normalized(currentStepTitle(featurePath,testCase))), rootCause)));
+                //getContext(featurePath).stepEventBus(testCase).stepFailed(new StepFailure(ExecutedStepDescription.withTitle(normalized(currentStepTitle(featurePath,testCase))), rootCause));
             }
         }
     }
@@ -1048,8 +1051,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         if (!errorOrFailureRecordedForStep(featurePath,testCase, stepTitle, cause)) {
             if (!isEmpty(stepTitle)) {
                 //stepEventBus.updateCurrentStepTitle(stepTitle);
-                getContext(featurePath).addStepEventBusEvent(testCase,"",
-                                                             new UpdateCurrentStepTitleEvent(getContext(featurePath).stepEventBus(testCase),normalized(stepTitle)));
+                getContext(featurePath).addStepEventBusEvent(testCase,"", new UpdateCurrentStepTitleEvent(stepEventBus,normalized(stepTitle)));
             }
             if (cause == null) {
                 //getContext(featurePath).stepEventBus(testCase).stepIgnored();
@@ -1057,7 +1059,8 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             } else {
                 Throwable rootCause = new RootCauseAnalyzer(cause).getRootCause().toException();
                 if (isAssumptionFailure(rootCause)) {
-                    stepEventBus.assumptionViolated(rootCause.getMessage());
+                    //stepEventBus.assumptionViolated(rootCause.getMessage());
+                    getContext(featurePath).addStepEventBusEvent(testCase,"", new AssumptionViolatedEvent(stepEventBus,rootCause.getMessage()));
                 } else {
                     //stepEventBus.stepIgnored();
                     getContext(featurePath).addStepEventBusEvent(testCase,"", new StepIgnoredEvent(stepEventBus));
