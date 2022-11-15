@@ -1,26 +1,27 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.model.Rule;
+import net.thucydides.core.model.TestResult;
 import net.thucydides.core.steps.StepEventBus;
 
-public class OverrideResultEvent
+public class OverrideResultToEvent
     extends StepEventBusEventBase {
 
 
-	private Rule rule;
+	private TestResult testResult;
 
-	public OverrideResultEvent(StepEventBus eventBus, final Rule rule) {
+	public OverrideResultToEvent(StepEventBus eventBus, final TestResult testResult) {
 		super(eventBus);
-		this.rule = rule;
+		this.testResult = testResult;
 	}
 
 
 	@Override
 	public void play() {
-		getStepEventBus().setRule(rule);
+		getStepEventBus().getBaseStepListener().overrideResultTo(testResult);
 	}
 
 	public String toString() {
-		return("EventBusEvent SET_RULE " + rule);
+		return("EventBusEvent OVERRIDE_RESULT_TO " + testResult);
 	}
 }

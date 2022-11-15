@@ -957,12 +957,12 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void recordStepResult(URI featurePath,TestCase testCase,Result result, io.cucumber.messages.types.Step currentStep, TestStep currentTestStep) {
-
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
         if (getContext(featurePath).stepEventBus(testCase).currentTestIsSuspended()) {
-            //TODO
             //getContext(featurePath).stepEventBus(testCase).stepIgnored();
             getContext(featurePath).addStepEventBusEvent(testCase,"",
                 new StepIgnoredEvent(getContext(featurePath).stepEventBus(testCase)));
+            //getContext(featurePath).addStepEventBusEvent(testCase,"", new SetTestEvent(stepEventBus));
         } else if (Status.PASSED.equals(result.getStatus())) {
             //getContext(featurePath).stepEventBus(testCase).stepFinished();
             List<ScreenshotAndHtmlSource> screenshotList = getContext(featurePath).stepEventBus(testCase).takeScreenshots();
@@ -976,11 +976,12 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             //TODO
             skipped(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());
         } else if (Status.PENDING.equals(result.getStatus())) {
-            //TODO
-            getContext(featurePath).stepEventBus(testCase).stepPending();
+            //getContext(featurePath).stepEventBus(testCase).stepPending();
+            getContext(featurePath).addStepEventBusEvent(testCase,"", new StepPendingEvent(stepEventBus));
         } else if (Status.UNDEFINED.equals(result.getStatus())) {
             //TODO
-            getContext(featurePath).stepEventBus(testCase).stepPending();
+            //getContext(featurePath).stepEventBus(testCase).stepPending();
+            getContext(featurePath).addStepEventBusEvent(testCase,"", new StepPendingEvent(stepEventBus));
         }
     }
 
@@ -994,32 +995,38 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private void updateResultFromTags(String scenarioId,URI featurePath,TestCase testCase, List<Tag> scenarioTags) {
         //TODO
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
         if (isManual(scenarioTags)) {
             updateManualResultsFrom(scenarioId,featurePath,testCase,scenarioTags);
         } else if (isPending(scenarioTags)) {
-            getContext(featurePath).stepEventBus(testCase).testPending();
+            //getContext(featurePath).stepEventBus(testCase).testPending();
+            getContext(featurePath).addStepEventBusEvent(testCase,scenarioId, new SetTestPendingEvent(stepEventBus));
         } else if (isSkippedOrWIP(scenarioTags)) {
-            getContext(featurePath).stepEventBus(testCase).testSkipped();
+        //    getContext(featurePath).stepEventBus(testCase).testSkipped();
+            getContext(featurePath).addStepEventBusEvent(testCase,scenarioId, new SetTestSkippedEvent(stepEventBus));
             updateCurrentScenarioResultTo(featurePath,testCase,TestResult.SKIPPED);
         } else if (isIgnored(scenarioTags)) {
-            getContext(featurePath).stepEventBus(testCase).testIgnored();
+            //getContext(featurePath).stepEventBus(testCase).testIgnored();
+            getContext(featurePath).addStepEventBusEvent(testCase,scenarioId, new SetTestIgnoredEvent(stepEventBus));
             updateCurrentScenarioResultTo(featurePath,testCase,TestResult.IGNORED);
         }
     }
 
     private void updateManualResultsFrom(String scenarioId,URI featurePath, TestCase testCase,List<Tag> scenarioTags) {
-        getContext(featurePath).stepEventBus(testCase).testIsManual();
-
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
+        getContext(featurePath).addStepEventBusEvent(testCase,scenarioId, new SetTestManualEvent(stepEventBus));
         manualResultDefinedIn(scenarioTags).ifPresent(
                 testResult ->
                         UpdateManualScenario.forScenario(getContext(featurePath).getCurrentScenarioDefinition(scenarioId).getDescription())
-                                .inContext(getContext(featurePath).stepEventBus(testCase).getBaseStepListener(), systemConfiguration.getEnvironmentVariables())
+                                .inContext(stepEventBus.getBaseStepListener(), systemConfiguration.getEnvironmentVariables())
                                 .updateManualScenario(testResult, scenarioTags)
         );
     }
 
-    private void updateCurrentScenarioResultTo(URI featurePath,TestCase testCase,TestResult pending) {
-        getContext(featurePath).stepEventBus(testCase).getBaseStepListener().overrideResultTo(pending);
+    private void updateCurrentScenarioResultTo(URI featurePath,TestCase testCase,TestResult testResult) {
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
+        getContext(featurePath).addStepEventBusEvent(testCase,"", new OverrideResultToEvent(stepEventBus,testResult));
+        //getContext(featurePath).stepEventBus(testCase).getBaseStepListener().overrideResultTo(pending);
     }
 
     private void failed(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
@@ -1037,18 +1044,23 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void skipped(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
+        StepEventBus stepEventBus = getContext(featurePath).stepEventBus(testCase);
         if (!errorOrFailureRecordedForStep(featurePath,testCase, stepTitle, cause)) {
             if (!isEmpty(stepTitle)) {
-                getContext(featurePath).stepEventBus(testCase).updateCurrentStepTitle(stepTitle);
+                //stepEventBus.updateCurrentStepTitle(stepTitle);
+                getContext(featurePath).addStepEventBusEvent(testCase,"",
+                                                             new UpdateCurrentStepTitleEvent(getContext(featurePath).stepEventBus(testCase),normalized(stepTitle)));
             }
             if (cause == null) {
-                getContext(featurePath).stepEventBus(testCase).stepIgnored();
+                //getContext(featurePath).stepEventBus(testCase).stepIgnored();
+                getContext(featurePath).addStepEventBusEvent(testCase,"", new StepIgnoredEvent(stepEventBus));
             } else {
                 Throwable rootCause = new RootCauseAnalyzer(cause).getRootCause().toException();
                 if (isAssumptionFailure(rootCause)) {
-                    getContext(featurePath).stepEventBus(testCase).assumptionViolated(rootCause.getMessage());
+                    stepEventBus.assumptionViolated(rootCause.getMessage());
                 } else {
-                    getContext(featurePath).stepEventBus(testCase).stepIgnored();
+                    //stepEventBus.stepIgnored();
+                    getContext(featurePath).addStepEventBusEvent(testCase,"", new StepIgnoredEvent(stepEventBus));
                 }
             }
         }

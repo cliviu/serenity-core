@@ -13,7 +13,7 @@ public class StepIgnoredEvent extends StepEventBusEventBase {
 
 	@Override
 	public void play() {
-		getStepEventBus().stepFinished();
+		getStepEventBus().stepIgnored();
 	}
 
 	public String toString() {

@@ -4,7 +4,7 @@ import net.thucydides.core.steps.StepEventBus;
 
 public class UpdateCurrentStepTitleEvent extends StepEventBusEventBase {
 
-	private String stepTitle;
+	private final String stepTitle;
 
 	public UpdateCurrentStepTitleEvent(StepEventBus eventBus,String stepTitle) {
 		super(eventBus);

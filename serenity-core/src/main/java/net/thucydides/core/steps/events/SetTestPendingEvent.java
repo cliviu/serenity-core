@@ -11,6 +11,6 @@ public class SetTestPendingEvent
 
 	@Override
 	public void play() {
-		getStepEventBus().testIsManual();
+		getStepEventBus().testPending();
 	}
 }

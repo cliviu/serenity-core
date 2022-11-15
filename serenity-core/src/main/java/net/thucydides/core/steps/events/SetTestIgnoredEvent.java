@@ -11,6 +11,6 @@ public class SetTestIgnoredEvent
 
 	@Override
 	public void play() {
-		getStepEventBus().testPending();
+		getStepEventBus().testIgnored();
 	}
 }

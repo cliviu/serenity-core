@@ -14,10 +14,10 @@ public class StepPendingEvent
 
 	@Override
 	public void play() {
-		getStepEventBus().stepIgnored();
+		getStepEventBus().stepPending();
 	}
 
 	public String toString() {
-		return("EventBusEvent STEP_IGNORED_EVENT ");
+		return("EventBusEvent STEP_PENDING_EVENT ");
 	}
 }
