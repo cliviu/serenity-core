@@ -197,7 +197,6 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     public final void attemptsTo(ErrorHandlingMode mode, Performable... tasks) {
-        LOGGER.info("ZZZ Actor attempts to " + tasks);
         beginPerformance();
         for (Performable task : tasks) {
             if (isNestedInSilentTask()) {
@@ -258,7 +257,6 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     }
 
     private <T extends Performable> void perform(T todo) {
-        LOGGER.info("ZZZ Actor perform" + todo + " " + Thread.currentThread() );
         if (isPending(todo)) {
             StepEventBus.getEventBus().stepPending();
         }

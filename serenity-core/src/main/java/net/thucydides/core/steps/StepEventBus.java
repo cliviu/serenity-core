@@ -1045,7 +1045,7 @@ public class StepEventBus {
     }
 
     public List<ScreenshotAndHtmlSource> takeScreenshots() {
-        LOGGER.info("ZZZtakeScreenshots");
+        LOGGER.debug("SRP:takeScreenshots");
         List<ScreenshotAndHtmlSource> screenshots =  new ArrayList<>();
         for (StepListener stepListener : getAllListeners()) {
             stepListener.takeScreenshots(screenshots);

@@ -26,7 +26,7 @@ public class StepFinishedEvent extends StepEventBusEventBase {
 
 	@Override
 	public void play() {
-	 	LOGGER.info("ZZZPlayStepFinishedEvent with screenshot size "
+	 	LOGGER.debug("SRP:PlayStepFinishedEvent with screenshot size "
 	 					+ ((screenshotList != null) ?  screenshotList.size() : 0));
 		getStepEventBus().stepFinished(screenshotList);
 	}

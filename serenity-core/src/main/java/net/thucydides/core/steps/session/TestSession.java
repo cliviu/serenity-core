@@ -8,6 +8,11 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 
+/**
+ * A Test Session corresponds to a single threaded test case.
+ * Is started from a Cucumber "testCaseStarted" event.
+ * An Actor can check if a TestSession is open and add there StepEventBusEvents to be serialized.
+ */
 public class TestSession {
 
   	private static final Logger LOGGER = LoggerFactory.getLogger(TestSession.class);
@@ -18,12 +23,12 @@ public class TestSession {
 		sessionContext.get().getSessionStarted().set(true);
 		sessionContext.get().setSessionId(sessionId);
 		sessionContext.get().setStepEventBus(stepEventBus);
-		LOGGER.info("ZZZSessionStart: id " + sessionId);
+		LOGGER.debug("SRP:SessionStart: id " + sessionId);
 	}
 
 	public static void closeSession() {
 		sessionContext.get().getSessionStarted().set(false);
-		LOGGER.info("ZZZSessionEnd: id " + sessionContext.get().getSessionId());
+		LOGGER.info("SRP:SessionEnd: id " + sessionContext.get().getSessionId());
 	}
 
 	public static TestSessionContext getTestSessionContext() {
@@ -39,7 +44,7 @@ public class TestSession {
 	}
 
 	public static void addEvent(StepEventBusEvent event) {
-		LOGGER.info("ZZZSessionAddEvent: id " + sessionContext.get().getSessionId() + " " + event);
+		LOGGER.debug("SRP:SessionAddEvent: id " + sessionContext.get().getSessionId() + " " + event);
 		sessionContext.get().getStepEventBusEvents().add(event);
 	}
 

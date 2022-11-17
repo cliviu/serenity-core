@@ -515,13 +515,13 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void notifyStepFinishedFor(final Method method, final Object[] args) {
-         if(!TestSession.isSessionStarted()) {
-            StepEventBus.getEventBus().stepFinished();
+         if(TestSession.isSessionStarted()) {
+            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
+            LOGGER.debug("SRP: Actor started event in session " + stepFinishedEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepFinishedEvent);
          }
         else {
-            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
-            LOGGER.info("ZZZ Actor started event in session " + stepFinishedEvent + " " +  Thread.currentThread());
-            TestSession.addEvent(stepFinishedEvent);
+            StepEventBus.getEventBus().stepFinished();
         }
 
 
@@ -580,13 +580,13 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     private void notifyStepStarted(final Object object, final Method method, final Object[] args) {
         ExecutedStepDescription description = ExecutedStepDescription.of(testStepClass, getTestNameFrom(method, args), args)
                         .withDisplayedFields(fieldValuesIn(object));
-         if(!TestSession.isSessionStarted()) {
-            StepEventBus.getEventBus().stepStarted(description);
+         if(TestSession.isSessionStarted()) {
+            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(),description);
+            LOGGER.debug("SRP:Actor started event in session " + stepStartedEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepStartedEvent);
          }
         else {
-            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(),description);
-            LOGGER.info("ZZZ Actor started event in session " + stepStartedEvent + " " +  Thread.currentThread());
-            TestSession.addEvent(stepStartedEvent);
+            StepEventBus.getEventBus().stepStarted(description);
         }
 
     }
