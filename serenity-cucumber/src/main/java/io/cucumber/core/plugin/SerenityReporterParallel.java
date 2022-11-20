@@ -406,14 +406,14 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     public void handleWrite(WriteEvent event) {
-        LOGGER.info("ZZZ handleWrite "  + " " + event.getTestCase().getUri());
+        LOGGER.debug("SRP:handleWrite "  + " " + event.getTestCase().getUri());
         URI featurePath = event.getTestCase().getUri();
         getContext(featurePath).stepEventBus(event.getTestCase()).stepStarted(ExecutedStepDescription.withTitle(event.getText()));
         getContext(featurePath).stepEventBus(event.getTestCase()).stepFinished();
     }
 
     private void handleTestStepFinished(TestStepFinished event) {
-        LOGGER.info("ZZZ handleTestStepFinished "  + " " + event.getTestCase().getUri() +
+        LOGGER.debug("SRP:handleTestStepFinished "  + " " + event.getTestCase().getUri() +
                     " " +  Thread.currentThread() + " " + event.getTestCase().getId() +
                     " at line " + event.getTestCase().getLocation().getLine());
         if (!(event.getTestStep() instanceof HookTestStep)) {
@@ -425,12 +425,9 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void handleTestRunFinished(TestRunFinished event) {
-        LOGGER.info("ZZZ handleTestRunFinished "  +  Thread.currentThread());
-        contextURISet.forEach(featurePath -> {getContext(featurePath).playAll();});
-
-        //need feature Path
+        LOGGER.debug("SRP:handleTestRunFinished "  +  Thread.currentThread());
+        contextURISet.forEach(featurePath -> {getContext(featurePath).playAllTestEvents();});
         generateReports();
-        //TODO - how to get a
         assureTestSuiteFinished();
     }
 
@@ -506,9 +503,9 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
                 }
 
                 String scenarioId = scenarioIdFrom(featureName, id);
-                LOGGER.info("ZZZEx handleExamples "  +  Thread.currentThread() + " scenarioId " + scenarioId + " mainscenarioId " + mainScenarioId);
+                LOGGER.debug("SRP:handleExamples "  +  Thread.currentThread() + " scenarioId " + scenarioId + " mainscenarioId " + mainScenarioId);
                 boolean newScenario = !getContext(featurePath).hasScenarioId(scenarioId);
-                LOGGER.info("ZZZEx newScenario "  +  newScenario);
+                LOGGER.info("SRP:newScenario "  +  newScenario);
 
                 String exampleTableName = trim(examples.getName());
                 String exampleTableDescription = trim(examples.getDescription());
@@ -550,8 +547,6 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         List<Tag> allExampleTags = getExampleAllTags(examples, scenarioOutlineTags, currentFeatureTags);
         List<String> allTagsForAnExampleScenario = allExampleTags.stream().map(Tag::getName).collect(Collectors.toList());
         Expression tagValuesFromCucumberOptions = getCucumberRuntimeTags().get(0);
-        // Expression expressionNode = TagExpressionParser.parse(tagValuesFromCucumberOptions);
-        // return expressionNode.evaluate(allTagsForAnExampleScenario);
         return tagValuesFromCucumberOptions.evaluate(allTagsForAnExampleScenario);
     }
 
@@ -926,10 +921,8 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             getContext(featurePath).addStepEventBusEvent(
                 new StepFinishedEvent(getContext(featurePath).stepEventBus(testCase),screenshotList));
         } else if (Status.FAILED.equals(result.getStatus())) {
-            //TODO
             failed(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());
         } else if (Status.SKIPPED.equals(result.getStatus())) {
-            //TODO
             skipped(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());
         } else if (Status.PENDING.equals(result.getStatus())) {
             getContext(featurePath).addStepEventBusEvent(new StepPendingEvent(stepEventBus));

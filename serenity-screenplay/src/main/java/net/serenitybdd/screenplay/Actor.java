@@ -341,23 +341,17 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
     private static final Logger LOGGER = LoggerFactory.getLogger(Actor.class);
 
     private void stepStarted(String groupTitle) {
-        if(TestSession.isSessionStarted()) {
-
-            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(), ExecutedStepDescription.withTitle(groupTitle));
-            LOGGER.info("ZZZ Actor  started event in session " + stepStartedEvent + " " +  Thread.currentThread());
-            TestSession.addEvent(stepStartedEvent);
-        } else {
-            LOGGER.info("ZZZ Actor  started event normal because no session available " +  Thread.currentThread());
+        if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(groupTitle));
+        } else {
+            TestSession.addEvent(new StepStartedEvent(StepEventBus.getEventBus(), ExecutedStepDescription.withTitle(groupTitle)));
         }
     }
 
     private void stepFinished() {
-        if(TestSession.isSessionStarted()) {
+        if (TestSession.isSessionStarted()) {
             List<ScreenshotAndHtmlSource> screenshotList = TestSession.getTestSessionContext().getStepEventBus().takeScreenshots();
-            LOGGER.info("ZZZtake screenshots from Actor" + screenshotList.size());
-            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus(),screenshotList);
-            TestSession.addEvent(stepFinishedEvent);
+            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus(),screenshotList));
         } else {
             StepEventBus.getEventBus().stepFinished();
         }

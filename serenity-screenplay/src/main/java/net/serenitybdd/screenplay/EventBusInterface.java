@@ -4,10 +4,7 @@ import net.thucydides.core.model.stacktrace.FailureCause;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.StepFailure;
-import net.thucydides.core.steps.events.CastActorEvent;
-import net.thucydides.core.steps.events.StepFinishedEvent;
-import net.thucydides.core.steps.events.StepStartedEvent;
-import net.thucydides.core.steps.events.UpdateOverallResultsEvent;
+import net.thucydides.core.steps.events.*;
 import net.thucydides.core.steps.session.TestSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,25 +21,30 @@ public class EventBusInterface {
         if (!StepEventBus.getEventBus().isBaseStepListenerRegistered()) {
             return;
         }
-         if(!TestSession.isSessionStarted()) {
-                StepEventBus.getEventBus().castActor(name);
-            }
-            else {
-                CastActorEvent castActorEvent = new CastActorEvent(StepEventBus.getEventBus(),name);
-                LOGGER.info("ZZZ castActorEvent  " + name + " " +  Thread.currentThread());
-                TestSession.addEvent(castActorEvent);
-            }
+        if (!TestSession.isSessionStarted()) {
+            StepEventBus.getEventBus().castActor(name);
+        }  else {
+            TestSession.addEvent(new CastActorEvent(StepEventBus.getEventBus(),name));
+        }
 
     }
 
     public void reportStepFailureFor(Performable todo, Throwable e) {
         ExecutedStepDescription taskDescription = ExecutedStepDescription.of(todo.getClass(), "attemptsTo");
-        StepEventBus.getEventBus().stepFailed(new StepFailure(taskDescription, e));
+        if (!TestSession.isSessionStarted()) {
+            StepEventBus.getEventBus().stepFailed(new StepFailure(taskDescription, e));
+        }  else {
+            TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(taskDescription, e)));
+        }
     }
 
     public <T> void reportStepFailureFor(Consequence<T> consequence, Throwable e) {
         ExecutedStepDescription consequenceDescription = ExecutedStepDescription.withTitle(consequence.toString());
-        StepEventBus.getEventBus().stepFailed(new StepFailure(consequenceDescription, e));
+        if (!TestSession.isSessionStarted()) {
+            StepEventBus.getEventBus().stepFailed(new StepFailure(consequenceDescription, e));
+        }  else {
+            TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(consequenceDescription, e)));
+        }
     }
 
     public int getRunningStepCount() {
@@ -55,49 +57,35 @@ public class EventBusInterface {
 
     public void updateOverallResult() {
         if (StepEventBus.getEventBus().isBaseStepListenerRegistered()) {
-            LOGGER.info("ZZZ Actor updateOverall Result " + TestSession.isSessionStarted() + " " +  Thread.currentThread());
             if(!TestSession.isSessionStarted()) {
                 StepEventBus.getEventBus().updateOverallResults();
-            }
-            else {
-                UpdateOverallResultsEvent updateOverallResultsEvent = new UpdateOverallResultsEvent(StepEventBus.getEventBus());
-                LOGGER.info("ZZZ Actor started event in session " + updateOverallResultsEvent + " " +  Thread.currentThread());
-                TestSession.addEvent(updateOverallResultsEvent);
+            } else {
+                TestSession.addEvent(new UpdateOverallResultsEvent(StepEventBus.getEventBus()));
             }
         }
     }
 
     public void startQuestion(String title) {
-
-        if(!TestSession.isSessionStarted()) {
+        if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(title).asAQuestion());
-        }
-        else {
-            StepStartedEvent startQuestionEvent = new StepStartedEvent(StepEventBus.getEventBus(),ExecutedStepDescription.withTitle(title).asAQuestion());
-            LOGGER.info("ZZZ startQuestion  " + title + " " +  Thread.currentThread());
-            TestSession.addEvent(startQuestionEvent);
+        } else {
+            TestSession.addEvent(new StepStartedEvent(StepEventBus.getEventBus(),ExecutedStepDescription.withTitle(title).asAQuestion()));
         }
     }
 
     public void finishQuestion() {
-        if(!TestSession.isSessionStarted()) {
+        if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFinished();
-        }
-        else {
-            StepFinishedEvent finishQuestionEvent = new StepFinishedEvent(StepEventBus.getEventBus());
-            LOGGER.info("ZZZ finishQuestion  "  + " " +  Thread.currentThread());
-            TestSession.addEvent(finishQuestionEvent);
+        } else {
+            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus()));
         }
     }
 
     public void reportStepFinished() {
-     if(!TestSession.isSessionStarted()) {
+        if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFinished();
-        }
-        else {
-            StepFinishedEvent finishQuestionEvent = new StepFinishedEvent(StepEventBus.getEventBus());
-            LOGGER.info("ZZZ reportStepFinished  "  + " " +  Thread.currentThread());
-            TestSession.addEvent(finishQuestionEvent);
+        } else {
+            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus()));
         }
 
     }

@@ -2,7 +2,6 @@ package io.cucumber.core.plugin;
 
 
 import net.thucydides.core.steps.events.StepEventBusEvent;
-import io.cucumber.messages.types.Examples;
 import io.cucumber.messages.types.Scenario;
 import io.cucumber.messages.types.Step;
 import io.cucumber.messages.types.Tag;
@@ -60,7 +59,8 @@ class ScenarioContextParallel {
 
     private final List<BaseStepListener> parameterizedBaseStepListeners;
 
-    Map<Integer,List<StepEventBusEvent>> allTestEvents = Collections.synchronizedMap(new TreeMap<Integer, List<StepEventBusEvent>>());
+    // key-line in feature file; value - list with StepBusEvents corresponding to this line.
+    private Map<Integer,List<StepEventBusEvent>> allTestEventsByLine = Collections.synchronizedMap(new TreeMap<>());
 
     public ScenarioContextParallel() {
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
@@ -324,46 +324,43 @@ class ScenarioContextParallel {
         }
     }
 
+    /**
+     * Called with TestCaseFinished
+     * @param line
+     * @param testCase
+     */
     public void storeAllStepEventBusEventsForLine(int line, TestCase testCase){
-        /*List<StepEventBusEvent> stepEventBusEvents = this.stepEventBusEvents.get(testCase.getId());
-        for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
-            LOGGER.info("ZZZ PLAY event  " + currentStepBusEvent + " " +  Thread.currentThread());
-            currentStepBusEvent.play();
-        }*/
         if(TestSession.isSessionStarted()) {
-             TestSession.closeSession();
-             List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
-            //replayAllTestCaseEvents(stepEventBusEvents);
+            TestSession.closeSession();
+            List<StepEventBusEvent> stepEventBusEvents = TestSession.getSessionEvents();
             List<StepEventBusEvent> clonedEvents = new ArrayList<>(stepEventBusEvents);
-            allTestEvents.put(line,clonedEvents);
+            allTestEventsByLine.put(line,clonedEvents);
             TestSession.cleanupSession();
-            //stepEventBusEvents.clear();
         }
     }
 
-    private void replayAllTestCaseEvents(Integer lineNumber,List<StepEventBusEvent> stepEventBusEvents) {
-        LOGGER.info("ZZZ PLAY session events for line   " + lineNumber);
-        Optional<StepEventBusEvent> eventWithScenarioId = stepEventBusEvents.stream().filter(event -> !event.getScenarioId().isEmpty()).findFirst();
+    /**
+     * Called with TestRunFinished - all tests events are replayed
+     */
+    public synchronized void playAllTestEvents() {
+        allTestEventsByLine.entrySet().forEach((entry) -> replayAllTestCaseEventsForLine(entry.getKey(),entry.getValue()));
+    }
 
+    private void replayAllTestCaseEventsForLine(Integer lineNumber, List<StepEventBusEvent> stepEventBusEvents) {
+        LOGGER.trace("SRP:PLAY session events for line   " + lineNumber);
+        Optional<StepEventBusEvent> eventWithScenarioId = stepEventBusEvents.stream().filter(event -> !event.getScenarioId().isEmpty()).findFirst();
         if(eventWithScenarioId.isPresent() && highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId()) != null){
-            LOGGER.info("ZZZ PLAY session events for scenario   " + eventWithScenarioId.get().getScenarioId());
             List<StepEventBusEvent> highPriorityEvents = highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId());
             for(StepEventBusEvent currentStepBusEvent : highPriorityEvents) {
-               LOGGER.info("ZZZ PLAY session high priority event  " + currentStepBusEvent + " " +  Thread.currentThread());
+               LOGGER.trace("SRP:PLAY session high priority event  " + currentStepBusEvent);
                currentStepBusEvent.play();
             }
             highPriorityEventBusEvents.remove(eventWithScenarioId.get().getScenarioId());
         }
-
         for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
-           LOGGER.info("ZZZ PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
+           LOGGER.trace("SRP:PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
            currentStepBusEvent.play();
        }
-    }
-
-    public synchronized void playAll() {
-        //allTestEvents.values().forEach(this::replayAllTestCaseEvents);
-        allTestEvents.entrySet().forEach((entry) -> replayAllTestCaseEvents(entry.getKey(),entry.getValue()));
     }
 }
 
