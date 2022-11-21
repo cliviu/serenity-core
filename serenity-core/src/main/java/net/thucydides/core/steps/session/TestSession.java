@@ -28,7 +28,7 @@ public class TestSession {
 
 	public static void closeSession() {
 		sessionContext.get().getSessionStarted().set(false);
-		LOGGER.info("SRP:SessionEnd: id " + sessionContext.get().getSessionId());
+		LOGGER.debug("SRP:SessionEnd: id " + sessionContext.get().getSessionId());
 	}
 
 	public static TestSessionContext getTestSessionContext() {

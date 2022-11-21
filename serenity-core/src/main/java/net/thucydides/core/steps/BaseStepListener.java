@@ -951,7 +951,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void takeEndOfStepScreenshotFor(final TestResult result,List<ScreenshotAndHtmlSource> screenshots, boolean record) {
-        LOGGER.info("SRP:TakeEndOfStepScreenshotfor " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
+        LOGGER.debug("SRP:TakeEndOfStepScreenshotfor " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
         if ((currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result)) || (screenshots != null && screenshots.size() > 0)) {
             take(MANDATORY_SCREENSHOT, result,screenshots, record );
         }
@@ -1009,7 +1009,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
                 &&*/ browserIsOpen()
                 && !StepEventBus.getEventBus().isDryRun()
                 && !StepEventBus.getEventBus().currentTestIsSuspended());
-        LOGGER.info("SRP:ShouldTakeScreenshots3 " + currentStepExists()
+        LOGGER.debug("SRP:ShouldTakeScreenshots3 " + currentStepExists()
                 + browserIsOpen()
                 + !StepEventBus.getEventBus().isDryRun()
                 + !StepEventBus.getEventBus().currentTestIsSuspended());

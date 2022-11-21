@@ -92,7 +92,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private ScenarioContextParallel getContext(URI featureURI) {
         synchronized(localContexts) {
-            return localContexts.computeIfAbsent(featureURI, uri->new ScenarioContextParallel());
+            return localContexts.computeIfAbsent(featureURI, uri->new ScenarioContextParallel(uri));
         }
     }
 
@@ -505,7 +505,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
                 String scenarioId = scenarioIdFrom(featureName, id);
                 LOGGER.debug("SRP:handleExamples "  +  Thread.currentThread() + " scenarioId " + scenarioId + " mainscenarioId " + mainScenarioId);
                 boolean newScenario = !getContext(featurePath).hasScenarioId(scenarioId);
-                LOGGER.info("SRP:newScenario "  +  newScenario);
+                LOGGER.debug("SRP:newScenario "  +  newScenario);
 
                 String exampleTableName = trim(examples.getName());
                 String exampleTableDescription = trim(examples.getDescription());
@@ -688,7 +688,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         context.addHighPriorityStepEventBusEvent(testCase,scenarioId,
                 new SetTestSourceEvent(stepEventBus, TestSourceType.TEST_SOURCE_CUCUMBER.getValue()));
 
-        LOGGER.info("SRP:startScenario"  + " " + featurePath +  " "
+        LOGGER.debug("SRP:startScenario"  + " " + featurePath +  " "
                     +  Thread.currentThread() + " " + testCase.getId() + " at line " + testCase.getLocation().getLine());
 
         context.addHighPriorityStepEventBusEvent(testCase,scenarioId,

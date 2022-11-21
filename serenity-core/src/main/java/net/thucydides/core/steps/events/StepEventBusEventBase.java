@@ -21,9 +21,12 @@ public abstract class StepEventBusEventBase implements StepEventBusEvent {
 		return stepEventBus;
 	}
 
+	public void setStepEventBus(StepEventBus stepEventBus) {
+		this.stepEventBus = stepEventBus;
+	}
+
 	public String getScenarioId (){
 		return scenarioId;
 	}
-
 
 }

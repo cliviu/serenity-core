@@ -62,9 +62,20 @@ class ScenarioContextParallel {
     // key-line in feature file; value - list with StepBusEvents corresponding to this line.
     private Map<Integer,List<StepEventBusEvent>> allTestEventsByLine = Collections.synchronizedMap(new TreeMap<>());
 
-    public ScenarioContextParallel() {
+    private URI featurePath;
+
+    private StepEventBus stepEventBus;
+
+    public ScenarioContextParallel(URI featurePath) {
+        this.featurePath = featurePath;
+        this.stepEventBus =  stepEventBusForURI(featurePath);
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
         this.parameterizedBaseStepListeners = Collections.synchronizedList(new ArrayList<>());
+    }
+
+    private synchronized StepEventBus stepEventBusForURI(URI featurePath) {
+        URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(featurePath);
+        return StepEventBus.eventBusFor(prefixedPath);
     }
 
     public synchronized Scenario currentScenarioOutline(String scenarioId) {
@@ -287,7 +298,8 @@ class ScenarioContextParallel {
     }
 
     public synchronized StepEventBus stepEventBus(TestCase testCase) {
-        return stepEventBus(testCase.getUri());
+        return stepEventBus;
+        //return stepEventBus(testCase.getUri());
     }
 
     public void addBaseStepListener(BaseStepListener baseStepListener,URI featurePath){
@@ -353,14 +365,17 @@ class ScenarioContextParallel {
             List<StepEventBusEvent> highPriorityEvents = highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId());
             for(StepEventBusEvent currentStepBusEvent : highPriorityEvents) {
                LOGGER.trace("SRP:PLAY session high priority event  " + currentStepBusEvent);
+               currentStepBusEvent.setStepEventBus(stepEventBus);
                currentStepBusEvent.play();
             }
             highPriorityEventBusEvents.remove(eventWithScenarioId.get().getScenarioId());
         }
         for(StepEventBusEvent currentStepBusEvent : stepEventBusEvents) {
            LOGGER.trace("SRP:PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
+           currentStepBusEvent.setStepEventBus(stepEventBus);
            currentStepBusEvent.play();
        }
     }
+
 }
 
