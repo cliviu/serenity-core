@@ -339,9 +339,10 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             handleResult("",featurePath,event.getTestCase(),event.getResult());
             finishProcessingExampleLine(scenarioId,featurePath, event.getTestCase());
         }
-        if (Status.FAILED.equals(event.getResult()) && noAnnotatedResultIdDefinedFor(event)) {
-            //TODO - add event
-            getStepEventBus(event.getTestCase().getUri()).testFailed(event.getResult().getError());
+
+        if (Status.FAILED.equals(event.getResult().getStatus()) && noAnnotatedResultIdDefinedFor(event)) {
+            getContext(featurePath).addStepEventBusEvent(
+                new TestFailedEvent(getContext(featurePath).stepEventBus(event.getTestCase()),event.getResult().getError()));
         } else {
             getContext(featurePath).addStepEventBusEvent(
                 new TestFinishedEvent(getContext(featurePath).stepEventBus(event.getTestCase()),scenarioId,getContext(featurePath).examplesAreRunning(scenarioId)));

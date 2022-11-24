@@ -14,8 +14,6 @@ import net.thucydides.core.model.stacktrace.RootCauseAnalyzer;
 import net.thucydides.core.requirements.reports.CompoundDuration;
 import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import org.jsoup.Jsoup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,7 +53,6 @@ public class TestStep implements Cloneable {
     private Integer lineNumber;
     private ExternalLink externalLink;
     private Boolean manual;
-    private static final Logger LOGGER = LoggerFactory.getLogger(TestStep.class);
 
     public final static Predicate<TestStep> IGNORED_TESTSTEPS = testStep -> testStep.getResult() == IGNORED;
     public final static Predicate<TestStep> COMPROMISED_TESTSTEPS = testStep -> testStep.getResult() == COMPROMISED;
@@ -313,13 +310,8 @@ public class TestStep implements Cloneable {
                 stepScreenshots.add(0, withDescriptionForThisStep(earliestScreenshot.withDepth(level)));
             }
         }
-        return stepScreenshots;
-    }
 
-    public List<Screenshot> getRenderedScreenshots1() {
-        List<Screenshot> renderedScreenshots =  getRenderedScreenshots();
-        LOGGER.info("ZZZTake5 - stepScreenshots " + renderedScreenshots);
-        return renderedScreenshots;
+        return stepScreenshots;
     }
 
     private Screenshot withClosingDescriptionForThisStep(Screenshot screenshot) {
@@ -634,11 +626,10 @@ public class TestStep implements Cloneable {
     }
 
     public boolean hasMultipleScreenshots() {
-        Set<String> uniqueScreenshots = getRenderedScreenshots1().stream()
+        Set<String> uniqueScreenshots = getRenderedScreenshots().stream()
                 .map(Screenshot::getFilename)
                 .collect(Collectors.toSet());
 
-        LOGGER.info("ZZZTake5 - hasMultipleScreenshots " + uniqueScreenshots.size() +  " " +  (uniqueScreenshots.size() > 1));
         return uniqueScreenshots.size() > 1;
     }
 
@@ -675,17 +666,14 @@ public class TestStep implements Cloneable {
     }
 
     public int getActualScreenshotCount() {
-
         int screenshotCount = 0;
         if(hasChildren()){
             for(TestStep step:children){
                 screenshotCount +=  step.getActualScreenshotCount()+1;
             }
             if(hasScreenshots()) screenshotCount += 1;
-            LOGGER.info("ZZZGetActualScreenshotCount x " + screenshotCount);
             return screenshotCount;
         }else{
-            LOGGER.info("ZZZGetActualScreenshotCount y " + screenshotCount);
             return getScreenshotCount() - 1;
         }
     }

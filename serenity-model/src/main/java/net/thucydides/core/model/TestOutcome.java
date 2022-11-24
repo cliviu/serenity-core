@@ -1280,10 +1280,7 @@ public class TestOutcome {
     }
 
     public boolean hasScreenshots() {
-
-        LOGGER.info("ZZZTake6 - hasScreenshots " + !getScreenshots().isEmpty() + " " + getScreenshots());
         return !getScreenshots().isEmpty();
-
     }
 
     public boolean hasRestQueries() {
