@@ -486,6 +486,10 @@ public class StepEventBus {
         }
     }
 
+    /**
+     * Called from serial replay - StepFinishedEvent
+     * @param screenshots - screenshots that were recorded when the step was finished
+     */
     public void stepFinished(List<ScreenshotAndHtmlSource> screenshots) {
         stepDone();
         getResultTally().logExecutedTest();
@@ -803,13 +807,6 @@ public class StepEventBus {
         return (getBaseStepListener().latestTestOutcome().isPresent() && getBaseStepListener().latestTestOutcome().get().isDataDriven());
     }
 
-    /**
-     * Forces Thucydides to take a screenshot now.
-     */
-    public void takeScreenshot() {
-        getBaseStepListener().takeScreenshot();
-    }
-
     public void notifyFailure() {
         getBaseStepListener().notifyUIError();
     }
@@ -822,7 +819,7 @@ public class StepEventBus {
         return assumptionViolatedMessage;
     }
 
-    public java.util.Optional<TestStep> getCurrentStep() {
+    public Optional<TestStep> getCurrentStep() {
         return getBaseStepListener().cloneCurrentStep();
     }
 
@@ -838,7 +835,7 @@ public class StepEventBus {
 
     private final Optional<TestResult> NO_FORCED_RESULT = Optional.empty();
 
-    public java.util.Optional<TestResult> getForcedResult() {
+    public Optional<TestResult> getForcedResult() {
         return (getBaseStepListener() != null) ? getBaseStepListener().getForcedResult() : NO_FORCED_RESULT;
     }
 
@@ -858,12 +855,12 @@ public class StepEventBus {
         getBaseStepListener().exceptionExpected(expected);
     }
 
-    java.util.Optional<TestResult> NO_RESULT_YET = java.util.Optional.empty();
+    Optional<TestResult> NO_RESULT_YET = Optional.empty();
 
-    public java.util.Optional<TestResult> resultSoFar() {
+    public Optional<TestResult> resultSoFar() {
 
         return (getBaseStepListener().latestTestOutcome().isPresent()) ?
-                java.util.Optional.ofNullable(getBaseStepListener().latestTestOutcome().get().getResult()) : NO_RESULT_YET;
+                Optional.ofNullable(getBaseStepListener().latestTestOutcome().get().getResult()) : NO_RESULT_YET;
     }
 
     public void mergePreviousStep() {
@@ -1042,6 +1039,14 @@ public class StepEventBus {
 
     public static void setNoCleanupForStickyBuses(boolean noCleanup) {
         noCleanupForStickyBuses = noCleanup;
+    }
+
+
+    /**
+     * Forces Thucydides to take a screenshot now.
+     */
+    public void takeScreenshot() {
+        getBaseStepListener().takeScreenshot();
     }
 
     public List<ScreenshotAndHtmlSource> takeScreenshots() {

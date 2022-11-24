@@ -414,11 +414,11 @@ public class BaseStepListener implements StepListener, StepPublisher {
         return true;
     }
 
-    public java.util.Optional<TestOutcome> latestTestOutcome() {
+    public Optional<TestOutcome> latestTestOutcome() {
         if (testOutcomes.isEmpty()) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         } else {
-            return java.util.Optional.ofNullable(currentTestOutcome);
+            return Optional.ofNullable(currentTestOutcome);
         }
     }
 
@@ -697,8 +697,8 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     Stack<Method> currentStepMethodStack = new Stack<>();
 
-    public java.util.Optional<Method> getCurrentStepMethod() {
-        return currentStepMethodStack.empty() ? java.util.Optional.<Method>empty() : java.util.Optional.ofNullable(currentStepMethodStack.peek());
+    public Optional<Method> getCurrentStepMethod() {
+        return currentStepMethodStack.empty() ? Optional.<Method>empty() : Optional.ofNullable(currentStepMethodStack.peek());
     }
 
     private void recordStep(ExecutedStepDescription description) {
@@ -743,23 +743,23 @@ public class BaseStepListener implements StepListener, StepPublisher {
         currentGroupStack.push(getCurrentStep());
     }
 
-    private java.util.Optional<TestStep> currentStep() {
+    private Optional<TestStep> currentStep() {
         if (currentStepStack.isEmpty()) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
-        return (java.util.Optional.of(currentStepStack.peek()));
+        return (Optional.of(currentStepStack.peek()));
     }
 
     private TestStep getCurrentStep() {
         return currentStepStack.peek();
     }
 
-    private java.util.Optional<TestStep> getPreviousStep() {
+    private Optional<TestStep> getPreviousStep() {
         if (getCurrentTestOutcome().getTestStepCount() > 1) {
             List<TestStep> currentTestSteps = getCurrentTestOutcome().getTestSteps();
-            return java.util.Optional.of(currentTestSteps.get(currentTestSteps.size() - 2));
+            return Optional.of(currentTestSteps.get(currentTestSteps.size() - 2));
         } else {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
     }
 
@@ -785,7 +785,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     public void stepFinished(List<ScreenshotAndHtmlSource> screenshotList) {
-        takeEndOfStepScreenshotFor(SUCCESS,screenshotList, false);
+        takeEndOfStepScreenshotForPlayback(SUCCESS,screenshotList);
         currentStepDone(SUCCESS);
         pauseIfRequired();
     }
@@ -915,7 +915,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     @Override
     public void takeScreenshots(List<ScreenshotAndHtmlSource> screenshots) {
-        takeEndOfStepScreenshotFor(SUCCESS,screenshots, true);
+        takeEndOfStepScreenshotForRecording(SUCCESS,screenshots);
     }
 
     public void currentStepDone(TestResult result) {
@@ -947,18 +947,28 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void takeEndOfStepScreenshotFor(final TestResult result) {
-        takeEndOfStepScreenshotFor(result, null,false);
-    }
-
-    private void takeEndOfStepScreenshotFor(final TestResult result,List<ScreenshotAndHtmlSource> screenshots, boolean record) {
-        LOGGER.debug("SRP:TakeEndOfStepScreenshotfor " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
-        if ((currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result)) || (screenshots != null && screenshots.size() > 0)) {
-            take(MANDATORY_SCREENSHOT, result,screenshots, record );
+        if (currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result)) {
+            take(MANDATORY_SCREENSHOT, result);
         }
     }
 
-    public java.util.Optional<TestResult> getForcedResult() {
-        return java.util.Optional.ofNullable(getCurrentTestOutcome().getAnnotatedResult());
+
+    private void takeEndOfStepScreenshotForRecording(final TestResult result,List<ScreenshotAndHtmlSource> screenshots) {
+        LOGGER.debug("SRP:TakeEndOfStepScreenshotforRecord " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
+        if ((currentTestIsABrowserTest() && shouldTakeEndOfStepScreenshotFor(result))) {
+            takeRecord(MANDATORY_SCREENSHOT, result,screenshots);
+        }
+    }
+
+    private void takeEndOfStepScreenshotForPlayback(final TestResult result,List<ScreenshotAndHtmlSource> screenshots) {
+        LOGGER.debug("SRP:TakeEndOfStepScreenshotforPlayback " + result + " " + currentTestIsABrowserTest() +  " " +  shouldTakeEndOfStepScreenshotFor(result) );
+        if ((screenshots != null && screenshots.size() > 0)) {
+            takePlayback(MANDATORY_SCREENSHOT, result,screenshots);
+        }
+    }
+
+    public Optional<TestResult> getForcedResult() {
+        return Optional.ofNullable(getCurrentTestOutcome().getAnnotatedResult());
     }
 
     public void clearForcedResult() {
@@ -966,27 +976,39 @@ public class BaseStepListener implements StepListener, StepPublisher {
     }
 
     private void take(final ScreenshotType screenshotType) {
-        take(screenshotType, UNDEFINED,null,false);
+        take(screenshotType, UNDEFINED);
     }
 
-    private void take(final ScreenshotType screenshotType, TestResult result,List<ScreenshotAndHtmlSource> screenshots, boolean record) {
-        if (shouldTakeScreenshots(result) || ((screenshots!= null) && screenshots.size()> 0)) {
+    private void take(final ScreenshotType screenshotType, TestResult result) {
+        if (shouldTakeScreenshots(result)) {
+            try {
+                grabScreenshots(result).forEach(
+                        screenshot -> recordScreenshotIfRequired(screenshotType, screenshot)
+                );
+                removeDuplicatedInitialScreenshotsIfPresent();
+            } catch (ScreenshotException e) {
+                LOGGER.warn("Failed to take screenshot", e);
+            }
+        }
+    }
+
+    private void takeRecord(final ScreenshotType screenshotType, TestResult result,List<ScreenshotAndHtmlSource> screenshots) {
+        if (shouldTakeScreenshotsWithoutCurrentStep(result)) {
             try {
                 grabScreenshots(result).forEach(
                         screenshot -> {
-                            LOGGER.debug("SRP:Take " + screenshot);
-                            recordScreenshotIfRequired(screenshotType, screenshot, screenshots,record);
+                            boolean screenshotExisting = screenshots.stream().map(screens->screens.getScreenshot().getName()).collect(Collectors.toList()).contains(screenshot.getScreenshot().getName());
+                            if(screenshotExisting == false) {
+                                screenshots.add(screenshot);
+                                LOGGER.warn("SRP:RecordScreenshot " + screenshot);
+                            } else {
+                                LOGGER.warn("SRP:Found duplicate snapshot " + screenshot.getScreenshot().getName());
+                            }
                         }
                 );
-
-                if (!record && screenshots != null) {
-                    screenshots.forEach(screenshot-> {
-                        LOGGER.debug("SRP:addScreenshotInStep " + screenshot);
-                        currentStep().ifPresent(step -> step.addScreenshot(screenshot));}
-                    );
-                }
+                //clarify why there is no currentStep
                 if(currentStep().isPresent()) {
-                    removeDuplicatedInitalScreenshotsIfPresent();
+                    removeDuplicatedInitialScreenshotsIfPresent();
                 }
             } catch (ScreenshotException e) {
                 LOGGER.warn("Failed to take screenshot", e);
@@ -994,29 +1016,48 @@ public class BaseStepListener implements StepListener, StepPublisher {
         }
     }
 
+
+    private void takePlayback(final ScreenshotType screenshotType, TestResult result,List<ScreenshotAndHtmlSource> screenshots) {
+        if ( (screenshots!= null) && (screenshots.size() > 0)) {
+            if (screenshots != null) {
+                screenshots.forEach(screenshot-> {
+                    LOGGER.debug("SRP:addScreenshotInStep " + screenshot);
+                    currentStep().ifPresent(step -> step.addScreenshot(screenshot));}
+                );
+            }
+            if(currentStep().isPresent()) {
+                removeDuplicatedInitialScreenshotsIfPresent();
+            }
+        }
+    }
+
     private boolean shouldTakeScreenshots(TestResult result) {
+        if (StepEventBus.getEventBus().webdriverCallsAreSuspended() && !StepEventBus.getEventBus().softAssertsActive()) {
+            return false;
+        }
+        if (screenshots().areDisabledForThisAction(result)) {
+            return false;
+        }
+        return  (currentStepExists()
+                && browserIsOpen()
+                && !StepEventBus.getEventBus().isDryRun()
+                && !StepEventBus.getEventBus().currentTestIsSuspended());
+    }
+
+    private boolean shouldTakeScreenshotsWithoutCurrentStep(TestResult result) {
         LOGGER.debug("SRP:ShouldTakeScreenshots " + result);
         if (StepEventBus.getEventBus().webdriverCallsAreSuspended() && !StepEventBus.getEventBus().softAssertsActive()) {
             return false;
         }
-
         if (screenshots().areDisabledForThisAction(result)) {
             return false;
         }
-
-        //TODO --currentStepExistrs || record
-        boolean ret =  (/*currentStepExists()
-                &&*/ browserIsOpen()
+        return browserIsOpen()
                 && !StepEventBus.getEventBus().isDryRun()
-                && !StepEventBus.getEventBus().currentTestIsSuspended());
-        LOGGER.debug("SRP:ShouldTakeScreenshots3 " + currentStepExists()
-                + browserIsOpen()
-                + !StepEventBus.getEventBus().isDryRun()
-                + !StepEventBus.getEventBus().currentTestIsSuspended());
-        return ret;
+                && !StepEventBus.getEventBus().currentTestIsSuspended();
     }
 
-    private void removeDuplicatedInitalScreenshotsIfPresent() {
+    private void removeDuplicatedInitialScreenshotsIfPresent() {
         if (currentStepHasMoreThanOneScreenshot() && getPreviousStep().isPresent() && getPreviousStep().get().hasScreenshots()) {
             ScreenshotAndHtmlSource lastScreenshotOfPreviousStep = lastScreenshotOf(getPreviousStep().get());
             ScreenshotAndHtmlSource firstScreenshotOfThisStep = getCurrentStep().getFirstScreenshot();
@@ -1038,23 +1079,14 @@ public class BaseStepListener implements StepListener, StepPublisher {
         return testStep.getScreenshots().get(testStep.getScreenshots().size() - 1);
     }
 
-    private void recordScreenshotIfRequired(ScreenshotType screenshotType, ScreenshotAndHtmlSource screenshotAndHtmlSource,
-                                            List<ScreenshotAndHtmlSource> screenshots,boolean record) {
+    private void recordScreenshotIfRequired(ScreenshotType screenshotType, ScreenshotAndHtmlSource screenshotAndHtmlSource) {
         if (shouldTakeScreenshot(screenshotType, screenshotAndHtmlSource) && screenshotWasTaken(screenshotAndHtmlSource)) {
-            LOGGER.debug("SRP:record " + currentStep() + " " + screenshots );
-            if(screenshots != null && record) {
-                screenshots.add(screenshotAndHtmlSource);
-                LOGGER.debug("SRP:added to screenshots " + screenshotAndHtmlSource);
-            }
-            else if(screenshots == null && !record){
-                currentStep().ifPresent(
-                        step -> step.addScreenshot(screenshotAndHtmlSource)
-                );
-            }
-        } else {
-            LOGGER.debug("SRP: Shold not take screenshot");
+            currentStep().ifPresent(
+                    step -> step.addScreenshot(screenshotAndHtmlSource)
+            );
         }
     }
+
 
     private boolean screenshotWasTaken(ScreenshotAndHtmlSource screenshotAndHtmlSource) {
         return screenshotAndHtmlSource.getScreenshot() != null;
@@ -1076,12 +1108,12 @@ public class BaseStepListener implements StepListener, StepPublisher {
                 && (!screenshotAndHtmlSource.hasIdenticalScreenshotsAs(previousScreenshot().get())));
     }
 
-    private java.util.Optional<ScreenshotAndHtmlSource> previousScreenshot() {
+    private Optional<ScreenshotAndHtmlSource> previousScreenshot() {
         List<ScreenshotAndHtmlSource> screenshotsToDate = getCurrentTestOutcome().getScreenshotAndHtmlSources();
         if (screenshotsToDate.isEmpty()) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         } else {
-            return java.util.Optional.of(screenshotsToDate.get(screenshotsToDate.size() - 1));
+            return Optional.of(screenshotsToDate.get(screenshotsToDate.size() - 1));
         }
     }
 
@@ -1260,7 +1292,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
     public void notifyUIError() {
         if (currentTestIsABrowserTest() && screenshots().areAllowed(TakeScreenshots.FOR_FAILURES)) {
-            take(OPTIONAL_SCREENSHOT, FAILURE, null,false);
+            take(OPTIONAL_SCREENSHOT, FAILURE);
         }
     }
 
