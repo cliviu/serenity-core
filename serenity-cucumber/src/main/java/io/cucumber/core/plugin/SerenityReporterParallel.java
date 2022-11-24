@@ -92,7 +92,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private ScenarioContextParallel getContext(URI featureURI) {
         synchronized(localContexts) {
-            return localContexts.computeIfAbsent(featureURI, uri->new ScenarioContextParallel(uri));
+            return localContexts.computeIfAbsent(featureURI, uri->new ScenarioContextParallel());
         }
     }
 
