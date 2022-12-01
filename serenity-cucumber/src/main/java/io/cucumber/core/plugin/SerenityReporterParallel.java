@@ -242,8 +242,6 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
             TestSession.startSession(testCase.getId().toString(),getStepEventBus(event.getTestCase().getUri()));
             URI featurePath = testCase.getUri();
             contextURISet.add(featurePath);
-            setStepEventBus(featurePath);
-            initialiseListenersFor(featurePath);
 
             if (FeatureTracker.isNewFeature(event)) {
                 // Shut down any drivers remaining open from a previous feature, if @singlebrowser is used.
