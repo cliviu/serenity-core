@@ -62,9 +62,15 @@ class ScenarioContextParallel {
     // key-line in feature file; value - list with StepBusEvents corresponding to this line.
     private Map<Integer,List<StepEventBusEvent>> allTestEventsByLine = Collections.synchronizedMap(new TreeMap<>());
 
-    public ScenarioContextParallel() {
+    private URI scenarioContextURI;
+
+    private StepEventBus stepEventBus;
+
+    public ScenarioContextParallel(URI scenarioContextURI) {
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
         this.parameterizedBaseStepListeners = Collections.synchronizedList(new ArrayList<>());
+        this.scenarioContextURI = scenarioContextURI;
+        this.stepEventBus = stepEventBus(scenarioContextURI);
     }
 
     public synchronized Scenario currentScenarioOutline(String scenarioId) {
@@ -281,18 +287,18 @@ class ScenarioContextParallel {
         tableMap.clear();
     }
 
-    public synchronized StepEventBus stepEventBus(URI featurePath) {
+    private synchronized StepEventBus stepEventBus(URI featurePath) {
         URI prefixedPath = featurePathFormatter.featurePathWithPrefixIfNecessary(featurePath);
         return StepEventBus.eventBusFor(prefixedPath);
     }
 
-    public synchronized StepEventBus stepEventBus(TestCase testCase) {
-        return stepEventBus(testCase.getUri());
+    public synchronized StepEventBus stepEventBus() {
+        return this.stepEventBus;
     }
 
-    public void addBaseStepListener(BaseStepListener baseStepListener,URI featurePath){
+    public void addBaseStepListener(BaseStepListener baseStepListener){
         baseStepListeners.add(baseStepListener);
-        stepEventBus(featurePath).registerListener(baseStepListener);
+        stepEventBus.registerListener(baseStepListener);
     }
 
 
