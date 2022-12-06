@@ -1,14 +1,12 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.steps.ExecutedStepDescription;
-import net.thucydides.core.steps.StepEventBus;
 
 public class StepStartedEvent extends StepEventBusEventBase {
 
 	ExecutedStepDescription stepDescription;
 
-	public StepStartedEvent(StepEventBus eventBus, ExecutedStepDescription stepDescription) {
-		super(eventBus);
+	public StepStartedEvent(ExecutedStepDescription stepDescription) {
 		this.stepDescription = stepDescription;
 	}
 

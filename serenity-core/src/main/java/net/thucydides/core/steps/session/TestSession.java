@@ -45,7 +45,7 @@ public class TestSession {
 
 	public static void addEvent(StepEventBusEvent event) {
 		LOGGER.debug("SRP:SessionAddEvent: id " + sessionContext.get().getSessionId() + " " + event);
-		sessionContext.get().getStepEventBusEvents().add(event);
+		sessionContext.get().addStepBusEvent(event);
 	}
 
 	public static List<StepEventBusEvent> getSessionEvents() {

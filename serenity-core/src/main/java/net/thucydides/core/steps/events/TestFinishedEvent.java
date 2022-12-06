@@ -1,17 +1,14 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
-
 public class TestFinishedEvent extends StepEventBusEventBase {
 
 	private boolean inDataTest;
 
 
-	public TestFinishedEvent(StepEventBus eventBus,String scenarioId,boolean inDataDrivenTest) {
-		super(eventBus,scenarioId);
+	public TestFinishedEvent(String scenarioId,boolean inDataDrivenTest) {
+		super(scenarioId);
 		this.inDataTest = inDataDrivenTest;
 	}
-
 
 	@Override
 	public void play() {

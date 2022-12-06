@@ -1,6 +1,5 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
 
 import java.util.Map;
 
@@ -10,8 +9,7 @@ public class ExampleStartedEvent extends StepEventBusEventBase {
 	private String exampleName;
 
 
-	public ExampleStartedEvent(StepEventBus eventBus, Map<String, String> data, String exampleName) {
-		super(eventBus);
+	public ExampleStartedEvent(Map<String, String> data, String exampleName) {
 		this.data = data;
 		this.exampleName = exampleName;
 	}

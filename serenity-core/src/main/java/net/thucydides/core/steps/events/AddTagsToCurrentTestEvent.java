@@ -1,7 +1,6 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.model.TestTag;
-import net.thucydides.core.steps.StepEventBus;
 
 import java.util.List;
 
@@ -10,8 +9,7 @@ public class AddTagsToCurrentTestEvent extends StepEventBusEventBase {
 	private List<TestTag> tags;
 
 
-	public AddTagsToCurrentTestEvent(StepEventBus eventBus, List<TestTag> tags) {
-		super(eventBus);
+	public AddTagsToCurrentTestEvent( List<TestTag> tags) {
 		this.tags = tags;
 	}
 

@@ -1,6 +1,5 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.StepFailure;
 
 public class StepFailedEvent
@@ -8,8 +7,7 @@ public class StepFailedEvent
 
 	private final StepFailure stepFailure;
 
-	public StepFailedEvent(StepEventBus eventBus, StepFailure stepFailure) {
-		super(eventBus);
+	public StepFailedEvent(StepFailure stepFailure) {
 		this.stepFailure = stepFailure;
 	}
 

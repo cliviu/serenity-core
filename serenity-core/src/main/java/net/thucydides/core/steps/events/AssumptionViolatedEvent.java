@@ -1,14 +1,12 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
 
 public class AssumptionViolatedEvent
     extends StepEventBusEventBase {
 
 	private final String message;
 
-	public AssumptionViolatedEvent(StepEventBus eventBus, String message) {
-		super(eventBus);
+	public AssumptionViolatedEvent(String message) {
 		this.message = message;
 	}
 

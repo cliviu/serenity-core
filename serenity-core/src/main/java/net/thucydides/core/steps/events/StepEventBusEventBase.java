@@ -8,12 +8,11 @@ public abstract class StepEventBusEventBase implements StepEventBusEvent {
 
 	private String scenarioId;
 
-	public StepEventBusEventBase(StepEventBus stepEventBus) {
-		this(stepEventBus,"")
-;	}
+	public StepEventBusEventBase() {
+		this.scenarioId = "";
+	}
 
-	public StepEventBusEventBase(StepEventBus stepEventBus,String scenarioId) {
-		this.stepEventBus = stepEventBus;
+	public StepEventBusEventBase(String scenarioId) {
 		this.scenarioId = scenarioId;
 	}
 

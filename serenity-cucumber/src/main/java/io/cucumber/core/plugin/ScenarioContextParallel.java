@@ -296,6 +296,10 @@ class ScenarioContextParallel {
         return this.stepEventBus;
     }
 
+    public void setStepEventBus(StepEventBus stepEventBus) {
+        this.stepEventBus = stepEventBus;
+    }
+
     public void addBaseStepListener(BaseStepListener baseStepListener){
         baseStepListeners.add(baseStepListener);
         stepEventBus.registerListener(baseStepListener);
@@ -313,18 +317,20 @@ class ScenarioContextParallel {
 
     /**
      * Some events have to be added ad the beginning of the event list.
-     * @param testCase
+     *
      * @param scenarioId
      * @param event
      */
-    public void addHighPriorityStepEventBusEvent(TestCase testCase, String scenarioId, StepEventBusEvent event) {
+    public void addHighPriorityStepEventBusEvent(String scenarioId, StepEventBusEvent event) {
         List<StepEventBusEvent> eventList = highPriorityEventBusEvents.computeIfAbsent(scenarioId,k->Collections.synchronizedList(new LinkedList<>()));
         eventList.add(event);
+        event.setStepEventBus(stepEventBus);
     }
 
     public void addStepEventBusEvent(StepEventBusEvent event) {
         if(TestSession.isSessionStarted()) {
             TestSession.addEvent(event);
+            event.setStepEventBus(stepEventBus);
         } else {
             LOGGER.warn("SRP:ignored event " + event + " " +  Thread.currentThread() + " because session not opened ", new Exception());
         }

@@ -26,6 +26,11 @@ public class TestSessionContext {
 		return stepEventBusEvents;
 	}
 
+	public void addStepBusEvent(StepEventBusEvent event) {
+		event.setStepEventBus(stepEventBus);
+		stepEventBusEvents.add(event);
+	}
+
 	public void setSessionId(String sessionId) {
 		this.sessionId = sessionId;
 	}

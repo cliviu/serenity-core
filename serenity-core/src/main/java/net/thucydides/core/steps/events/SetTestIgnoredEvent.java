@@ -1,13 +1,9 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
+
 
 public class SetTestIgnoredEvent
-    extends StepEventBusEventBase {
-
-	public SetTestIgnoredEvent(StepEventBus eventBus) {
-		super(eventBus);
-	}
+		extends StepEventBusEventBase {
 
 	@Override
 	public void play() {

@@ -1,15 +1,13 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.model.Rule;
-import net.thucydides.core.steps.StepEventBus;
 
 public class SetRuleEvent extends StepEventBusEventBase {
 
 
 	private Rule rule;
 
-	public SetRuleEvent(StepEventBus eventBus, final Rule rule) {
-		super(eventBus);
+	public SetRuleEvent(final Rule rule) {
 		this.rule = rule;
 	}
 

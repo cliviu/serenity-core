@@ -6,8 +6,7 @@ public class CastActorEvent extends StepEventBusEventBase {
 
 	private String actorName;
 
-	public CastActorEvent(StepEventBus eventBus, String actorName) {
-		super(eventBus);
+	public CastActorEvent( String actorName) {
 		this.actorName =  actorName;
 	}
 

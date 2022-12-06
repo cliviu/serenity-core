@@ -24,7 +24,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().castActor(name);
         }  else {
-            TestSession.addEvent(new CastActorEvent(StepEventBus.getEventBus(),name));
+            TestSession.addEvent(new CastActorEvent(name));
         }
 
     }
@@ -34,7 +34,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFailed(new StepFailure(taskDescription, e));
         }  else {
-            TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(taskDescription, e)));
+            //TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(taskDescription, e)));
         }
     }
 
@@ -43,7 +43,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFailed(new StepFailure(consequenceDescription, e));
         }  else {
-            TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(consequenceDescription, e)));
+            TestSession.addEvent(new StepFailedEvent(new StepFailure(consequenceDescription, e)));
         }
     }
 
@@ -60,7 +60,7 @@ public class EventBusInterface {
             if(!TestSession.isSessionStarted()) {
                 StepEventBus.getEventBus().updateOverallResults();
             } else {
-                TestSession.addEvent(new UpdateOverallResultsEvent(StepEventBus.getEventBus()));
+                TestSession.addEvent(new UpdateOverallResultsEvent());
             }
         }
     }
@@ -69,7 +69,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(title).asAQuestion());
         } else {
-            TestSession.addEvent(new StepStartedEvent(StepEventBus.getEventBus(),ExecutedStepDescription.withTitle(title).asAQuestion()));
+            TestSession.addEvent(new StepStartedEvent(ExecutedStepDescription.withTitle(title).asAQuestion()));
         }
     }
 
@@ -77,7 +77,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFinished();
         } else {
-            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus()));
+            TestSession.addEvent(new StepFinishedEvent());
         }
     }
 
@@ -85,7 +85,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFinished();
         } else {
-            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus()));
+            TestSession.addEvent(new StepFinishedEvent());
         }
 
     }

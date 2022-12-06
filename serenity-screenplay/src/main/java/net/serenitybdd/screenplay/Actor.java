@@ -344,14 +344,14 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepStarted(ExecutedStepDescription.withTitle(groupTitle));
         } else {
-            TestSession.addEvent(new StepStartedEvent(StepEventBus.getEventBus(), ExecutedStepDescription.withTitle(groupTitle)));
+            TestSession.addEvent(new StepStartedEvent( ExecutedStepDescription.withTitle(groupTitle)));
         }
     }
 
     private void stepFinished() {
         if (TestSession.isSessionStarted()) {
             List<ScreenshotAndHtmlSource> screenshotList = TestSession.getTestSessionContext().getStepEventBus().takeScreenshots();
-            TestSession.addEvent(new StepFinishedEvent(StepEventBus.getEventBus(),screenshotList));
+            TestSession.addEvent(new StepFinishedEvent(screenshotList));
         } else {
             StepEventBus.getEventBus().stepFinished();
         }

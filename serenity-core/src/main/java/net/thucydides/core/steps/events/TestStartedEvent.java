@@ -1,7 +1,5 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
-
 public class TestStartedEvent extends StepEventBusEventBase {
 
 
@@ -9,8 +7,8 @@ public class TestStartedEvent extends StepEventBusEventBase {
 
 	private String id;
 
-	public TestStartedEvent(StepEventBus eventBus,String scenarioId, final String testName, final String id) {
-		super(eventBus,scenarioId);
+	public TestStartedEvent(String scenarioId, final String testName, final String id) {
+		super(scenarioId);
 		this.testName =  testName;
 		this.id = id;
 	}

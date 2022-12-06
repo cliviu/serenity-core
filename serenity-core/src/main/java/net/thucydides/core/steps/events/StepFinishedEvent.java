@@ -1,7 +1,7 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
-import net.thucydides.core.steps.StepEventBus;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,12 +14,9 @@ public class StepFinishedEvent extends StepEventBusEventBase {
 
 	private List<ScreenshotAndHtmlSource> screenshotList;
 
-	public StepFinishedEvent(StepEventBus eventBus) {
-		super(eventBus);
-	}
+	public StepFinishedEvent() {}
 
-	public StepFinishedEvent(StepEventBus eventBus, List<ScreenshotAndHtmlSource> screenshotList) {
-		super(eventBus);
+	public StepFinishedEvent( List<ScreenshotAndHtmlSource> screenshotList) {
 		this.screenshotList =  screenshotList;
 	}
 

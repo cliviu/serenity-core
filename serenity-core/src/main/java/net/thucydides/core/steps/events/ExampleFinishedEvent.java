@@ -1,15 +1,9 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
 
 public class ExampleFinishedEvent extends StepEventBusEventBase {
 
-
-
-	public ExampleFinishedEvent(StepEventBus eventBus) {
-		super(eventBus);
-	}
-
+	public ExampleFinishedEvent() {}
 
 	@Override
 	public void play() {

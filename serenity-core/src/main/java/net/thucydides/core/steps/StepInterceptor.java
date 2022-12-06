@@ -18,6 +18,7 @@ import net.thucydides.core.adapters.TestFramework;
 import net.thucydides.core.annotations.*;
 import net.thucydides.core.model.stacktrace.StackTraceSanitizer;
 import net.thucydides.core.steps.events.StepFinishedEvent;
+import net.thucydides.core.steps.events.StepIgnoredEvent;
 import net.thucydides.core.steps.events.StepStartedEvent;
 import net.thucydides.core.steps.events.UpdateOverallResultsEvent;
 import net.thucydides.core.steps.interception.DynamicExampleStepInterceptionListener;
@@ -515,20 +516,25 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void notifyStepFinishedFor(final Method method, final Object[] args) {
-         if(TestSession.isSessionStarted()) {
-            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent(StepEventBus.getEventBus());
+         if (TestSession.isSessionStarted()) {
+            StepFinishedEvent stepFinishedEvent = new StepFinishedEvent();
             LOGGER.debug("SRP: Actor started event in session " + stepFinishedEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepFinishedEvent);
          }
-        else {
+         else {
             StepEventBus.getEventBus().stepFinished();
-        }
-
-
+         }
     }
 
     private void notifySkippedStepFinishedFor(final Method method, final Object[] args) {
-        StepEventBus.getEventBus().stepIgnored();
+        if (TestSession.isSessionStarted()) {
+            StepIgnoredEvent stepIgnoredEvent = new StepIgnoredEvent();
+            LOGGER.debug("SRP: Actor started event in session " + stepIgnoredEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(stepIgnoredEvent);
+         }
+         else {
+            StepEventBus.getEventBus().stepIgnored();
+         }
     }
 
     private void notifyStepPending(String message) {
@@ -581,7 +587,7 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
         ExecutedStepDescription description = ExecutedStepDescription.of(testStepClass, getTestNameFrom(method, args), args)
                         .withDisplayedFields(fieldValuesIn(object));
          if(TestSession.isSessionStarted()) {
-            StepStartedEvent stepStartedEvent = new StepStartedEvent(StepEventBus.getEventBus(),description);
+            StepStartedEvent stepStartedEvent = new StepStartedEvent(description);
             LOGGER.debug("SRP:Actor started event in session " + stepStartedEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepStartedEvent);
          }

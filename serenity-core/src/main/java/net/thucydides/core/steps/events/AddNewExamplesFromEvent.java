@@ -1,14 +1,12 @@
 package net.thucydides.core.steps.events;
 
 import net.thucydides.core.model.DataTable;
-import net.thucydides.core.steps.StepEventBus;
 
 public class AddNewExamplesFromEvent extends StepEventBusEventBase {
 
-	private DataTable dataTable;;
+	private DataTable dataTable;
 
-	public AddNewExamplesFromEvent(StepEventBus eventBus, DataTable dataTable) {
-		super(eventBus);
+	public AddNewExamplesFromEvent(DataTable dataTable) {
 		this.dataTable = dataTable;
 	}
 

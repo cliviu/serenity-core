@@ -4,8 +4,7 @@ import net.thucydides.core.steps.StepEventBus;
 
 public class SetTestSourceEvent extends StepEventBusEventBase {
 
-	public SetTestSourceEvent(StepEventBus eventBus,String testSource) {
-		super(eventBus);
+	public SetTestSourceEvent(String testSource) {
 		this.testSource =  testSource;
 	}
 
@@ -15,8 +14,10 @@ public class SetTestSourceEvent extends StepEventBusEventBase {
 	@Override
 	public void play() {
 		getStepEventBus().setTestSource(testSource);
-		//TODO - to be fixed - TestOutcome.get
-		// Base StepListener : newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
+
+		//TODO - to be fixed - newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
+		// BaseStepListener->recordNewTestOutcome: newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
+		getStepEventBus().setTestSource(testSource);
 		StepEventBus.getEventBus().setTestSource(testSource);
 
 	}

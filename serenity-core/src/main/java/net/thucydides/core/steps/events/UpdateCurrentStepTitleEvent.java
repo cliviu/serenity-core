@@ -1,13 +1,11 @@
 package net.thucydides.core.steps.events;
 
-import net.thucydides.core.steps.StepEventBus;
 
 public class UpdateCurrentStepTitleEvent extends StepEventBusEventBase {
 
 	private final String stepTitle;
 
-	public UpdateCurrentStepTitleEvent(StepEventBus eventBus,String stepTitle) {
-		super(eventBus);
+	public UpdateCurrentStepTitleEvent(String stepTitle) {
 		this.stepTitle = stepTitle;
 	}
 
