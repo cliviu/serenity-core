@@ -1,5 +1,7 @@
 package net.thucydides.core.steps.events;
 
+import java.time.ZonedDateTime;
+
 public class TestStartedEvent extends StepEventBusEventBase {
 
 
@@ -7,16 +9,19 @@ public class TestStartedEvent extends StepEventBusEventBase {
 
 	private String id;
 
+	private ZonedDateTime startTime;
+
 	public TestStartedEvent(String scenarioId, final String testName, final String id) {
 		super(scenarioId);
 		this.testName =  testName;
 		this.id = id;
+		this.startTime = ZonedDateTime.now();
 	}
 
 
 	@Override
 	public void play() {
-		getStepEventBus().testStarted(testName,id);
+		getStepEventBus().testStarted(testName,id,startTime);
 	}
 
 	public String toString() {

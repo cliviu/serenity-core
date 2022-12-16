@@ -13,6 +13,7 @@ import net.thucydides.core.util.EnvironmentVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -64,8 +65,18 @@ public class TestCountListener implements StepListener {
         testStarted(description);
     }
 
+    @Override
+    public void testStarted(String description, String id, ZonedDateTime startTime) {
+
+    }
+
 
     public void testFinished(TestOutcome result) {
+    }
+
+    @Override
+    public void testFinished(TestOutcome result, boolean isInDataDrivenTest, ZonedDateTime finishTime) {
+
     }
 
     public void testRetried() {

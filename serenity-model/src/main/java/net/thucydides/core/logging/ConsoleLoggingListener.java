@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -141,6 +142,11 @@ public class ConsoleLoggingListener implements StepListener {
         }
     }
 
+    @Override
+    public void testStarted(String description, String id, ZonedDateTime startTime) {
+        testStarted(description,id);
+    }
+
     public void testFinished(TestOutcome result) {
         if (reportedOutcomes.contains(result)) {
             return;
@@ -177,6 +183,12 @@ public class ConsoleLoggingListener implements StepListener {
     public void testFinished(TestOutcome result, boolean isInDataDrivenTest) {
         testFinished(result);
     }
+
+    @Override
+    public void testFinished(final TestOutcome result, boolean isInDataDrivenTest, ZonedDateTime finishTime) {
+        testFinished(result);
+    }
+
 
     @Override
     public void testRetried() {

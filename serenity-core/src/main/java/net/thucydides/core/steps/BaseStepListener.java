@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -516,6 +517,14 @@ public class BaseStepListener implements StepListener, StepPublisher {
         LifecycleRegister.invokeMethodsAnnotatedBy(BeforeScenario.class, newTestOutcome);
     }
 
+     public void testStarted(final String testMethod, final String id, ZonedDateTime startTime) {
+        TestOutcome newTestOutcome = TestOutcome.forTestInStory(testMethod, testSuite, testedStory).withId(id).withStartTime(startTime);
+        this.currentTestOutcome = newTestOutcome;
+        recordNewTestOutcome(testMethod, currentTestOutcome);
+        LifecycleRegister.invokeMethodsAnnotatedBy(BeforeScenario.class, newTestOutcome);
+    }
+
+
     private void recordNewTestOutcome(String testMethod, TestOutcome newTestOutcome) {
         newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
         synchronized (testOutcomes) {
@@ -575,13 +584,15 @@ public class BaseStepListener implements StepListener, StepPublisher {
         testFinished(outcome, false);
     }
 
+    public void testFinished(final TestOutcome result, boolean isInDataDrivenTest) {
+        testFinished(result,isInDataDrivenTest,ZonedDateTime.now());
+    }
 
     /**
      * A test has finished.
      *
-     * @param outcome the result of the test that just finished.
      */
-    public void testFinished(final TestOutcome outcome, boolean inDataDrivenTest) {
+    public void testFinished(final TestOutcome outcome, boolean isInDataDrivenTest, ZonedDateTime finishTime) {
 
         if (getTestOutcomes().isEmpty()) {
             return;
@@ -589,7 +600,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
         LifecycleRegister.invokeMethodsAnnotatedBy(AfterScenario.class, getCurrentTestOutcome());
 
-        recordTestDuration();
+        recordTestDuration(finishTime);
         getCurrentTestOutcome().addIssues(storywideIssues);
         // TODO: Disable when run from an IDE
         getCurrentTestOutcome().addTags(storywideTags);
@@ -609,7 +620,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
                     outcome,
                     SerenityWebdriverManager.inThisTestThread().getCurrentDriver());
 
-            if (inDataDrivenTest) {
+            if (isInDataDrivenTest) {
                 closeBrowsers.forTestSuite(testSuite).closeIfConfiguredForANew(EXAMPLE);
             } else {
                 closeBrowsers.forTestSuite(testSuite).closeIfConfiguredForANew(SCENARIO);
@@ -649,10 +660,14 @@ public class BaseStepListener implements StepListener, StepPublisher {
         testOutcomes.remove(getCurrentTestOutcome());
     }
 
-    private void recordTestDuration() {
+    private void recordTestDuration(ZonedDateTime finishTime) {
         if (!testOutcomes.isEmpty()) {
-            getCurrentTestOutcome().recordDuration();
+            getCurrentTestOutcome().recordDuration(finishTime);
         }
+    }
+
+    private void recordTestDuration() {
+        recordTestDuration(ZonedDateTime.now());
     }
 
     /**

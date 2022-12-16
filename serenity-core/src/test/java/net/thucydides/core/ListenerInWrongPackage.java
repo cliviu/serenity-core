@@ -9,6 +9,7 @@ import net.thucydides.core.steps.StepFailure;
 import net.thucydides.core.steps.StepListener;
 import org.openqa.selenium.WebDriver;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -33,8 +34,18 @@ public class ListenerInWrongPackage implements StepListener {
 
     }
 
+    @Override
+    public void testStarted(String description, String id, ZonedDateTime startTime) {
+
+    }
+
     public void testFinished(TestOutcome result) {
         
+    }
+
+    @Override
+    public void testFinished(TestOutcome result, boolean isInDataDrivenTest, ZonedDateTime finishTime) {
+
     }
 
     public void testRetried() {

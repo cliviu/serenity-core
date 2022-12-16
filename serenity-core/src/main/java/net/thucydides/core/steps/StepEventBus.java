@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -206,6 +207,14 @@ public class StepEventBus {
         TestLifecycleEvents.postEvent(TestLifecycleEvents.testStarted());
     }
 
+    public void testStarted(final String testName, final String id, ZonedDateTime startTime) {
+        clear();
+        for (StepListener stepListener : getAllListeners()) {
+            stepListener.testStarted(testName, id, startTime);
+        }
+        TestLifecycleEvents.postEvent(TestLifecycleEvents.testStarted());
+    }
+
     public boolean isUniqueSession() {
         return uniqueSession;
     }
@@ -368,13 +377,13 @@ public class StepEventBus {
         outcome.setTestSource(testSource);
     }
 
-    public void testFinished(boolean inDataDrivenTest) {
+    public void testFinished(boolean inDataDrivenTest, ZonedDateTime finishTime) {
         TestOutcome outcome = getBaseStepListener().getCurrentTestOutcome();
         outcome = checkForEmptyScenarioIn(outcome);
         recordTestSource();
 
         for (StepListener stepListener : getAllListeners()) {
-            stepListener.testFinished(outcome, inDataDrivenTest);
+            stepListener.testFinished(outcome, inDataDrivenTest, finishTime);
         }
 
         TestLifecycleEvents.postEvent(TestLifecycleEvents.testFinished());
@@ -383,6 +392,11 @@ public class StepEventBus {
         TestLocalEnvironmentVariables.clear();
         clear();
     }
+
+    public void testFinished(boolean inDataDrivenTest) {
+        testFinished(inDataDrivenTest, ZonedDateTime.now());
+    }
+
 
     public void finishTestRun() {
         for (StepListener stepListener : getAllListeners()) {
