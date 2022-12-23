@@ -1,9 +1,11 @@
-package net.serenitybdd.cucumber.outcomes.junit5
+package net.serenitybdd.cucumber.outcomes.parallel
 
-import io.cucumber.junit.CucumberJUnit5Runner
-import net.serenitybdd.cucumber.integration.SimpleScenario
+import io.cucumber.junit.CucumberJUnit5ParallelRunner
+import net.serenitybdd.cucumber.integration.FailingScenario
 import net.thucydides.core.guice.Injectors
+import net.thucydides.core.model.TestOutcome
 import net.thucydides.core.model.TestResult
+import net.thucydides.core.model.TestStep
 import net.thucydides.core.reports.OutcomeFormat
 import net.thucydides.core.reports.TestOutcomeLoader
 import net.thucydides.core.webdriver.Configuration
@@ -12,27 +14,34 @@ import spock.lang.Specification
 
 import static io.cucumber.junit.CucumberRunner.serenityRunnerForCucumberTestRunner
 
-
-class WhenCreatingSerenityTestOutcomes_JU5 extends Specification {
+class WhenCreatingSerenityTestOutcomesInParallel extends Specification {
 
     static File outputDirectory
 
-    def setupSpec() {
+    def setup() {
         outputDirectory = Files.newTemporaryFolder()
     }
 
-    def cleanupSpec() {
+    def cleanup() {
         outputDirectory.deleteDir()
     }
-    /*
-    Feature: A simple feature
 
-      Scenario: A simple scenario
-        Given I want to purchase 2 widgets
-        And a widget costs $5
-        When I buy the widgets
-        Then I should be billed $10
-     */
+    def "should record failures for a failing scenario"() {
+        given:
+            Configuration configuration = Injectors.getInjector().getProvider(Configuration.class).get();
+            configuration.setOutputDirectory(outputDirectory);
+        when:
+            CucumberJUnit5ParallelRunner.runFileFromClasspathInParallel("samples/failing_scenario.feature","net.serenitybdd.cucumber.integration.steps");
+            List<TestOutcome> recordedTestOutcomes = new TestOutcomeLoader().forFormat(OutcomeFormat.JSON).loadFrom(outputDirectory).sort { it.name };
+            TestOutcome testOutcome = recordedTestOutcomes[0]
+            List<TestStep> stepResults = testOutcome.testSteps.collect { step -> step.result }
+            System.out.println("XXXStepResults " + stepResults);
+        then:
+            testOutcome.result == TestResult.FAILURE
+        and:
+            stepResults == [TestResult.SUCCESS, TestResult.SUCCESS, TestResult.SUCCESS, TestResult.FAILURE, TestResult.SKIPPED]
+    }
+
 
     def "should generate a well-structured Serenity test outcome for each executed Cucumber scenario"() {
         given:
@@ -40,7 +49,7 @@ class WhenCreatingSerenityTestOutcomes_JU5 extends Specification {
         configuration.setOutputDirectory(outputDirectory);
 
         when:
-        CucumberJUnit5Runner.runFileFromClasspathInParallel("samples/simple_scenario.feature","net.serenitybdd.cucumber.integration.steps");
+        CucumberJUnit5ParallelRunner.runFileFromClasspathInParallel("samples/simple_scenario.feature","net.serenitybdd.cucumber.integration.steps");
 
         def recordedTestOutcomes = new TestOutcomeLoader().forFormat(OutcomeFormat.JSON).loadFrom(outputDirectory).sort { it.name };
         def testOutcome = recordedTestOutcomes[0]
@@ -56,7 +65,7 @@ class WhenCreatingSerenityTestOutcomes_JU5 extends Specification {
         configuration.setOutputDirectory(outputDirectory);
 
         when:
-        CucumberJUnit5Runner.runFileFromClasspathInParallel("samples/simple_scenario.feature","net.serenitybdd.cucumber.integration.steps");
+        CucumberJUnit5ParallelRunner.runFileFromClasspathInParallel("samples/simple_scenario.feature","net.serenitybdd.cucumber.integration.steps");
         def recordedTestOutcomes = new TestOutcomeLoader().forFormat(OutcomeFormat.JSON).loadFrom(outputDirectory).sort { it.name };
         def testOutcome = recordedTestOutcomes[0]
 

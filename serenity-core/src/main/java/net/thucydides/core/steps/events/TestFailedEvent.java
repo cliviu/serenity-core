@@ -5,7 +5,8 @@ public class TestFailedEvent extends StepEventBusEventBase {
 
 	private final Throwable cause;
 
-	public TestFailedEvent(Throwable cause) {
+	public TestFailedEvent(String scenarioId,Throwable cause) {
+		super(scenarioId);
 		this.cause =  cause;
 	}
 

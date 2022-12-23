@@ -322,6 +322,7 @@ class ScenarioContextParallel {
      * @param event
      */
     public void addHighPriorityStepEventBusEvent(String scenarioId, StepEventBusEvent event) {
+        LOGGER.warn("SRP:addHighPriorityStepEventBusEvent " + event + " " +  Thread.currentThread() + " " + scenarioId);
         List<StepEventBusEvent> eventList = highPriorityEventBusEvents.computeIfAbsent(scenarioId,k->Collections.synchronizedList(new LinkedList<>()));
         eventList.add(event);
         event.setStepEventBus(stepEventBus);
@@ -355,12 +356,14 @@ class ScenarioContextParallel {
      * Called with TestRunFinished - all tests events are replayed
      */
     public synchronized void playAllTestEvents() {
+        LOGGER.info("SRP:playAllTestEvents   " + allTestEventsByLine);
         allTestEventsByLine.entrySet().forEach((entry) -> replayAllTestCaseEventsForLine(entry.getKey(),entry.getValue()));
     }
 
     private void replayAllTestCaseEventsForLine(Integer lineNumber, List<StepEventBusEvent> stepEventBusEvents) {
-        LOGGER.trace("SRP:PLAY session events for line   " + lineNumber);
+        LOGGER.info("SRP:PLAY session events for line   " + lineNumber);
         Optional<StepEventBusEvent> eventWithScenarioId = stepEventBusEvents.stream().filter(event -> !event.getScenarioId().isEmpty()).findFirst();
+        LOGGER.info("SRP:EventWithscenarioId   " + eventWithScenarioId);
         if(eventWithScenarioId.isPresent() && highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId()) != null){
             List<StepEventBusEvent> highPriorityEvents = highPriorityEventBusEvents.get(eventWithScenarioId.get().getScenarioId());
             for(StepEventBusEvent currentStepBusEvent : highPriorityEvents) {

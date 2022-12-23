@@ -17,10 +17,7 @@ import net.thucydides.core.ThucydidesSystemProperty;
 import net.thucydides.core.adapters.TestFramework;
 import net.thucydides.core.annotations.*;
 import net.thucydides.core.model.stacktrace.StackTraceSanitizer;
-import net.thucydides.core.steps.events.StepFinishedEvent;
-import net.thucydides.core.steps.events.StepIgnoredEvent;
-import net.thucydides.core.steps.events.StepStartedEvent;
-import net.thucydides.core.steps.events.UpdateOverallResultsEvent;
+import net.thucydides.core.steps.events.*;
 import net.thucydides.core.steps.interception.DynamicExampleStepInterceptionListener;
 import net.thucydides.core.steps.interception.StepInterceptionListener;
 import net.thucydides.core.steps.session.TestSession;
@@ -576,7 +573,14 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void finishAnyCucumberSteps() {
-        StepEventBus.getEventBus().wrapUpCurrentCucumberStep();
+        if(TestSession.isSessionStarted()) {
+            WrapupCurrentCucumberStepEvent wrapupCurrentCucumberStepEvent = new WrapupCurrentCucumberStepEvent();
+            LOGGER.debug("SRP:Actor started event in session " + wrapupCurrentCucumberStepEvent + " " +  Thread.currentThread());
+            TestSession.addEvent(wrapupCurrentCucumberStepEvent);
+        }
+        else {
+            StepEventBus.getEventBus().wrapUpCurrentCucumberStep();
+        }
     }
 
     private boolean shouldThrowExceptionImmediately() {
@@ -586,11 +590,11 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     private void notifyStepStarted(final Object object, final Method method, final Object[] args) {
         ExecutedStepDescription description = ExecutedStepDescription.of(testStepClass, getTestNameFrom(method, args), args)
                         .withDisplayedFields(fieldValuesIn(object));
-         if(TestSession.isSessionStarted()) {
+        if(TestSession.isSessionStarted()) {
             StepStartedEvent stepStartedEvent = new StepStartedEvent(description);
             LOGGER.debug("SRP:Actor started event in session " + stepStartedEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepStartedEvent);
-         }
+        }
         else {
             StepEventBus.getEventBus().stepStarted(description);
         }

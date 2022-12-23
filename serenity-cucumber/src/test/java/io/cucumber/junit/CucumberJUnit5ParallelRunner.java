@@ -11,7 +11,7 @@ import static io.cucumber.junit.platform.engine.Constants.PLUGIN_PUBLISH_QUIET_P
 import static org.junit.platform.engine.discovery.DiscoverySelectors.*;
 
 
-public class CucumberJUnit5Runner {
+public class CucumberJUnit5ParallelRunner {
 
 
     static final String ENGINE_ID = "cucumber";
