@@ -335,7 +335,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         String scenarioId = scenarioIdFrom(currentFeature.get().getName(), TestSourcesModel.convertToId(currentScenarioDefinition.getName()));
 
         if (getContext(featurePath).examplesAreRunning(scenarioId)) {
-            handleResult("",featurePath,event.getTestCase(),event.getResult());
+            handleResult(scenarioId,featurePath,event.getTestCase(),event.getResult());
             finishProcessingExampleLine(scenarioId,featurePath, event.getTestCase());
         }
 
@@ -417,8 +417,15 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
                     " " +  Thread.currentThread() + " " + event.getTestCase().getId() +
                     " at line " + event.getTestCase().getLocation().getLine());
         if (!(event.getTestStep() instanceof HookTestStep)) {
-            //TODO
-            handleResult("",event.getTestCase().getUri(), event.getTestCase(), event.getResult());
+            URI featurePath = event.getTestCase().getUri();
+            TestSourcesModel.AstNode astNode = featureLoader.getAstNode(featurePath, event.getTestCase().getLocation().getLine());
+            Optional<Feature> currentFeature = featureFrom(featurePath);
+            String scenarioId = "";
+            if ((astNode != null) && currentFeature.isPresent()) {
+                Scenario currentScenarioDefinition = TestSourcesModel.getScenarioDefinition(astNode);
+                scenarioId = scenarioIdFrom(currentFeature.get().getName(), TestSourcesModel.convertToId(currentScenarioDefinition.getName()));
+                handleResult(scenarioId, event.getTestCase().getUri(), event.getTestCase(), event.getResult());
+            }
             StepDefinitionAnnotations.clear();
         }
 
@@ -938,7 +945,6 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void updateResultFromTags(String scenarioId,URI featurePath,TestCase testCase, List<Tag> scenarioTags) {
-        StepEventBus stepEventBus = getContext(featurePath).stepEventBus();
         if (isManual(scenarioTags)) {
             updateManualResultsFrom(scenarioId,featurePath,testCase,scenarioTags);
         } else if (isPending(scenarioTags)) {
@@ -955,6 +961,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     private void updateManualResultsFrom(String scenarioId,URI featurePath, TestCase testCase,List<Tag> scenarioTags) {
         StepEventBus stepEventBus = getContext(featurePath).stepEventBus();
         getContext(featurePath).addStepEventBusEvent(new SetTestManualEvent());
+        //TODO - check if it has to be postponed ...
         manualResultDefinedIn(scenarioTags).ifPresent(
                 testResult ->
                         UpdateManualScenario.forScenario(getContext(featurePath).getCurrentScenarioDefinition(scenarioId).getDescription())
