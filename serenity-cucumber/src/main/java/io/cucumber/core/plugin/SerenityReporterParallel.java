@@ -920,20 +920,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void recordStepResult(URI featurePath,TestCase testCase,Result result, io.cucumber.messages.types.Step currentStep, TestStep currentTestStep) {
-        if (getContext(featurePath).stepEventBus().currentTestIsSuspended()) {
-            getContext(featurePath).addStepEventBusEvent(new StepIgnoredEvent());
-        } else if (Status.PASSED.equals(result.getStatus())) {
-            List<ScreenshotAndHtmlSource> screenshotList = getContext(featurePath).stepEventBus().takeScreenshots();
-            getContext(featurePath).addStepEventBusEvent(new StepFinishedEvent(screenshotList));
-        } else if (Status.FAILED.equals(result.getStatus())) {
-            failed(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());
-        } else if (Status.SKIPPED.equals(result.getStatus())) {
-            skipped(featurePath,testCase,stepTitleFrom(currentStep, currentTestStep), result.getError());
-        } else if (Status.PENDING.equals(result.getStatus())) {
-            getContext(featurePath).addStepEventBusEvent(new StepPendingEvent());
-        } else if (Status.UNDEFINED.equals(result.getStatus())) {
-            getContext(featurePath).addStepEventBusEvent(new StepPendingEvent());
-        }
+        getContext(featurePath).addStepEventBusEvent(new RecordStepResultEvent(result,currentStep,currentTestStep));
     }
 
     private void recordFinalResult(String scenarioId,URI featurePath,TestCase testCase) {
@@ -966,74 +953,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         getContext(featurePath).addStepEventBusEvent(new OverrideResultToEvent(testResult));
     }
 
-    private void failed(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
-        if (!errorOrFailureRecordedForStep(featurePath,testCase, stepTitle, cause)) {
-            if (!isEmpty(stepTitle)) {
-                getContext(featurePath).addStepEventBusEvent(new UpdateCurrentStepTitleEvent(stepTitle));
-            }
-            Throwable rootCause = new RootCauseAnalyzer(cause).getRootCause().toException();
-            if (isAssumptionFailure(rootCause)) {
-                getContext(featurePath).addStepEventBusEvent(new AssumptionViolatedEvent(rootCause.getMessage()));
-            } else {
-                getContext(featurePath).addStepEventBusEvent(new StepFailedEvent(new StepFailure(ExecutedStepDescription.withTitle(normalized(currentStepTitle(featurePath,testCase))), rootCause)));
-            }
-        }
-    }
-
-    private void skipped(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
-        if (!errorOrFailureRecordedForStep(featurePath,testCase, stepTitle, cause)) {
-            if (!isEmpty(stepTitle)) {
-                getContext(featurePath).addStepEventBusEvent(new UpdateCurrentStepTitleEvent(normalized(stepTitle)));
-            }
-            if (cause == null) {
-                getContext(featurePath).addStepEventBusEvent(new StepIgnoredEvent());
-            } else {
-                Throwable rootCause = new RootCauseAnalyzer(cause).getRootCause().toException();
-                if (isAssumptionFailure(rootCause)) {
-                    getContext(featurePath).addStepEventBusEvent(new AssumptionViolatedEvent(rootCause.getMessage()));
-                } else {
-                    getContext(featurePath).addStepEventBusEvent(new StepIgnoredEvent());
-                }
-            }
-        }
-    }
-
-    private String currentStepTitle(URI featurePath,TestCase testCase) {
-        return getContext(featurePath).stepEventBus().getCurrentStep().isPresent()
-                ? getContext(featurePath).stepEventBus().getCurrentStep().get().getDescription() : "";
-    }
-
-    private boolean errorOrFailureRecordedForStep(URI featurePath,TestCase testCase,String stepTitle, Throwable cause) {
-        if (!latestTestOutcome(featurePath,testCase).isPresent()) {
-            return false;
-        }
-        if (!latestTestOutcome(featurePath,testCase).get().testStepWithDescription(stepTitle).isPresent()) {
-            return false;
-        }
-        Optional<net.thucydides.core.model.TestStep> matchingTestStep = latestTestOutcome(featurePath,testCase).get().testStepWithDescription(stepTitle);
-        if (matchingTestStep.isPresent() && matchingTestStep.get().getNestedException() != null) {
-            return (matchingTestStep.get().getNestedException().getOriginalCause() == cause);
-        }
-
-        return false;
-    }
-
-    private Optional<TestOutcome> latestTestOutcome(URI featurePath,TestCase testCase) {
-
-        if (!getContext(featurePath).stepEventBus().isBaseStepListenerRegistered()) {
-            return Optional.empty();
-        }
-
-        List<TestOutcome> recordedOutcomes = getContext(featurePath).stepEventBus().getBaseStepListener().getTestOutcomes();
-        return (recordedOutcomes.isEmpty()) ? Optional.empty()
-                : Optional.of(recordedOutcomes.get(recordedOutcomes.size() - 1));
-    }
-
-    private boolean isAssumptionFailure(Throwable rootCause) {
-        return (AssumptionViolatedException.class.isAssignableFrom(rootCause.getClass()));
-    }
-
-    private String stepTitleFrom(io.cucumber.messages.types.Step currentStep, TestStep testStep) {
+    public static String stepTitleFrom(io.cucumber.messages.types.Step currentStep, TestStep testStep) {
         if (currentStep != null && testStep instanceof PickleStepTestStep)
             return currentStep.getKeyword()
                     + ((PickleStepTestStep) testStep).getStep().getText()
@@ -1041,7 +961,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         return "";
     }
 
-    private String embeddedTableDataIn(PickleStepTestStep currentStep) {
+    private static String embeddedTableDataIn(PickleStepTestStep currentStep) {
         if (currentStep.getStep().getArgument() != null) {
             StepArgument stepArgument = currentStep.getStep().getArgument();
             if (stepArgument instanceof DataTableArgument) {
@@ -1058,7 +978,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
 
-    private String convertToTextTable(List<Map<String, Object>> rows) {
+    private static String convertToTextTable(List<Map<String, Object>> rows) {
         StringBuilder textTable = new StringBuilder();
         textTable.append(System.lineSeparator());
         for (Map<String, Object> row : rows) {
