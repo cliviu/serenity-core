@@ -1,11 +1,10 @@
 package net.thucydides.core.steps.events;
 
 import io.cucumber.core.plugin.SerenityReporterParallel;
-import io.cucumber.plugin.ConcurrentEventListener;
-import io.cucumber.plugin.Plugin;
 import io.cucumber.plugin.event.*;
 import net.thucydides.core.model.TestOutcome;
 import net.thucydides.core.model.stacktrace.RootCauseAnalyzer;
+import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepFailure;
 import org.junit.internal.AssumptionViolatedException;
@@ -23,10 +22,13 @@ public class RecordStepResultEvent extends StepEventBusEventBase {
 	private Result result;
 	private io.cucumber.messages.types.Step currentStep;
 	private TestStep currentTestStep;
-	public RecordStepResultEvent(Result result, io.cucumber.messages.types.Step currentStep, TestStep currentTestStep){
+
+    private List<ScreenshotAndHtmlSource> screenshotList;
+	public RecordStepResultEvent(Result result, io.cucumber.messages.types.Step currentStep, TestStep currentTestStep,List<ScreenshotAndHtmlSource> screenshotList){
 		this.result = result;
 		this.currentStep = currentStep;
 		this.currentTestStep =  currentTestStep;
+		this.screenshotList =  screenshotList;
 	}
 
 	@Override
@@ -34,7 +36,7 @@ public class RecordStepResultEvent extends StepEventBusEventBase {
  		if (getStepEventBus().currentTestIsSuspended()) {
             getStepEventBus().stepIgnored();
         } else if (Status.PASSED.equals(result.getStatus())) {
-            getStepEventBus().stepFinished();
+            getStepEventBus().stepFinished(screenshotList);
         } else if (Status.FAILED.equals(result.getStatus())) {
             failed(SerenityReporterParallel.stepTitleFrom(currentStep, currentTestStep), result.getError());
         } else if (Status.SKIPPED.equals(result.getStatus())) {

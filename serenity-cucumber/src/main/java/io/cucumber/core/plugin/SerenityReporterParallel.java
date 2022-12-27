@@ -27,7 +27,6 @@ import net.thucydides.core.model.DataTable;
 import net.thucydides.core.model.Rule;
 import net.thucydides.core.model.*;
 import net.thucydides.core.model.screenshots.StepDefinitionAnnotations;
-import net.thucydides.core.model.stacktrace.RootCauseAnalyzer;
 import net.thucydides.core.reports.ReportService;
 import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.*;
@@ -38,7 +37,6 @@ import net.thucydides.core.webdriver.Configuration;
 import net.thucydides.core.webdriver.ThucydidesWebDriverSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.junit.internal.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -920,7 +918,8 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void recordStepResult(URI featurePath,TestCase testCase,Result result, io.cucumber.messages.types.Step currentStep, TestStep currentTestStep) {
-        getContext(featurePath).addStepEventBusEvent(new RecordStepResultEvent(result,currentStep,currentTestStep));
+        List<ScreenshotAndHtmlSource> screenshotList = getContext(featurePath).stepEventBus().takeScreenshots();
+        getContext(featurePath).addStepEventBusEvent(new RecordStepResultEvent(result,currentStep,currentTestStep,screenshotList));
     }
 
     private void recordFinalResult(String scenarioId,URI featurePath,TestCase testCase) {
