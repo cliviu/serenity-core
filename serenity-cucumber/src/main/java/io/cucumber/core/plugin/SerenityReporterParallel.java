@@ -959,15 +959,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void updateManualResultsFrom(String scenarioId,URI featurePath, TestCase testCase,List<Tag> scenarioTags) {
-        StepEventBus stepEventBus = getContext(featurePath).stepEventBus();
-        getContext(featurePath).addStepEventBusEvent(new SetTestManualEvent());
-        //TODO - check if it has to be postponed ...
-        manualResultDefinedIn(scenarioTags).ifPresent(
-                testResult ->
-                        UpdateManualScenario.forScenario(getContext(featurePath).getCurrentScenarioDefinition(scenarioId).getDescription())
-                                .inContext(stepEventBus.getBaseStepListener(), systemConfiguration.getEnvironmentVariables())
-                                .updateManualScenario(testResult, scenarioTags)
-        );
+        getContext(featurePath).addStepEventBusEvent(new SetTestManualEvent(getContext(featurePath),scenarioTags,scenarioId));
     }
 
     private void updateCurrentScenarioResultTo(URI featurePath,TestResult testResult) {

@@ -25,7 +25,7 @@ import static java.util.stream.Collectors.toList;
 
 
 
-class ScenarioContextParallel {
+public class ScenarioContextParallel {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
 
