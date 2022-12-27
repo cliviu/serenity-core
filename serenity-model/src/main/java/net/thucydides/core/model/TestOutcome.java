@@ -120,6 +120,7 @@ public class TestOutcome {
     private List<String> additionalVersions;
 
     private Set<TestTag> tags;
+    private Set<TestTag> allTags;
 
     /**
      * When did this test start.
@@ -328,7 +329,28 @@ public class TestOutcome {
         this.flagProvider = Injectors.getInjector().getInstance(FlagProvider.class);
         this.qualifier = Optional.empty();
         this.environmentVariables = environmentVariables;
-        this.context = contextFrom(environmentVariables);
+        this.context = null;//contextFrom(environmentVariables);
+        if (testCase != null) {
+            setUserStory(leafRequirementDefinedIn().testCase(testCase));
+        }
+    }
+
+    public TestOutcome(final String name, final Class<?> testCase, String context, EnvironmentVariables environmentVariables) {
+        startTime = ZonedDateTime.now();
+        this.name = name;
+        this.id = identifierFrom(name, testCase, userStory);
+        this.testCase = testCase;
+        this.testCaseName = nameOf(testCase);
+        this.nestedTestPath = calculateNestPath(testCase);
+        this.additionalIssues = new ArrayList<>();
+        this.additionalVersions = new ArrayList<>();
+        this.actors = new ArrayList<>();
+        this.issueTracking = Injectors.getInjector().getInstance(IssueTracking.class);
+        this.linkGenerator = Injectors.getInjector().getInstance(LinkGenerator.class);
+        this.flagProvider = Injectors.getInjector().getInstance(FlagProvider.class);
+        this.qualifier = Optional.empty();
+        this.environmentVariables = environmentVariables;
+        this.context = context;
         if (testCase != null) {
             setUserStory(leafRequirementDefinedIn().testCase(testCase));
         }
@@ -355,6 +377,7 @@ public class TestOutcome {
         this.issues = getIssues();
         this.versions = getVersions();
         this.tags = getTags();
+        this.allTags = addFeatureTagTo(this.tags);
     }
 
     private String nameOf(Class<?> testCase) {
@@ -531,12 +554,13 @@ public class TestOutcome {
         this.testCase = testCase;
         this.testCaseName = nameOf(testCase);
         this.nestedTestPath = calculateNestPath(testCase);
-        addSteps(testSteps);
+        setTestSteps(testSteps);
         this.coreIssues = removeDuplicates(issues);
         this.additionalVersions = removeDuplicates(additionalVersions);
         this.additionalIssues = additionalIssues;
         this.actors = actors;
         this.tags = tags;
+        this.allTags = addFeatureTagTo(this.tags);
         setUserStory(userStory);
         this.testFailureCause = testFailureCause;
         this.testFailureClassname = testFailureClassname;
@@ -968,9 +992,12 @@ public class TestOutcome {
     }
 
     public boolean hasTagWithName(String tagName) {
-        return Optional.ofNullable(getAllTags()).orElse(Collections.emptySet())
-                .stream()
-                .anyMatch(tag -> tag.getName().equalsIgnoreCase(tagName));
+        for(TestTag tag : Optional.ofNullable(getAllTags()).orElse(Collections.emptySet())) {
+            if (tag.getName().equalsIgnoreCase(tagName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean hasTagWithType(String tagType) {
@@ -1317,7 +1344,12 @@ public class TestOutcome {
     }
 
     public boolean hasScreenshots() {
-        return !getScreenshots().isEmpty();
+        for(TestStep step : getFlattenedTestSteps()) {
+            if (step.hasScreenshots()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean hasRestQueries() {
@@ -1492,6 +1524,11 @@ public class TestOutcome {
         renumberTestSteps(updatedSteps);
 //        testSteps = Collections.unmodifiableList(updatedSteps);
         testSteps = updatedSteps;
+    }
+
+    private void setTestSteps(List<TestStep> steps) {
+        this.testSteps = steps;
+        // renumberTestSteps(testSteps);
     }
 
     private void renumberTestSteps(List<TestStep> testSteps) {
@@ -1963,7 +2000,14 @@ public class TestOutcome {
     }
 
     public Set<TestTag> getAllTags() {
-        Set<TestTag> allTags = new HashSet<>(getTags());
+        if (allTags == null) {
+            allTags = addFeatureTagTo(getTags());
+        }
+        return allTags;
+    }
+
+    private Set<TestTag> addFeatureTagTo(Set<TestTag> tags) {
+        Set<TestTag> allTags = (tags == null) ? new HashSet<>() : new HashSet<>(tags);
         getFeatureTag().ifPresent(
                 featureTag -> allTags.add(featureTag)
         );
@@ -2013,12 +2057,14 @@ public class TestOutcome {
         Set<TestTag> updatedTags = new HashSet<>(getTags());
         updatedTags.addAll(tags);
         this.tags = updatedTags;
+        this.allTags = addFeatureTagTo(this.tags);
     }
 
     public void addTag(TestTag tag) {
         Set<TestTag> updatedTags = new HashSet<>(getTags());
         updatedTags.add(tag);
         this.tags = updatedTags;
+        this.allTags = addFeatureTagTo(this.tags);
     }
 
     public List<String> getIssueKeys() {
@@ -2052,10 +2098,10 @@ public class TestOutcome {
     }
 
     public String getContext() {
-        if (context == null) {
-            context = contextFrom(getEnvironmentVariables());
-        }
-
+//        if (context == null) {
+//            context = contextFrom(getEnvironmentVariables());
+//        }
+//
         return context;
     }
 
@@ -2401,11 +2447,15 @@ public class TestOutcome {
         if (duration > 0) {
             return duration;
         }
-
-        return testSteps
-                .stream()
-                .mapToLong(TestStep::getDuration)
-                .sum();
+        long calculatedDuration = 0;
+        for(TestStep step : testSteps) {
+            calculatedDuration += step.getDuration();
+        }
+        return calculatedDuration;
+//        return testSteps
+//                .stream()
+//                .mapToLong(TestStep::getDuration)
+//                .sum();
     }
 
     public ZonedDateTime getEndTime() {
@@ -2847,6 +2897,7 @@ public class TestOutcome {
 
     public TestOutcome fromStep(TestStep testStep) {
         List<TestStep> specifiedSteps = asList(testStep);
+
         TestOutcome specifiedOutcome = this.copy().withSteps(specifiedSteps);
         Optional<TestFailureCause> failureCause = TestFailureCause.from(specifiedOutcome.getFlattenedTestSteps());
         if (failureCause.isPresent()) {
@@ -2862,11 +2913,33 @@ public class TestOutcome {
     }
 
     public TestOutcome withExamplesMatching(Predicate<TestStep> condition) {
-        if (isDataDriven()) {
+        if (isDataDriven() && someStepsDoNotMatch(condition)) {
             return copy().removeTopLevelStepsNotMatching(condition);
         } else {
             return this;
         }
+    }
+
+    public TestOutcome withExamplesHavingResult(TestResult result) {
+        if (!isDataDriven() || containsOnlyExamplesWithResult(result) || containsNoExamplesWithResult(result) ) {
+            return this;
+        }
+        return copy().removeTopLevelStepsNotHavingResult(result);
+    }
+
+    private boolean containsNoExamplesWithResult(TestResult result) {
+        Set<TestResult> distinctResults = getDistinctResults();
+        for(TestResult actualResult : result.expanded()) {
+            if (distinctResults.contains(actualResult)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean containsOnlyExamplesWithResult(TestResult result) {
+        Set<TestResult> distinctResults = getDistinctResults();
+        return distinctResults.size() == 1 && result.expanded().contains(distinctResults.iterator().next());
     }
 
     public List<TestOutcome> asTestCases() {
@@ -2913,16 +2986,86 @@ public class TestOutcome {
 
 
     public TestOutcome removeTopLevelStepsNotMatching(Predicate<TestStep> condition) {
-        List<TestStep> updatedSteps = testSteps.stream().filter(condition).collect(Collectors.toList());
+        List<TestStep> updatedSteps = new ArrayList<>();
+        for(TestStep step : testSteps) {
+            if (condition.test(step)) {
+                updatedSteps.add(step);
+            }
+        }
         this.testSteps = updatedSteps;
         return this;
     }
 
+    public TestOutcome removeTopLevelStepsNotHavingResult(TestResult result) {
+        List<TestStep> updatedSteps = new ArrayList<>();
+        for (TestStep step : testSteps) {
+            if (result.expanded().contains(step.getResult())) {
+                updatedSteps.add(step);
+            }
+        }
+        this.testSteps = updatedSteps;
+        return this;
+    }
+    private boolean someStepsDoNotMatch(Predicate<TestStep> condition) {
+        return testSteps.stream().anyMatch(condition);
+    }
+
     public boolean containsAtLeastOneOutcomeWithResult(TestResult expectedResult) {
         if (isDataDriven()) {
-            return testSteps.stream().anyMatch(step -> step.getResult().equals(expectedResult));
+            for(TestStep step : testSteps) {
+                if (expectedResult.expanded().contains(step.getResult())) {
+                    return true;
+                }
+            }
+            return false;
         } else {
-            return getResult().equals(expectedResult);
+            return expectedResult.expanded().contains(getResult());
         }
+    }
+
+    public Stream<TestResult> getAllResultsStream() {
+        if (isDataDriven()) {
+            return getTestSteps().stream().map(TestStep::getResult);
+        } else {
+            return Stream.of(getResult());
+        }
+    }
+
+    public List<TestResult> getAllResults() {
+        if (isDataDriven()) {
+            List<TestResult> results = new ArrayList<>();
+            for(TestStep step : testSteps) {
+                results.add(step.getOverallResult());
+            }
+            return results;
+        } else {
+            return Collections.singletonList(getResult());
+        }
+    }
+
+    public long getResultCount() {
+        long count = 0;
+        if (isDataDriven()) {
+            count += testSteps.size();
+        } else {
+            count++;
+        }
+        return count;
+    }
+
+    public Set<TestResult> getDistinctResults() {
+        Set<TestResult> results = new HashSet<>();
+        if (isDataDriven()) {
+            for(TestStep step : getTestSteps()) {
+                results.add(step.getResult());
+            }
+        } else {
+            results.add(getResult());
+        }
+        return results;
+    }
+
+    public boolean hasResult(TestResult result) {
+        return getAllResults().contains(result);
     }
 }

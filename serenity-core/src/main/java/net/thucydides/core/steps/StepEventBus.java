@@ -372,18 +372,26 @@ public class StepEventBus {
         return resultTally;
     }
 
-    private void recordTestSource() {
-        TestOutcome outcome = getBaseStepListener().getCurrentTestOutcome();
+    private void recordTestMetadataFor(TestOutcome outcome) {
         outcome.setTestSource(testSource);
+        outcome.setContext(TestContext.forTheCurrentTest().getContext());
+    }
+
+    private void recordTestContext() {
+        TestOutcome outcome = getBaseStepListener().getCurrentTestOutcome();
     }
 
     public void testFinished(boolean inDataDrivenTest, ZonedDateTime finishTime) {
         TestOutcome outcome = getBaseStepListener().getCurrentTestOutcome();
         outcome = checkForEmptyScenarioIn(outcome);
-        recordTestSource();
+        recordTestMetadataFor(outcome);
 
-        for (StepListener stepListener : getAllListeners()) {
-            stepListener.testFinished(outcome, inDataDrivenTest, finishTime);
+        try {
+            for (StepListener stepListener : getAllListeners()) {
+                stepListener.testFinished(outcome, inDataDrivenTest, finishTime);
+            }
+        } catch(Throwable testFailedInTeardownOperations) {
+            getBaseStepListener().stepFailedWithException(testFailedInTeardownOperations);
         }
 
         TestLifecycleEvents.postEvent(TestLifecycleEvents.testFinished());
@@ -632,7 +640,7 @@ public class StepEventBus {
      */
     public void testFailed(final Throwable cause) {
         TestOutcome outcome = getBaseStepListener().getCurrentTestOutcome();
-        recordTestSource();
+        recordTestMetadataFor(outcome);
         for (StepListener stepListener : getAllListeners()) {
             try {
                 stepListener.testFailed(outcome, cause);
@@ -651,7 +659,7 @@ public class StepEventBus {
             stepListener.testPending();
         }
         suspendTest();
-        recordTestSource();
+        recordTestMetadataFor(getBaseStepListener().getCurrentTestOutcome());
     }
 
     /**
@@ -704,7 +712,7 @@ public class StepEventBus {
             stepListener.testIgnored();
         }
         suspendTest();
-        recordTestSource();
+        recordTestMetadataFor(getBaseStepListener().getCurrentTestOutcome());
     }
 
     public void testSkipped() {
@@ -712,7 +720,7 @@ public class StepEventBus {
             stepListener.testSkipped();
         }
         suspendTest();
-        recordTestSource();
+        recordTestMetadataFor(getBaseStepListener().getCurrentTestOutcome());
     }
 
     public void testAborted() {
@@ -720,7 +728,7 @@ public class StepEventBus {
             stepListener.testAborted();
         }
         suspendTest();
-        recordTestSource();
+        recordTestMetadataFor(getBaseStepListener().getCurrentTestOutcome());
     }
 
     public boolean areStepsRunning() {
@@ -821,6 +829,13 @@ public class StepEventBus {
         return (getBaseStepListener().latestTestOutcome().isPresent() && getBaseStepListener().latestTestOutcome().get().isDataDriven());
     }
 
+    /**
+     * Forces Thucydides to take a screenshot now.
+     */
+    public void takeScreenshot() {
+        getBaseStepListener().takeScreenshot();
+    }
+
     public void notifyFailure() {
         getBaseStepListener().notifyUIError();
     }
@@ -833,7 +848,7 @@ public class StepEventBus {
         return assumptionViolatedMessage;
     }
 
-    public Optional<TestStep> getCurrentStep() {
+    public java.util.Optional<TestStep> getCurrentStep() {
         return getBaseStepListener().cloneCurrentStep();
     }
 
@@ -849,7 +864,7 @@ public class StepEventBus {
 
     private final Optional<TestResult> NO_FORCED_RESULT = Optional.empty();
 
-    public Optional<TestResult> getForcedResult() {
+    public java.util.Optional<TestResult> getForcedResult() {
         return (getBaseStepListener() != null) ? getBaseStepListener().getForcedResult() : NO_FORCED_RESULT;
     }
 
@@ -869,12 +884,12 @@ public class StepEventBus {
         getBaseStepListener().exceptionExpected(expected);
     }
 
-    Optional<TestResult> NO_RESULT_YET = Optional.empty();
+    java.util.Optional<TestResult> NO_RESULT_YET = java.util.Optional.empty();
 
-    public Optional<TestResult> resultSoFar() {
+    public java.util.Optional<TestResult> resultSoFar() {
 
         return (getBaseStepListener().latestTestOutcome().isPresent()) ?
-                Optional.ofNullable(getBaseStepListener().latestTestOutcome().get().getResult()) : NO_RESULT_YET;
+                java.util.Optional.ofNullable(getBaseStepListener().latestTestOutcome().get().getResult()) : NO_RESULT_YET;
     }
 
     public void mergePreviousStep() {
@@ -998,7 +1013,11 @@ public class StepEventBus {
 
     public boolean currentTestHasTag(TestTag tag) {
         if (isBaseStepListenerRegistered()) {
-            return getBaseStepListener().getCurrentTestOutcome().getTags().contains(tag);
+            if (getBaseStepListener().latestTestOutcome().isPresent()) {
+                return getBaseStepListener().getCurrentTestOutcome().getTags().contains(tag);
+            } else {
+                return false;
+            }
         } else {
             return false;
         }

@@ -2,6 +2,7 @@ package net.thucydides.core.webdriver;
 
 import com.google.common.base.Splitter;
 import io.appium.java_client.AppiumDriver;
+import net.serenitybdd.core.SystemTimeouts;
 import net.serenitybdd.core.di.WebDriverInjectors;
 import net.serenitybdd.core.environment.EnvironmentSpecificConfiguration;
 import net.serenitybdd.core.exceptions.SerenityManagedException;
@@ -114,7 +115,6 @@ public class WebDriverFactory {
             driverProvidersByDriverType.put(SupportedWebDriver.PROVIDED, new ProvidedDriverProvider());
             // LEGACY PROVIDERS
             driverProvidersByDriverType.put(SupportedWebDriver.APPIUM, new AppiumDriverProvider(fixtureProviderService));
-//            driverProvidersByDriverType.put(SupportedWebDriver.HTMLUNIT, new HTMLUnitDriverProvider(fixtureProviderService));
         }
         return driverProvidersByDriverType;
     }
@@ -277,9 +277,8 @@ public class WebDriverFactory {
     }
 
     public Duration getDefaultImplicitTimeout() {
-        String configuredTimeoutValue = ThucydidesSystemProperty.WEBDRIVER_TIMEOUTS_IMPLICITLYWAIT.from(environmentVariables);
-        return (configuredTimeoutValue != null) ? Duration.ofMillis(Integer.parseInt(configuredTimeoutValue))
-                : DefaultTimeouts.DEFAULT_IMPLICIT_WAIT_TIMEOUT;
+        long configuredWaitForTimeoutInMilliseconds = new SystemTimeouts(environmentVariables).getImplicitTimeout();
+        return Duration.ofMillis(configuredWaitForTimeoutInMilliseconds);
     }
 
     public static boolean isAlive(final WebDriver driver) {

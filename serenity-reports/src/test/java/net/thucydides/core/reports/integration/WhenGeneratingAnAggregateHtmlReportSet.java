@@ -47,7 +47,7 @@ public class WhenGeneratingAnAggregateHtmlReportSet {
 
     @AfterClass
     public static void deleteReportDirectory() {
-        outputDirectory.delete();
+//        outputDirectory.delete();
     }
 
     private static File newTemporaryDirectory() throws IOException {
@@ -132,7 +132,7 @@ public class WhenGeneratingAnAggregateHtmlReportSet {
 
     @Test
     public void should_check_json_results() {
-        File reports = directoryInClasspathCalled("/test-outcomes/full-json");
+        File reports = directoryInClasspathCalled("/test-outcomes/with-duplicates");
         ResultChecker resultChecker = new ResultChecker(reports);
         resultChecker.checkTestResults();
     }

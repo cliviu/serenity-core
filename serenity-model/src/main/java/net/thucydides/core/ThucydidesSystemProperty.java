@@ -396,7 +396,7 @@ public enum ThucydidesSystemProperty {
     /**
      * How long should the driver wait for elements not immediately visible, in seconds.
      *
-     * @deprecated Use WEBDRIVER_TIMEOUTS_IMPLICITLYWAIT instead.
+     * @deprecated This property is no longer supported: use the W3C properties instead.
      */
     SERENITY_TIMEOUT,
 
@@ -1339,10 +1339,10 @@ public enum ThucydidesSystemProperty {
     THUCYDIDES_DISPLAY_CONTEXT,
 
     /**
-     * Include a context tag with a test if one is provided.
+     * Include context tags with a test if one is provided.
      * Set to 'true' by default
      */
-    THUCYDIDES_ADD_CONTEXT_TAG,
+    SERENITY_ADD_CONTEXT_TAG,
 
     /**
      * What encoding to use for reading Cucumber feature files?
@@ -1657,7 +1657,12 @@ public enum ThucydidesSystemProperty {
     /**
      * The title to appear in the tag type table in the email reports
      */
-    REPORT_TAGTYPE_TITLE;
+    REPORT_TAGTYPE_TITLE,
+
+    /**
+     * Use this property to set how long webdriver should wait x second for an alert to be present before throwing an exception.
+     */
+    WEBDRIVER_WAIT_FOR_ALERT_TIMEOUT("webdriver.wait.for.alert.timeout");
 
     private String propertyName;
     public static final int DEFAULT_HEIGHT = 700;
