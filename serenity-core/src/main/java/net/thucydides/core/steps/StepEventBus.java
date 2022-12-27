@@ -1074,14 +1074,6 @@ public class StepEventBus {
         noCleanupForStickyBuses = noCleanup;
     }
 
-
-    /**
-     * Forces Thucydides to take a screenshot now.
-     */
-    public void takeScreenshot() {
-        getBaseStepListener().takeScreenshot();
-    }
-
     public List<ScreenshotAndHtmlSource> takeScreenshots() {
         LOGGER.debug("SRP:takeScreenshots");
         List<ScreenshotAndHtmlSource> screenshots =  new ArrayList<>();
