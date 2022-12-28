@@ -487,7 +487,7 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
         } catch (PendingStepException pendingStep) {
             notifyStepPending(pendingStep.getMessage());
         } catch (IgnoredStepException ignoredStep) {
-            notifyStepIgnored(ignoredStep.getMessage());
+            notifyStepIgnored();
         } catch (Throwable throwable) {
             if (TestFramework.support().isAssumptionViolatedException(throwable)) {
                 notifyAssumptionViolated(throwable.getMessage());
@@ -515,7 +515,6 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     private void notifyStepFinishedFor(final Method method, final Object[] args) {
          if (TestSession.isSessionStarted()) {
             StepFinishedEvent stepFinishedEvent = new StepFinishedEvent();
-            LOGGER.debug("SRP: Actor started event in session " + stepFinishedEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepFinishedEvent);
          }
          else {
@@ -526,7 +525,6 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     private void notifySkippedStepFinishedFor(final Method method, final Object[] args) {
         if (TestSession.isSessionStarted()) {
             StepIgnoredEvent stepIgnoredEvent = new StepIgnoredEvent();
-            LOGGER.debug("SRP: Actor started event in session " + stepIgnoredEvent + " " +  Thread.currentThread());
             TestSession.addEvent(stepIgnoredEvent);
          }
          else {
@@ -535,15 +533,30 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void notifyStepPending(String message) {
-        StepEventBus.getEventBus().stepPending(message);
+        if (TestSession.isSessionStarted()) {
+            TestSession.addEvent(new StepPendingEvent(message));
+        }
+        else {
+            StepEventBus.getEventBus().stepPending(message);
+        }
     }
 
     private void notifyAssumptionViolated(String message) {
-        StepEventBus.getEventBus().assumptionViolated(message);
+        if (TestSession.isSessionStarted()) {
+            TestSession.addEvent(new AssumptionViolatedEvent(message));
+         }
+         else {
+            StepEventBus.getEventBus().assumptionViolated(message);
+         }
     }
 
-    private void notifyStepIgnored(String message) {
-        StepEventBus.getEventBus().stepIgnored();
+    private void notifyStepIgnored() {
+        if (TestSession.isSessionStarted()) {
+            TestSession.addEvent(new StepIgnoredEvent());
+         }
+         else {
+            StepEventBus.getEventBus().stepIgnored();
+         }
     }
 
     private String getTestNameFrom(final Method method, final Object[] args) {
@@ -551,12 +564,19 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private void notifyStepSkippedFor(final Method method, final Object[] args) {
-
-        if (isPending(method)) {
-            StepEventBus.getEventBus().stepPending();
-        } else {
-            StepEventBus.getEventBus().stepIgnored();
-        }
+         if (TestSession.isSessionStarted()) {
+            if (isPending(method)) {
+                TestSession.addEvent(new StepPendingEvent());
+            } else {
+                TestSession.addEvent(new StepIgnoredEvent());
+            }
+         } else {
+            if (isPending(method)) {
+                StepEventBus.getEventBus().stepPending();
+            } else {
+                StepEventBus.getEventBus().stepIgnored();
+            }
+         }
     }
 
     private void notifyOfStepFailure(final Object object, final Method method, final Object[] args,
@@ -565,7 +585,14 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
                                                                      .withDisplayedFields(fieldValuesIn(object));
 
         StepFailure failure = new StepFailure(description, cause);
-        StepEventBus.getEventBus().stepFailed(failure);
+
+        if(TestSession.isSessionStarted()) {
+            StepFailedEvent stepFailedEvent = new StepFailedEvent(failure);
+            TestSession.addEvent(stepFailedEvent);
+        }
+        else {
+            StepEventBus.getEventBus().stepFailed(failure);
+        }
         if (shouldThrowExceptionImmediately()) {
             finishAnyCucumberSteps();
             throw cause;
