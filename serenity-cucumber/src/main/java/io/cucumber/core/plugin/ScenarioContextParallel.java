@@ -27,7 +27,7 @@ import static java.util.stream.Collectors.toList;
 
 public class ScenarioContextParallel {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContext.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScenarioContextParallel.class);
 
     private Map<String,List<StepEventBusEvent>> highPriorityEventBusEvents = Collections.synchronizedMap(new HashMap<>());
     private final Map<UUID,Queue<Step>> stepQueue = Collections.synchronizedMap(new HashMap<>());
@@ -65,6 +65,9 @@ public class ScenarioContextParallel {
     private URI scenarioContextURI;
 
     private StepEventBus stepEventBus;
+
+    private List<Tag> scenarioTags;
+
 
     public ScenarioContextParallel(URI scenarioContextURI) {
         this.baseStepListeners = Collections.synchronizedList(new ArrayList<>());
@@ -106,6 +109,7 @@ public class ScenarioContextParallel {
         return exampleTags;
     }
 
+    //TODO - use a map with scenarioId as key
     public synchronized void setExampleTags(Map<Long, List<Tag>> exampleTags) {
         this.exampleTags =  exampleTags;
     }
@@ -356,8 +360,10 @@ public class ScenarioContextParallel {
      * Called with TestRunFinished - all tests events are replayed
      */
     public synchronized void playAllTestEvents() {
-        LOGGER.info("SRP:playAllTestEvents   " + allTestEventsByLine);
+        LOGGER.info("SRP:playAllTestEvents for URI " +  scenarioContextURI + "--" + allTestEventsByLine);
         allTestEventsByLine.entrySet().forEach((entry) -> replayAllTestCaseEventsForLine(entry.getKey(),entry.getValue()));
+        stepEventBus.clear();
+        StepEventBus.getEventBus().clear();
     }
 
     private void replayAllTestCaseEventsForLine(Integer lineNumber, List<StepEventBusEvent> stepEventBusEvents) {
@@ -376,6 +382,14 @@ public class ScenarioContextParallel {
            LOGGER.trace("SRP:PLAY session event  " + currentStepBusEvent + " " +  Thread.currentThread());
            currentStepBusEvent.play();
        }
+    }
+
+    public List<Tag> getScenarioTags() {
+        return scenarioTags;
+    }
+
+    public void setScenarioTags(List<Tag> scenarioTags) {
+        this.scenarioTags = scenarioTags;
     }
 }
 

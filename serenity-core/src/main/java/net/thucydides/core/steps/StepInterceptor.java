@@ -247,9 +247,22 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
 
     private Object runSkippedMethod(Object obj, Method method, Object[] args, Method zuperMethod) {
         LOGGER.trace("Running test step " + StepName.fromStepAnnotationIn(method).orElse(method.getName()));
-        StepEventBus.getEventBus().temporarilySuspendWebdriverCalls();
+        if (TestSession.isSessionStarted()) {
+            SuspendWebdriverCallsEvent suspendWebdriverCallsEvent = new SuspendWebdriverCallsEvent();
+            TestSession.addEvent(suspendWebdriverCallsEvent);
+        } else {
+            StepEventBus.getEventBus().temporarilySuspendWebdriverCalls();
+        }
+
         Object result = runIfNestedMethodsShouldBeRun(obj, method, args, zuperMethod);
-        StepEventBus.getEventBus().reenableWebdriverCalls();
+
+        if (TestSession.isSessionStarted()) {
+            ReenableWebdriverCallsEvent reenableWebdriverCallsEvent = new ReenableWebdriverCallsEvent();
+            TestSession.addEvent(reenableWebdriverCallsEvent);
+        } else {
+            StepEventBus.getEventBus().reenableWebdriverCalls();
+        }
+
         return result;
     }
 
@@ -371,27 +384,27 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
     }
 
     private boolean testIsPending() {
-        return StepEventBus.getEventBus().currentTestIsSuspended();
+        return getStepEventBus().currentTestIsSuspended();
     }
 
     private boolean testAssumptionViolated() {
-        return StepEventBus.getEventBus().assumptionViolated();
+        return getStepEventBus().assumptionViolated();
     }
 
     private boolean aPreviousStepHasFailed() {
         boolean aPreviousStepHasFailed = false;
-        if (StepEventBus.getEventBus().aStepInTheCurrentTestHasFailed()) {
+        if (getStepEventBus().aStepInTheCurrentTestHasFailed()) {
             aPreviousStepHasFailed = true;
         }
         return aPreviousStepHasFailed;
     }
 
     private boolean isDryRun() {
-        return StepEventBus.getEventBus().isDryRun();
+        return getStepEventBus().isDryRun();
     }
 
     private boolean isSoftAssert() {
-        return StepEventBus.getEventBus().softAssertsActive();
+        return getStepEventBus().softAssertsActive();
     }
 
     private Object runBaseObjectMethod(final Object obj, final Method method, final Object[] args, final Method zuperMethod)
@@ -642,7 +655,7 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
 
         ExecutedStepDescription description = ExecutedStepDescription.of(testStepClass, getTestNameFrom(method, args), args)
                         .withDisplayedFields(fieldValuesIn(object));
-        StepEventBus.getEventBus().skippedStepStarted(description);
+        getStepEventBus().skippedStepStarted(description);
     }
 
     String testContext() {
@@ -660,4 +673,13 @@ public class StepInterceptor implements MethodErrorReporter,Interceptor {
         String[] classNameElements = StringUtils.split(className, ".");
         return classNameElements[classNameElements.length - 1];
     }
+    private StepEventBus getStepEventBus() {
+         if (TestSession.isSessionStarted()) {
+            return TestSession.getTestSessionContext().getStepEventBus();
+         }
+         else {
+            return StepEventBus.getEventBus();
+         }
+    }
+
 }

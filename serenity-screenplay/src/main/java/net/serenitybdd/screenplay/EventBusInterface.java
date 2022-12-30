@@ -34,7 +34,7 @@ public class EventBusInterface {
         if (!TestSession.isSessionStarted()) {
             StepEventBus.getEventBus().stepFailed(new StepFailure(taskDescription, e));
         }  else {
-            //TestSession.addEvent(new StepFailedEvent(StepEventBus.getEventBus(),new StepFailure(taskDescription, e)));
+            TestSession.addEvent(new StepFailedEvent(new StepFailure(taskDescription, e)));
         }
     }
 

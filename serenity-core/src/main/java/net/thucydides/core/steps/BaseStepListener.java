@@ -526,7 +526,7 @@ public class BaseStepListener implements StepListener, StepPublisher {
 
 
     private void recordNewTestOutcome(String testMethod, TestOutcome newTestOutcome) {
-        newTestOutcome.setTestSource(StepEventBus.getEventBus().getTestSource());
+        newTestOutcome.setTestSource(getEventBus().getTestSource());
         synchronized (testOutcomes) {
             testOutcomes.add(newTestOutcome);
         }

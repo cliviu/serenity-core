@@ -17,6 +17,7 @@ import net.thucydides.core.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.core.steps.ExecutedStepDescription;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.steps.events.StepFinishedEvent;
+import net.thucydides.core.steps.events.StepPendingEvent;
 import net.thucydides.core.steps.events.StepStartedEvent;
 import net.thucydides.core.steps.session.TestSession;
 import net.thucydides.core.util.EnvironmentVariables;
@@ -258,7 +259,8 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
 
     private <T extends Performable> void perform(T todo) {
         if (isPending(todo)) {
-            StepEventBus.getEventBus().stepPending();
+            stepPending();
+            //StepEventBus.getEventBus().stepPending();
         }
 
         try {
@@ -354,6 +356,14 @@ public class Actor implements PerformsTasks, SkipNested, Agent {
             TestSession.addEvent(new StepFinishedEvent(screenshotList));
         } else {
             StepEventBus.getEventBus().stepFinished();
+        }
+    }
+
+    private void stepPending() {
+        if (TestSession.isSessionStarted()) {
+            TestSession.addEvent(new StepPendingEvent());
+        } else {
+            StepEventBus.getEventBus().stepPending();
         }
     }
 

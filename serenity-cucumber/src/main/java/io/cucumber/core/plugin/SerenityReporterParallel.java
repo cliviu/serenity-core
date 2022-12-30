@@ -75,7 +75,6 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private LineFilters lineFilters;
 
-    private List<Tag> scenarioTags;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SerenityReporter.class);
 
@@ -728,7 +727,8 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         List<Tag> tags = getTagsOfScenarioDefinition(scenarioDefinition);
         registerScenarioJiraIssues(featurePath,testCase,tags);
 
-        scenarioTags = tagsForScenario(featurePath,scenarioDefinition);
+        List<Tag> scenarioTags = tagsForScenario(featurePath,scenarioDefinition);
+        context.setScenarioTags(scenarioTags);
         updateResultFromTags(scenarioId,featurePath,testCase,scenarioTags);
     }
 
@@ -924,10 +924,11 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
     }
 
     private void recordFinalResult(String scenarioId,URI featurePath,TestCase testCase) {
-        if (getContext(featurePath).isWaitingToProcessBackgroundSteps()) {
-            getContext(featurePath).setWaitingToProcessBackgroundSteps(false);
+        ScenarioContextParallel context = getContext(featurePath);
+        if (context.isWaitingToProcessBackgroundSteps()) {
+            context.setWaitingToProcessBackgroundSteps(false);
         } else {
-            updateResultFromTags(scenarioId,featurePath,testCase,scenarioTags);
+            updateResultFromTags(scenarioId,featurePath,testCase,context.getScenarioTags());
         }
     }
 

@@ -18,4 +18,8 @@ public class AddTagsToCurrentTestEvent extends StepEventBusEventBase {
 	public void play() {
 		getStepEventBus().addTagsToCurrentTest(tags);
 	}
+
+	public String toString() {
+		return "EventBusEvent ADD_TAGS_TO_CURRENT_TEST_EVENT " + tags;
+	}
 }
