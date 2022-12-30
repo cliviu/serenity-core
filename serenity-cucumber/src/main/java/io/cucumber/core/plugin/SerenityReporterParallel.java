@@ -695,7 +695,6 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
 
     private void startScenario(String scenarioId,URI featurePath, TestCase testCase,Feature currentFeature, Scenario scenarioDefinition, String scenarioName) {
         ScenarioContextParallel context = getContext(featurePath);
-        StepEventBus stepEventBus = context.stepEventBus();
         context.addHighPriorityStepEventBusEvent(scenarioId,
                 new SetTestSourceEvent(TestSourceType.TEST_SOURCE_CUCUMBER.getValue()));
 
@@ -728,7 +727,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         registerScenarioJiraIssues(featurePath,testCase,tags);
 
         List<Tag> scenarioTags = tagsForScenario(featurePath,scenarioDefinition);
-        context.setScenarioTags(scenarioTags);
+        context.setScenarioTags(scenarioId,scenarioTags);
         updateResultFromTags(scenarioId,featurePath,testCase,scenarioTags);
     }
 
@@ -928,7 +927,7 @@ public class SerenityReporterParallel implements Plugin, ConcurrentEventListener
         if (context.isWaitingToProcessBackgroundSteps()) {
             context.setWaitingToProcessBackgroundSteps(false);
         } else {
-            updateResultFromTags(scenarioId,featurePath,testCase,context.getScenarioTags());
+            updateResultFromTags(scenarioId,featurePath,testCase,context.getScenarioTags(scenarioId));
         }
     }
 

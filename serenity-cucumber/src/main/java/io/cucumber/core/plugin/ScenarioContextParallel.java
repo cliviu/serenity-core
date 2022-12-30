@@ -66,7 +66,8 @@ public class ScenarioContextParallel {
 
     private StepEventBus stepEventBus;
 
-    private List<Tag> scenarioTags;
+    // key - scenarioId
+    private Map<String,List<Tag>> scenarioTags = Collections.synchronizedMap(new HashMap<>());;
 
 
     public ScenarioContextParallel(URI scenarioContextURI) {
@@ -384,12 +385,12 @@ public class ScenarioContextParallel {
        }
     }
 
-    public List<Tag> getScenarioTags() {
-        return scenarioTags;
+    public List<Tag> getScenarioTags(String scenarioId) {
+        return scenarioTags.get(scenarioId);
     }
 
-    public void setScenarioTags(List<Tag> scenarioTags) {
-        this.scenarioTags = scenarioTags;
+    public void setScenarioTags(String scenarioId,List<Tag> scenarioTags) {
+        this.scenarioTags.put(scenarioId,scenarioTags);
     }
 }
 
