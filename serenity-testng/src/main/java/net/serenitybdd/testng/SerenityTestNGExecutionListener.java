@@ -1,0 +1,326 @@
+package net.serenitybdd.testng;
+
+import net.serenitybdd.core.Serenity;
+import net.serenitybdd.core.di.SerenityInfrastructure;
+import net.thucydides.core.steps.BaseStepListener;
+import net.thucydides.core.steps.Listeners;
+import net.thucydides.core.steps.StepEventBus;
+import net.thucydides.model.configuration.SystemPropertiesConfiguration;
+import net.thucydides.model.domain.TestOutcome;
+import net.thucydides.model.domain.TestResult;
+import net.thucydides.model.environment.SystemEnvironmentVariables;
+import net.thucydides.model.reports.ReportService;
+import net.thucydides.model.steps.StepListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.testng.*;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.List;
+
+import static net.thucydides.model.reports.ReportService.getDefaultReporters;
+
+
+public class SerenityTestNGExecutionListener extends TestListenerAdapter implements IExecutionListener,ISuiteListener {
+
+    private static final Logger logger = LoggerFactory.getLogger(SerenityTestNGExecutionListener.class);
+
+    private ReportService reportService;
+
+    private static File getOutputDirectory() {
+        SystemPropertiesConfiguration systemPropertiesConfiguration = new SystemPropertiesConfiguration(new SystemEnvironmentVariables());
+        return systemPropertiesConfiguration.getOutputDirectory();
+    }
+
+    private boolean testStarted;
+
+    public SerenityTestNGExecutionListener() {
+       BaseStepListener baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(getOutputDirectory());
+    }
+
+
+    /**
+     * This method is invoked before the SuiteRunner starts. (ISuiteListener)
+     * Params:
+     * suite – The suite
+     * @param suite The suite
+     */
+    @Override
+    public void onStart(ISuite suite) {
+        System.out.println("Starting Suite " + suite.getName());
+        //eventBusFor(suite.).testSuiteStarted(suite.getXmlSuite().getClass(),"" /*suite.getXmlSuite().getTest().*/);
+        StepEventBus.getEventBus().testSuiteStarted(suite.getXmlSuite().getClass(),suite.getName());
+    }
+
+
+    /**
+     * This method is invoked after the SuiteRunner has run all the tests in the suite. (ISuiteListener)
+     * Params:
+     * suite – The suite
+     * @param suite The suite
+     */
+    @Override
+    public void onFinish(ISuite suite) {
+        System.out.println("Finishing Suite " + suite.getName());
+        StepEventBus.getEventBus().testSuiteFinished();
+        generateReports();
+    }
+
+
+    /**
+     * Invoked before the TestNG run starts. (IExecutionListener)
+     */
+    @Override
+    public void onExecutionStart() {
+
+    }
+
+    /**
+     * Invoked once all the suites have been run. (IExecutionListener)
+     */
+    @Override
+    public void onExecutionFinish() {
+        System.out.println("On Execution finish");
+        StepEventBus.getEventBus().testSuiteFinished();
+    }
+
+    private void injectSteps(Object testInstance){
+        Serenity.injectDriverInto(testInstance);
+        Serenity.injectAnnotatedPagesObjectInto(testInstance);
+        Serenity.injectScenarioStepsInto(testInstance);
+        Serenity.injectDependenciesInto(testInstance);
+        SystemEnvironmentVariables.currentEnvironment().reset();
+    }
+
+
+
+
+    /**
+     * (ITestListener)
+     * Invoked each time before a test will be invoked. The ITestResult is only partially filled with the references
+     * to class, method, start millis and status.
+     * Params:
+     * result – the partially filled ITestResult
+     * See Also:
+     * ITestResult. STARTED
+     * @param result the partially filled <code>ITestResult</code>
+     */
+    @Override
+    public void onTestStart(ITestResult result) {
+        //status = STARTED
+
+        if (!isSerenityTestNGClass(result)) {
+            return;
+        }
+
+        //injectSteps(result.getInstance());
+
+        System.out.println("On test start " + result + " " + result.getName() + " " + result.getInstance());
+        stepEventBus().clear();
+        //stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
+        stepEventBus().testStarted(result.getName(),result.getTestClass().getRealClass());
+        startTest();
+    }
+
+    private boolean isSerenityTestNGClass(ITestResult testResult) {
+        return testResult.getTestClass().getRealClass().isAnnotationPresent(SerenityTestNG.class);
+    }
+
+    /**
+     * Invoked each time a test succeeds.
+     * Params:
+     * result – ITestResult containing information about the run test
+     * See Also:
+     * ITestResult. SUCCESS
+     * @param result <code>ITestResult</code> containing information about the run test
+     */
+    @Override
+    public void onTestSuccess(ITestResult result) {
+        if (!isSerenityTestNGClass(result)) {
+            return;
+        }
+        super.onTestSuccess(result);
+        updateResultsUsingTestAnnotations(result);
+        System.out.println("On test success " + result);
+        if (testingThisTest(result)) {
+            // TODO updateResultsUsingTestAnnotations(description);
+            stepEventBus().testFinished();
+            stepEventBus().setTestSource(null);
+            endTest();
+        }
+    }
+
+    /**
+     * Invoked each time a test fails.
+     * Params:
+     * result – ITestResult containing information about the run test
+     * See Also:
+     * ITestResult. FAILURE
+     * @param result <code>ITestResult</code> containing information about the run test
+     */
+    @Override
+    public void onTestFailure(ITestResult result) {
+        if (!isSerenityTestNGClass(result)) {
+            return;
+        }
+        super.onTestFailure(result);
+        if (testingThisTest(result)) {
+            //TODO startTestIfNotYetStarted(failure.getDescription());
+            stepEventBus().testFailed(result.getThrowable());
+            //TODO updateFailureList(failure);
+            endTest();
+        }
+    }
+
+    @Override
+    public void onTestSkipped(ITestResult result) {
+        if (!isSerenityTestNGClass(result)) {
+            return;
+        }
+        super.onTestSkipped(result);
+    }
+
+    @Override
+    public void onTestFailedButWithinSuccessPercentage(ITestResult result) {
+        if (!isSerenityTestNGClass(result)) {
+            return;
+        }
+        super.onTestFailedButWithinSuccessPercentage(result);
+    }
+
+    /**
+     * (ITestListener)
+     * Invoked before running all the test methods belonging to the classes inside the <test> tag and
+     * calling all their Configuration methods.
+     * Params:
+     * context – The test context
+     * @param context The test context
+     */
+    @Override
+    public void onStart(ITestContext context) {
+        super.onStart(context);
+        System.out.println("On start " + context.getCurrentXmlTest().getName());
+    }
+
+    /**
+     * (ITestListener)
+     * Invoked after all the test methods belonging to the classes inside the <test> tag have run and all their Configuration methods have been called.
+     * Params:
+     * context – The test context
+     * @param context The test context
+     */
+    @Override
+    public void onFinish(ITestContext context) {
+        System.out.println("On finish " + context.getCurrentXmlTest().getName());
+    }
+
+    StepEventBus stepEventBus(/*ITestContext testContext */) {
+        return  eventBusFor(/*testContext*/);
+    }
+
+    private synchronized StepEventBus eventBusFor(/*ITestContext testContext*/) {
+        //String uniqueTestId = testIdentifier.getUniqueId();
+
+        //StepEventBus currentEventBus = StepEventBus.eventBusFor(/*testContext.getName()*/);
+        StepEventBus currentEventBus = StepEventBus.getEventBus();
+        if (!currentEventBus.isBaseStepListenerRegistered()) {
+            File outputDirectory = getOutputDirectory();
+            BaseStepListener baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(outputDirectory);
+            currentEventBus.registerListener(baseStepListener);
+//            currentEventBus.registerListener(new ConsoleLoggingListener(currentEventBus.getEnvironmentVariables()));
+            currentEventBus.registerListener(SerenityInfrastructure.getLoggingListener());
+            logger.trace("  -> ADDED BASE LISTENER " + baseStepListener);
+            StepListener loggingListener = Listeners.getLoggingListener();
+            currentEventBus.registerListener(loggingListener);
+            logger.trace("  -> ADDED LOGGING LISTENER " + loggingListener);
+        }
+        logger.trace("SETTING EVENT BUS FOR THREAD " + Thread.currentThread() + " TO " + currentEventBus);
+        StepEventBus.setCurrentBusToEventBusFor("TestNg");
+        return currentEventBus;
+    }
+
+
+
+    private void startTest() {
+        testStarted = true;
+    }
+    private void endTest() {
+        testStarted = false;
+    }
+
+    private boolean testingThisTest(ITestResult testResult) {
+        //return (testResult.getTestClass() != null) && (testResult.getTestClass().equals(testClass));
+        return true;
+    }
+
+    private void generateReports(/*ITestContext testContext*/) {
+        //logger.trace("GENERATE REPORTS FOR TEST " + testContext.getName());
+        generateReportsFor(getTestOutcomes(/*testIdentifier*/));
+
+        //StepEventBus.clearEventBusFor(testContext.getName());
+    }
+
+        /**
+     * A test runner can generate reports via Reporter instances that subscribe
+     * to the test runner. The test runner tells the reporter what directory to
+     * place the reports in. Then, at the end of the test, the test runner
+     * notifies these reporters of the test outcomes. The reporter's job is to
+     * process each test run outcome and do whatever is appropriate.
+     *
+     * @param testOutcomeResults the test results from the previous test run.
+     */
+    private void generateReportsFor(final List<TestOutcome> testOutcomeResults) {
+        getReportService().generateReportsFor(testOutcomeResults);
+        getReportService().generateConfigurationsReport();
+    }
+
+    private ReportService getReportService() {
+        if (reportService == null) {
+            reportService = new ReportService(getOutputDirectory(), getDefaultReporters());
+        }
+        return reportService;
+    }
+
+        /**
+     * Find the current set of test outcomes produced by the test execution.
+     *
+     *
+     * @return the current list of test outcomes
+     */
+    public List<TestOutcome> getTestOutcomes(/*ITestContext testContext*/) {
+        //logger.trace("GET TEST OUTCOMES FOR " + testContext);
+        //logger.trace(" - BASE STEP LISTENER: " + eventBusFor(testIdentifier).getBaseStepListener());
+        //List<TestOutcome> testOutcomes = eventBusFor(testIdentifier).getBaseStepListener().getTestOutcomes();
+        List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes();
+        /*testOutcomes.forEach(
+                outcome -> {
+                    if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
+                        outcome.setTestOutlineName(DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()));
+                    }
+                }
+        );*/
+        System.out.println("TestOutcomes " + testOutcomes);
+        return testOutcomes;
+    }
+
+
+    private void updateResultsUsingTestAnnotations(ITestResult result) {
+
+        Method method =  result.getMethod().getConstructorOrMethod().getMethod();
+        if (TestMethodConfiguration.forMethod(method).isManual()) {
+            setToManual(method);
+        }
+        //expectedExceptions.forEach(ex -> updateResultsForExpectedException(testIdentifier, ex));
+    }
+
+
+    private void setToManual(Method methodSource) {
+        eventBusFor().testIsManual();
+        TestResult result = TestMethodConfiguration.forMethod(methodSource).getManualResult();
+        eventBusFor().getBaseStepListener().recordManualTestResult(result);
+    }
+
+
+
+}
