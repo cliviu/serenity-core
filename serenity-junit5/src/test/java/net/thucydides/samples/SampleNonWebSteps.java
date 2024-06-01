@@ -24,7 +24,10 @@ public class SampleNonWebSteps {
 
     @Step("A pending step")
     @Pending
-    public void stepThatIsPending() {}
+    public void stepThatIsPending() {
+        System.out.println("XXX PendingStep ");
+        Thread.dumpStack();
+    }
 
     @Step
     @Ignore

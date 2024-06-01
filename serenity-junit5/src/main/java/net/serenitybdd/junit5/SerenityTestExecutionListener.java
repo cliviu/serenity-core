@@ -1,15 +1,12 @@
 package net.serenitybdd.junit5;
 
-import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.agent.ByteBuddyAgent;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.dynamic.loading.ClassReloadingStrategy;
 import net.bytebuddy.matcher.ElementMatchers;
 import net.serenitybdd.core.di.SerenityInfrastructure;
 import net.serenitybdd.junit5.utils.ClassUtil;
 import net.thucydides.model.configuration.SystemPropertiesConfiguration;
-import net.thucydides.model.logging.ConsoleLoggingListener;
 import net.thucydides.model.domain.*;
 import net.thucydides.core.pages.Pages;
 import net.thucydides.model.reports.ReportService;
@@ -18,7 +15,6 @@ import net.thucydides.model.environment.SystemEnvironmentVariables;
 import net.thucydides.model.steps.StepListener;
 import net.thucydides.model.util.Inflector;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.platform.commons.PreconditionViolationException;
