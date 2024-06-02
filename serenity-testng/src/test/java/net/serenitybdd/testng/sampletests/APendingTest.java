@@ -1,6 +1,7 @@
-package net.serenitybdd.testng;
+package net.serenitybdd.testng.sampletests;
 
 import net.serenitybdd.annotations.Pending;
+import net.serenitybdd.testng.SerenityTestNG;
 import org.testng.annotations.Test;
 
 @SerenityTestNG

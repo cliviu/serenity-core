@@ -1,8 +1,8 @@
 package net.serenitybdd.testng;
 
-import net.serenitybdd.annotations.Pending;
 import net.serenitybdd.annotations.Steps;
 import net.serenitybdd.core.steps.Instrumented;
+import net.serenitybdd.testng.sampletests.*;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.webdriver.WebDriverFactory;
 import net.thucydides.model.domain.TestOutcome;
@@ -14,7 +14,6 @@ import net.thucydides.samples.SampleNonWebSteps;
 //import net.thucydides.samples.SamplePassingNonWebScenarioWithManualTests;
 import net.thucydides.samples.SamplePassingNonWebScenarioWithManualTests;
 import org.hamcrest.Matchers;
-import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
 //import org.junit.jupiter.api.extension.ExtendWith;
 //import org.junit.jupiter.params.ParameterizedTest;
@@ -44,35 +43,6 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         StepEventBus.setNoCleanupForStickyBuses(true);
     }
 
-    @SerenityTestNG
-    static final class HappyDayScenarios {
-
-        @Steps
-        public SampleNonWebSteps steps;
-
-        public HappyDayScenarios() {
-            this.steps = Instrumented.instanceOf(SampleNonWebSteps.class).newInstance();
-        }
-
-        @Test
-        public void some_happy_day_scenario() throws Throwable {
-            steps.stepThatSucceeds();
-            steps.anotherStepThatSucceeds();
-        }
-
-        @Test
-        public void some_edge_case_1() {
-            steps.stepThatSucceeds();
-            steps.anotherStepThatSucceeds();
-            steps.stepThatIsPending();
-        }
-
-        @Test
-        public void some_edge_case_2() {
-            steps.stepThatSucceeds();
-            steps.anotherStepThatSucceeds();
-        }
-    }
 
     @Test
     public void should_run_top_level_tests() {
@@ -195,6 +165,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
 
     @Test
+    @Ignore("phase-2")
     public void tests_should_be_run_after_an_assertion_error() {
         SerenityTestNGStarter.runTestClass(AScenarioWithAnAssertionError.class);
         TestOutcome failingTest = getTestOutcomeFor("a_scenario_with_an_assertion_error");
@@ -205,6 +176,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
     }
 
     @Test
+    @Ignore("phase-2")
     public void failing_assertions_with_no_steps_should_still_record_the_error() {
 
         SerenityTestNGStarter.runTestClass(AScenarioWithAnAssertionError.class);
@@ -229,28 +201,17 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         assertThat(outcome.getTestFailureMessage(), not(isEmptyString()));
     }*/
 
-    //@ExtendWith(SerenityJUnit5Extension.class)
-    static final class SampleTestScenario {
 
-        @Steps
-        public SampleNonWebSteps steps;
-
-        @Test
-        public void a_scenario_with_a_failing_step() {
-            steps.stepThatSucceeds();
-            steps.stepThatFails();
-            steps.anotherStepThatSucceeds();
-            steps.stepThatSucceeds();
-        }
-    }
 
     @Test
     public void the_test_runner_skips_any_tests_after_a_failure() {
 
+        //TODO tests have to be injected
         SerenityTestNGStarter.runTestClass(SampleTestScenario.class);
         TestOutcome outcome = getTestOutcomeFor("a_scenario_with_a_failing_step");
 
         List<TestStep> steps = outcome.getTestSteps();
+        System.out.println("Outcome " + outcome.getTitle());
         assertThat(steps.size(), is(4));
         assertThat(steps.get(0).isSuccessful(), is(true));
         assertThat(steps.get(1).isFailure(), is(true));

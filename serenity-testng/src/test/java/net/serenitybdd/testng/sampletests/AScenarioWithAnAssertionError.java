@@ -1,6 +1,7 @@
-package net.serenitybdd.testng;
+package net.serenitybdd.testng.sampletests;
 
 import net.serenitybdd.annotations.Steps;
+import net.serenitybdd.testng.SerenityTestNG;
 import net.thucydides.samples.SampleNonWebSteps;
 import org.testng.annotations.Test;
 

@@ -123,7 +123,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             return;
         }
 
-        //injectSteps(result.getInstance());
+        injectSteps(result.getInstance());
 
         System.out.println("On test start " + result + " " + result.getName() + " " + result.getInstance());
         stepEventBus().clear();
