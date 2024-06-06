@@ -206,7 +206,6 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
     @Test
     public void the_test_runner_skips_any_tests_after_a_failure() {
 
-        //TODO tests have to be injected
         SerenityTestNGStarter.runTestClass(SampleTestScenario.class);
         TestOutcome outcome = getTestOutcomeFor("a_scenario_with_a_failing_step");
 
@@ -219,20 +218,6 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         assertThat(steps.get(3).isSkipped(), is(true));
     }
 
-
-    //@ExtendWith(SerenityJUnit5Extension.class)
-    static final class SampleTestScenarioWithIgnoredAndPendingSteps {
-
-        @Steps
-        public SampleNonWebSteps steps;
-
-        @Test
-        public void scenario_with_failing_step() {
-            steps.stepThatSucceeds();
-            steps.stepThatIsPending();
-            steps.stepThatIsIgnored();
-        }
-    }
 
     @Test
     public void the_test_runner_distinguishes_between_ignored_skipped_and_pending_steps() {
@@ -248,33 +233,6 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         assertThat(pending.getResult(), is(TestResult.PENDING));
     }
 
-    //@ExtendWith(SerenityJUnit5Extension.class)
-    static final class NonWebTestScenarioWithParameterizedSteps {
-
-        @Steps
-        public SampleNonWebSteps steps;
-
-        @Test
-        public void scenario_with_parameterized_steps() {
-            steps.stepWithAParameter("proportionOf");
-            steps.stepWithTwoParameters("proportionOf", 2);
-            steps.stepThatSucceeds();
-            steps.stepThatIsIgnored();
-            steps.stepThatIsPending();
-            steps.anotherStepThatSucceeds();
-        }
-
-        @Test
-        public void should_handle_nested_object_parameters() {
-            steps.a_customized_step_with_object_parameters(new SampleNonWebSteps.CurrencyIn$(100));
-        }
-
-        @Test
-        public void should_be_correct_customized_title_for_parameter_with_comma() {
-            steps.a_customized_step_with_two_parameters("Joe, Smith", "20");
-        }
-
-    }
 
     @Test
     public void the_test_runner_records_each_step_with_a_nice_name_when_steps_have_parameters() {

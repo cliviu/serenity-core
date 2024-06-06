@@ -28,6 +28,7 @@ public class CleanupMethodLocator {
             "net.serenitybdd.core",
             "net.thucydides",
             "org.junit",
+            "org.testng",
             "org.openqa.selenium");
 
     private boolean isAnnotatedWithAFixtureMethod(StackTraceElement stackTraceElement) {
