@@ -15,23 +15,23 @@ import net.thucydides.model.steps.StepListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.*;
+import org.testng.annotations.ITestAnnotation;
 import org.testng.annotations.Ignore;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static net.thucydides.model.reports.ReportService.getDefaultReporters;
-import static net.thucydides.model.steps.TestSourceType.TEST_SOURCE_JUNIT5;
 import static net.thucydides.model.steps.TestSourceType.TEST_SOURCE_TESTNG;
 
 
 
 
-public class SerenityTestNGExecutionListener extends TestListenerAdapter implements IExecutionListener,ISuiteListener {
+public class SerenityTestNGExecutionListener extends TestListenerAdapter implements ITestNGListener, IExecutionListener,
+		IDataProviderListener, ISuiteListener, IAnnotationTransformer {
 
     private static final Logger logger = LoggerFactory.getLogger(SerenityTestNGExecutionListener.class);
 
@@ -388,6 +388,46 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         TestResult result = TestMethodConfiguration.forMethod(methodSource).getManualResult();
         eventBusFor().getBaseStepListener().recordManualTestResult(result);
     }
+
+    @Override
+    public void beforeDataProviderExecution(
+      IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
+        logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
+                    + " context: " + iTestContext.getName());
+    }
+
+  /**
+   * This method gets invoked just after a data provider is invoked.
+   *
+   * @param dataProviderMethod - A {@link IDataProviderMethod} object that contains details about
+   *     the data provider that got executed.
+   * @param method - The {@link ITestNGMethod} method that received the data
+   * @param iTestContext - The current test context
+   */
+  public void afterDataProviderExecution(
+      IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
+        logger.info("afterDataProviderExecution " + dataProviderMethod + "name: " + method.getMethodName()  + "testContext: " + iTestContext);
+  }
+
+  /**
+   * This method gets invoked when the data provider encounters an exception
+   *
+   * @param method - The {@link ITestNGMethod} method that received the data. A reference to the
+   *     corresponding data provider can be obtained via {@link
+   *     ITestNGMethod#getDataProviderMethod()}
+   * @param ctx - The current test context
+   * @param t - The {@link RuntimeException} that embeds the actual exception. Use {@link
+   *     RuntimeException#getCause()} to get to the actual exception.
+   */
+  public void onDataProviderFailure(ITestNGMethod method, ITestContext ctx, RuntimeException t) {
+        logger.info("onDataProviderFailure " + method  + " " + ctx  + " " + t);
+  }
+
+    public void transform(
+        ITestAnnotation annotation, Class testClass, Constructor testConstructor, Method testMethod) {
+   		System.out.println("XXXTransform " + testMethod);
+  }
+
 
 
 

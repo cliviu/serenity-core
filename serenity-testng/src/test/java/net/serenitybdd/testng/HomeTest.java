@@ -4,7 +4,7 @@ package net.serenitybdd.testng;
 import org.testng.Assert;
 import org.testng.annotations.*;
 
-@Listeners(SerenityTestNGExecutionListener.class)
+@Listeners({SerenityTestNGExecutionListener.class})
 public class HomeTest {
 
   public HomeTest(String name){}
