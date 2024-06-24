@@ -49,7 +49,8 @@ public class WhenRunningADataDrivenTestNGScenario {
 
         for(int i = 1; i<= 2; i++) {
             String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSource(java.lang.String)]/[test-template-invocation:#%s]",i);
-            StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            StepEventBus stepEventBus = StepEventBus.getEventBus();
             List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
             assertThat(currentOutcomes.size(), is(1));
             assertThat(currentOutcomes.get(0).getTestSteps().size(), is(2));
@@ -58,7 +59,8 @@ public class WhenRunningADataDrivenTestNGScenario {
 
         for(int i = 1; i<= 3; i++) {
             String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSourceIntegers(int)]/[test-template-invocation:#%s]",i);
-            StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            StepEventBus stepEventBus = StepEventBus.getEventBus();
             List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
             assertThat(currentOutcomes.size(), is(1));
             assertThat(currentOutcomes.get(0).getTestSteps().size(), is(2));
@@ -77,14 +79,16 @@ public class WhenRunningADataDrivenTestNGScenario {
         SerenityTestNGStarter.runTestClass(MultipleDataDrivenTestScenariosWithValueSource.class);
         for(int i = 1; i <= 2; i++) {
             String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSource(java.lang.String)]/[test-template-invocation:#%s]",i);
-            StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            StepEventBus stepEventBus = StepEventBus.getEventBus();
             List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
             assertThat(currentOutcomes.size(), is(1));
             StepEventBus.forceClearEventBusFor(eventBusName);
         }
         for(int i = 1; i<= 3; i++) {
             String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSourceIntegers(int)]/[test-template-invocation:#%s]",i);
-            StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
+            StepEventBus stepEventBus = StepEventBus.getEventBus();
             List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
             assertThat(currentOutcomes.size(), is(1));
             StepEventBus.forceClearEventBusFor(eventBusName);
