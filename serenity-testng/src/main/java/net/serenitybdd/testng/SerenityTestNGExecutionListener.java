@@ -2,11 +2,14 @@ package net.serenitybdd.testng;
 
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.di.SerenityInfrastructure;
+import net.serenitybdd.testng.datadriven.NamedDataTable;
+import net.serenitybdd.testng.datadriven.TestNGDataDrivenAnnotations;
 import net.serenitybdd.testng.utils.ClassUtil;
 import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.Listeners;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.model.configuration.SystemPropertiesConfiguration;
+import net.thucydides.model.domain.DataTable;
 import net.thucydides.model.domain.TestOutcome;
 import net.thucydides.model.domain.TestResult;
 import net.thucydides.model.environment.SystemEnvironmentVariables;
@@ -21,8 +24,7 @@ import org.testng.annotations.Ignore;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static net.thucydides.model.reports.ReportService.getDefaultReporters;
 import static net.thucydides.model.steps.TestSourceType.TEST_SOURCE_TESTNG;
@@ -34,6 +36,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 		IDataProviderListener, ISuiteListener, IAnnotationTransformer {
 
     private static final Logger logger = LoggerFactory.getLogger(SerenityTestNGExecutionListener.class);
+
+    //key-> "ClassName.MethodName"
+    //entries-> DataTable associated with method
+    private final Map<String, DataTable> dataTables = Collections.synchronizedMap(new HashMap<>());
 
     private ReportService reportService;
 
@@ -58,8 +64,17 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void onStart(ISuite suite) {
         System.out.println("Starting Suite " + suite.getName());
+
+
         //eventBusFor(suite.).testSuiteStarted(suite.getXmlSuite().getClass(),"" /*suite.getXmlSuite().getTest().*/);
         StepEventBus.getEventBus().testSuiteStarted(suite.getXmlSuite().getClass(),suite.getName());
+    }
+
+    private void configureParameterizedTestData(Class javaClass) {
+        Map<String, DataTable> parameterTablesForClass = TestNGDataDrivenAnnotations.forClass(javaClass).getParameterTables();
+        if (!parameterTablesForClass.isEmpty()) {
+            dataTables.putAll(parameterTablesForClass);
+        }
     }
 
 
@@ -394,7 +409,20 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
         logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
                     + " context: " + iTestContext.getName());
+        Method testDataMethod =  method.getConstructorOrMethod().getMethod();
+        String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
+        DataTable dataTable  = dataTables.get(dataTableName);
+        if (dataTable == null) {
+            NamedDataTable namedDataTable = new TestNGDataDrivenAnnotations().generateDataTableForMethod(dataProviderMethod, method, iTestContext);
+            dataTable = namedDataTable.getDataTable();
+            dataTables.put(dataTableName, dataTable);
+        }
+        eventBusFor().useExamplesFrom(dataTable);
+        logger.info("useDataTable " + dataTable);
+        //eventBusFor().exampleStarted(dataTable.row(dataProviderMethod.).toStringMap());
     }
+
+
 
   /**
    * This method gets invoked just after a data provider is invoked.
@@ -407,6 +435,12 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
   public void afterDataProviderExecution(
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
         logger.info("afterDataProviderExecution " + dataProviderMethod + "name: " + method.getMethodName()  + "testContext: " + iTestContext);
+        Method testDataMethod =  method.getConstructorOrMethod().getMethod();
+        String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
+        DataTable dataTable = dataTables.get(dataTableName);
+        if (dataTable != null) {
+            eventBusFor().exampleFinished();
+        }
   }
 
   /**

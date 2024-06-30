@@ -6,6 +6,8 @@ import net.thucydides.samples.SampleScenarioSteps;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import static org.testng.Assert.assertNotNull;
+
 @SerenityTestNG
 public class MultipleDataDrivenTestScenariosWithValueSource {
 
@@ -16,7 +18,7 @@ public class MultipleDataDrivenTestScenariosWithValueSource {
     void withValueSource(String word) {
         steps.stepThatSucceeds();
         steps.anotherStepThatSucceeds();
-        //assertNotNull(word);
+        assertNotNull(word);
     }
 
     @DataProvider

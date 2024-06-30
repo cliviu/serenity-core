@@ -1,41 +1,43 @@
 package net.serenitybdd.testng.datadriven;
 
-import au.com.bytecode.opencsv.CSVParser;
 import com.google.common.base.Splitter;
-import net.serenitybdd.junit5.datadriven.JUnit5CSVTestDataSource;
+//import net.serenitybdd.junit5.datadriven.JUnit5CSVTestDataSource;
 import net.thucydides.model.domain.DataTable;
 import net.thucydides.model.environment.SystemEnvironmentVariables;
 import net.thucydides.model.util.EnvironmentVariables;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
+//import org.junit.jupiter.api.TestInstance;
+//import org.junit.jupiter.params.ParameterizedTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.IDataProviderMethod;
+import org.testng.ITestContext;
+import org.testng.ITestNGMethod;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class TestNGDataDrivenAnnotations {
 
 
-    private final Logger logger = LoggerFactory.getLogger(TestNGDataDrivenAnnotations.class);
+    private final static Logger logger = LoggerFactory.getLogger(TestNGDataDrivenAnnotations.class);
 
-    private final EnvironmentVariables environmentVariables;
+    private EnvironmentVariables environmentVariables;
 
-    private final Class testClass;
+    private Class testClass;
 
-    private final Map<String, DataTable> parameterTables;
+    private  Map<String, DataTable> parameterTables = new HashMap<>();
 
     public static TestNGDataDrivenAnnotations forClass(final Class testClass) {
         return new TestNGDataDrivenAnnotations(testClass);
+    }
+
+    public TestNGDataDrivenAnnotations() {
+
     }
 
     TestNGDataDrivenAnnotations(final Class testClass) {
@@ -48,6 +50,68 @@ public class TestNGDataDrivenAnnotations {
         this.parameterTables = generateParameterTables();
     }
 
+    public NamedDataTable generateDataTableForMethod(IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
+        List<List<Object>> parametersAsListsOfObjects = parametersFromDataProvider(dataProviderMethod);
+        Method testDataMethod =  method.getConstructorOrMethod().getMethod();
+        String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
+        System.out.println("ColumnNames string  " + columnNamesString);
+        String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
+        System.out.println("DataTableName  " + dataTableName);
+        DataTable parametersTableFrom = createParametersTableFrom(columnNamesString, parametersAsListsOfObjects);
+        return new NamedDataTable(dataTableName, parametersTableFrom);
+    }
+
+    List<List<Object>> parametersFromDataProvider(IDataProviderMethod dataProviderMethod) {
+		try {
+		    System.out.println("XXX Result before " + dataProviderMethod.getMethod());
+            Object[][] result = (Object[][])dataProviderMethod.getMethod().invoke(dataProviderMethod.getInstance());
+            System.out.println("XXX Result " + result);
+            List<List<Object>>  parametersList = Arrays.asList(result).stream().map(Arrays::asList).collect(Collectors.toList());
+            System.out.println("XXX Result1 " + parametersList);
+            return parametersList;
+        }   catch (IllegalAccessException e) {
+              logger.error("Cannot list the objects from Data Provider ", e);
+		}   catch (InvocationTargetException e) {
+            logger.error("Cannot list the objects from Data Provider ", e);
+		}
+		return null;
+        /*MethodSource methodSourceAnnotation = testDataMethod.getAnnotation(MethodSource.class);
+        String[] value = methodSourceAnnotation.value();
+        String methodName;
+        boolean staticMethodUsed = isStaticMethodUsed(testDataMethod);
+        if (value != null && (value.length > 0) && (!value[0].isEmpty())) {
+            List<String> methodNames = Arrays.asList(value);
+            methodName = methodNames.get(0);
+            if (methodName.indexOf("#") > 0) { //external class source
+                List<List<Object>> result = getListOfObjectsFromExternalClassSource(methodName);
+                if (result != null) return result;
+            }
+        } else { //no factory method name
+            methodName = testDataMethod.getName();
+        }
+
+        try {
+            Method factoryMethod = testDataMethod.getDeclaringClass().getDeclaredMethod(methodName);
+            factoryMethod.setAccessible(true);
+            try {
+                Stream<?> result = null;
+                if (staticMethodUsed) {
+                    result = (Stream<?>) factoryMethod.invoke(null);
+                } else {
+                    result = (Stream<?>) factoryMethod.invoke(testDataMethod.getDeclaringClass().getConstructor().newInstance());
+                }
+                return result.map(argument -> convertToListOfParameters(argument)).collect(Collectors.toList());
+                //return result.map(argument->Arrays.asList(argument.get())).collect(Collectors.toList());
+            } catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
+                logger.error("Cannot get list of objects from method source ", e);
+            }
+        } catch (NoSuchMethodException ex) {
+            logger.error("No static method with the name " + methodName + " found ", ex);
+        }*/
+    }
+
+
+
     public Map<String, DataTable> getParameterTables() {
         return parameterTables;
     }
@@ -56,11 +120,12 @@ public class TestNGDataDrivenAnnotations {
         List<Method> allMethods = findTestDataMethods();
         Map<String, DataTable> dataTables = new HashMap<>();
         for (Method testDataMethod : allMethods) {
-            if (isAValueSourceAnnotatedMethod(testDataMethod)) {
+            //TODO
+            /*if (isAValueSourceAnnotatedMethod(testDataMethod)) {
                 fillDataTablesFromValueSource(dataTables, testDataMethod);
             }  if (isAMethodSourceAnnotatedMethod(testDataMethod)) {
                 fillDataTablesFromMethodSource(dataTables, testDataMethod);
-            }
+            }*/
         }
         return dataTables;
     }
@@ -68,18 +133,20 @@ public class TestNGDataDrivenAnnotations {
     private void fillDataTablesFromValueSource(Map<String, DataTable> dataTables, Method testDataMethod) {
         String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
-        List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromValueSource(testDataMethod);
+        //TODO
+        /*List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromValueSource(testDataMethod);
         logger.debug("GetParameterTables: Put parameter dataTableName " + dataTableName + " -- " + parametersAsListsOfObjects);
-        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
+        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));*/
     }
 
 
     private void fillDataTablesFromMethodSource(Map<String, DataTable> dataTables, Method testDataMethod) {
         String columnNamesString = createColumnNamesFromParameterNames(testDataMethod);
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
-        List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromMethodSource(testDataMethod);
+        //TODO
+        /*List<List<Object>> parametersAsListsOfObjects = listOfObjectsFromMethodSource(testDataMethod);
         logger.info("GetParameterTablesFromMethodSource: Put parameter dataTableName " + dataTableName + " " + parametersAsListsOfObjects);
-        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));
+        dataTables.put(dataTableName, createParametersTableFrom(columnNamesString, parametersAsListsOfObjects));*/
     }
 
     List<Method> findTestDataMethods() {
@@ -92,7 +159,8 @@ public class TestNGDataDrivenAnnotations {
 
         // Add all the data driven methods in this class
         List<Method> allMethods = Arrays.asList(testClass.getDeclaredMethods());
-        allMethods.stream().filter(this::findParameterizedTests).forEach(dataDrivenMethods::add);
+        //TODO
+        //allMethods.stream().filter(this::findParameterizedTests).forEach(dataDrivenMethods::add);
 
         // Add all the data driven methods in any nested classes
         List<Class<?>> nestedClasses = Arrays.asList(testClass.getDeclaredClasses());
@@ -106,7 +174,7 @@ public class TestNGDataDrivenAnnotations {
         return Arrays.asList(method.getParameters()).stream().map(Parameter::getName).collect(Collectors.joining(","));
     }
 
-    List<List<Object>> listOfObjectsFromMethodSource(Method testDataMethod) {
+/*    List<List<Object>> listOfObjectsFromMethodSource(Method testDataMethod) {
         MethodSource methodSourceAnnotation = testDataMethod.getAnnotation(MethodSource.class);
         String[] value = methodSourceAnnotation.value();
         String methodName;
@@ -126,13 +194,6 @@ public class TestNGDataDrivenAnnotations {
             Method factoryMethod = testDataMethod.getDeclaringClass().getDeclaredMethod(methodName);
             factoryMethod.setAccessible(true);
             try {
-//                Stream<Arguments> result = null;
-//                if(staticMethodUsed) {
-//                    result = (Stream<Arguments>)factoryMethod.invoke(null);
-//                } else {
-//                    result = (Stream<Arguments>)factoryMethod.invoke(testDataMethod.getDeclaringClass().getConstructor().newInstance());
-//                }
-//                return result.map(argument->Arrays.asList(argument.get())).collect(Collectors.toList());
                 Stream<?> result = null;
                 if (staticMethodUsed) {
                     result = (Stream<?>) factoryMethod.invoke(null);
@@ -148,9 +209,9 @@ public class TestNGDataDrivenAnnotations {
             logger.error("No static method with the name " + methodName + " found ", ex);
         }
         return null;
-    }
+    }*/
 
-    private List<Object> convertToListOfParameters(Object argument) {
+    /*private List<Object> convertToListOfParameters(Object argument) {
         if (argument instanceof Arguments) {
             return Arrays.asList(((Arguments) argument).get());
         } else {
@@ -201,18 +262,8 @@ public class TestNGDataDrivenAnnotations {
         else if (ArrayUtils.isNotEmpty(annotation.classes()))
             return listOfObjectsFrom(annotation.classes());
         return null;
-    }
+    }*/
 
-    List<List<Object>> listOfCsvObjectsFrom(Method testDataMethod) {
-        CsvSource annotation = testDataMethod.getAnnotation(CsvSource.class);
-        String delimiter = ",";
-        if ((annotation.delimiterString() != null) && (!annotation.delimiterString().isEmpty())){
-            delimiter = annotation.delimiterString();
-        } else if (annotation.delimiter() != 0) {
-            delimiter = String.valueOf(annotation.delimiter());
-        }
-        return listOfCsvObjectsFrom(annotation.value(), delimiter);
-    }
 
     private List<List<Object>> listOfCsvObjectsFrom(Object[] parameters, String delimiter) {
         List<List<Object>> ret = new ArrayList<>();
@@ -223,32 +274,6 @@ public class TestNGDataDrivenAnnotations {
         return ret;
     }
 
-    List<List<Object>> listOfEnumSourceObjectsFrom(Method testDataMethod) {
-        EnumSource annotation = testDataMethod.getAnnotation(EnumSource.class);
-        Class<? extends Enum<?>> enumValue = annotation.value();
-        if (annotation.value() != null) {
-            Enum<?>[] enumConstants = enumValue.getEnumConstants();
-            EnumSource.Mode mode = annotation.mode();
-            String[] names = annotation.names();
-            if (ArrayUtils.isNotEmpty(names)) {
-                Set<String> namesSet = new HashSet(Arrays.asList(names));
-                Set<String> selectedNamesSet = new HashSet(Arrays.asList(enumConstants).stream().map(Enum::toString).collect(Collectors.toList()));
-                switch (mode) {
-                    case INCLUDE:
-                        selectedNamesSet = namesSet;
-                        break;
-                    case EXCLUDE:
-                        selectedNamesSet.removeAll(namesSet);
-                        break;
-                    default:
-                        break;
-                }
-                return listOfObjectsFrom(selectedNamesSet.toArray());
-            }
-            return listOfObjectsFrom(enumConstants);
-        }
-        return null;
-    }
 
     private List<List<Object>> listOfObjectsFrom(Object[] parameters) {
         return Arrays.stream(parameters).map(Arrays::asList).collect(Collectors.toList());
@@ -284,7 +309,7 @@ public class TestNGDataDrivenAnnotations {
         return columnNames;
     }
 
-    private boolean findParameterizedTests(Method method) {
+    /*private boolean findParameterizedTests(Method method) {
         return method.getAnnotation(ParameterizedTest.class) != null &&
                 (isAValueSourceAnnotatedMethod(method)
                         || isACsvFileSourceAnnotatedMethod(method)
@@ -292,9 +317,9 @@ public class TestNGDataDrivenAnnotations {
                         || isAEnumSourceAnnotatedMethod(method)
                         || isAMethodSourceAnnotatedMethod(method)
                         || isAnArgumentsSourceAnnotatedMethod(method));
-    }
+    }*/
 
-    private boolean isAValueSourceAnnotatedMethod(Method method) {
+   /* private boolean isAValueSourceAnnotatedMethod(Method method) {
         return method.getAnnotation(ValueSource.class) != null;
     }
 
@@ -316,5 +341,5 @@ public class TestNGDataDrivenAnnotations {
 
     private boolean isAnArgumentsSourceAnnotatedMethod(Method method) {
         return method.getAnnotation(ArgumentsSource.class) != null;
-    }
+    }*/
 }
