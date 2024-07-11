@@ -43,35 +43,15 @@ public class WhenRunningADataDrivenTestNGScenario {
 
     @Test
     public void the_test_runner_records_the_steps_as_they_are_executed() {
-
-
         SerenityTestNGStarter.runTestClass(MultipleDataDrivenTestScenariosWithValueSource.class);
-
-        for(int i = 1; i<= 2; i++) {
-            String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSource(java.lang.String)]/[test-template-invocation:#%s]",i);
-            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
-            StepEventBus stepEventBus = StepEventBus.getEventBus();
-            List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
-            assertThat(currentOutcomes.size(), is(1));
-            assertThat(currentOutcomes.get(0).getTestSteps().size(), is(2));
-            StepEventBus.forceClearEventBusFor(eventBusName);
-        }
-
-        for(int i = 1; i<= 3; i++) {
-            String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource]/[test-template:withValueSourceIntegers(int)]/[test-template-invocation:#%s]",i);
-            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
-            StepEventBus stepEventBus = StepEventBus.getEventBus();
-            List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
-            assertThat(currentOutcomes.size(), is(1));
-            assertThat(currentOutcomes.get(0).getTestSteps().size(), is(2));
-            StepEventBus.forceClearEventBusFor(eventBusName);
-        }
-
-        /*ConcurrentMap<Object, StepEventBus> stickyEventBuses = StepEventBus.getStickyEventBuses();
-        System.out.println("Sticky buses size " + stickyEventBuses.size());
-        stickyEventBuses.forEach((k,v)->System.out.println(k + "--" + v) );
-
-        assertTrue(StepEventBus.getStickyEventBuses().size()==0);*/
+        StepEventBus stepEventBus = StepEventBus.getEventBus();
+        List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
+        assertThat(currentOutcomes.size(), is(5));
+        assertThat(currentOutcomes.get(0).getTestSteps().size(), is(2));
+        assertThat(currentOutcomes.get(1).getTestSteps().size(), is(2));
+        assertThat(currentOutcomes.get(2).getTestSteps().size(), is(1));
+        assertThat(currentOutcomes.get(3).getTestSteps().size(), is(1));
+        assertThat(currentOutcomes.get(4).getTestSteps().size(), is(1));
     }
 
     @Test

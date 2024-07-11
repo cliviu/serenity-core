@@ -33,7 +33,6 @@ public class MultipleDataDrivenTestScenariosWithValueSource {
 	@Test(dataProvider="intDataProvider")
     void withValueSourceIntegers(int number) {
         steps.stepThatSucceeds();
-        steps.anotherStepThatSucceeds();
     }
 
     @DataProvider
