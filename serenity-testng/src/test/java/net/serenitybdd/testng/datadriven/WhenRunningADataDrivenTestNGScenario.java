@@ -4,7 +4,6 @@ package net.serenitybdd.testng.datadriven;
 import net.serenitybdd.testng.ParameterizedTestsOutcomeAggregator;
 import net.serenitybdd.testng.SerenityTestNGStarter;
 import net.serenitybdd.testng.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource;
-import net.serenitybdd.testng.sampletests.APendingTest;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.webdriver.WebDriverFactory;
 import net.thucydides.model.domain.TestOutcome;

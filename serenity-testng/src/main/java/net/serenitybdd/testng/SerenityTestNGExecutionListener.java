@@ -25,6 +25,7 @@ import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static net.thucydides.model.reports.ReportService.getDefaultReporters;
@@ -37,6 +38,11 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 		IDataProviderListener, ISuiteListener, IAnnotationTransformer {
 
     private static final Logger logger = LoggerFactory.getLogger(SerenityTestNGExecutionListener.class);
+
+
+    private static final Map<Class<?>, String> TEST_CASE_DISPLAY_NAMES = new ConcurrentHashMap<>();
+
+    private static final Map<String, String> DATA_DRIVEN_TEST_NAMES =  new ConcurrentHashMap<>();
 
     //key-> "ClassName.MethodName"
     //entries-> DataTable associated with method
@@ -70,7 +76,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
 
         //eventBusFor(suite.).testSuiteStarted(suite.getXmlSuite().getClass(),"" /*suite.getXmlSuite().getTest().*/);
-        StepEventBus.getEventBus().testSuiteStarted(suite.getXmlSuite().getClass(),suite.getName());
+        //StepEventBus.getEventBus().testSuiteStarted(suite.getXmlSuite().getClass(),suite.getName());
     }
 
     private void configureParameterizedTestData(Class javaClass) {
@@ -127,7 +133,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     }
 
 
-
+    boolean exampleStarted = false;
     int currentExample = 0;
 
     /**
@@ -150,19 +156,35 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
         injectSteps(result.getInstance());
 
+        startTestSuiteForFirstTest(result);
+
         System.out.println("On test start " + result + " " + result.getName() + " " + result.getInstance());
         stepEventBus().clear();
         //stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
         stepEventBus().testStarted(result.getName(),result.getTestClass().getRealClass());
         startTest();
         if (dataTable != null) {
-            eventBusFor().useExamplesFrom(dataTable);
+            if (!exampleStarted) {
+                eventBusFor().exampleFinished();
+                eventBusFor().useExamplesFrom(dataTable);
+                exampleStarted = true;
+                currentExample = 0;
+            }
             logger.info("useDataTable " + dataTable);
 
             eventBusFor().exampleStarted(dataTable.row(currentExample).toStringMap());
             System.out.println("Example started " + currentExample  + " " + dataTable.row(currentExample).toStringMap());
             currentExample++;
         }
+    }
+
+    private void startTestSuiteForFirstTest(ITestResult result) {
+        //if (isMethodSource(testIdentifier)) {
+            Class<?> testCase = result.getTestClass().getRealClass();
+            logger.info("-->TestSuiteStarted " + testCase);
+            String testSuiteName = TEST_CASE_DISPLAY_NAMES.getOrDefault(testCase, testCase.getSimpleName());
+            eventBusFor().testSuiteStarted(testCase, testSuiteName);
+        //}
     }
 
     private boolean isSerenityTestNGClass(ITestResult testResult) {
@@ -494,6 +516,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = namedDataTable.getDataTable();
             dataTables.put(dataTableName, dataTable);
         }
+        exampleStarted = false;
         //eventBusFor().useExamplesFrom(dataTable);
         //logger.info("useDataTable " + dataTable);
         //eventBusFor().exampleStarted(dataTable.row(dataProviderMethod.).toStringMap());
@@ -511,7 +534,8 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
    */
   public void afterDataProviderExecution(
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
-      logger.info("afterDataProviderExecution " + dataProviderMethod + "name: " + method.getMethodName()  + "testContext: " + iTestContext);
+      logger.info("afterDataProviderExecution " + dataProviderMethod + "name: " + method.getMethodName()
+                + " testContext: " + iTestContext + " " + iTestContext.getPassedTests());
   }
 
   /**
