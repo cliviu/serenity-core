@@ -1,6 +1,8 @@
 package net.serenitybdd.testng;
 
-import org.junit.Assume;
+
+
+import nl.javadude.assumeng.Assumes;
 import org.testng.annotations.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -9,7 +11,7 @@ import static org.hamcrest.Matchers.is;
 public final class HasAFailingAssumptionInATest {
     @Test
     public void test_with_failing_assumption() {
-        Assume.assumeThat(true, is(false));
+        Assumes.assumeThat(true, is(false));
     }
 
     @Test

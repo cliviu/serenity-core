@@ -1,7 +1,5 @@
 package net.serenitybdd.testng;
 
-import net.serenitybdd.annotations.Steps;
-import net.serenitybdd.core.steps.Instrumented;
 import net.serenitybdd.testng.sampletests.*;
 import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.core.webdriver.WebDriverFactory;
@@ -10,15 +8,10 @@ import net.thucydides.model.domain.TestResult;
 import net.thucydides.model.domain.TestStep;
 import net.thucydides.model.domain.TestTag;
 import net.thucydides.model.environment.MockEnvironmentVariables;
-import net.thucydides.samples.SampleNonWebSteps;
-//import net.thucydides.samples.SamplePassingNonWebScenarioWithManualTests;
 import net.thucydides.samples.SamplePassingNonWebScenarioWithManualTests;
 import org.hamcrest.Matchers;
-import org.junit.AssumptionViolatedException;
-//import org.junit.jupiter.api.extension.ExtendWith;
-//import org.junit.jupiter.params.ParameterizedTest;
-//import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockitoAnnotations;
+import org.testng.SkipException;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
@@ -90,7 +83,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
 
     @Test
-    @Ignore("clarify if junit assumption has to be supported in JUnit test")
+    //@Ignore("clarify if junit assumption has to be supported in JUnit test")
     public void tests_with_failing_assumptions_should_be_aborted() {
 
         runTestForClass(HasAFailingAssumptionInATest.class);
@@ -98,7 +91,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         TestOutcome testWithFailingAssumption = getTestOutcomeFor("test_with_failing_assumption");
 
         assertThat(testWithFailingAssumption.getResult(), is(TestResult.ABORTED));
-        assertThat(testWithFailingAssumption.getTestFailureCause().asException(), Matchers.instanceOf(AssumptionViolatedException.class));
+        assertThat(testWithFailingAssumption.getTestFailureCause().asException(), Matchers.instanceOf(SkipException.class));
     }
 
     @Test
@@ -211,6 +204,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
         List<TestStep> steps = outcome.getTestSteps();
         System.out.println("Outcome " + outcome.getTitle());
+        System.out.println("Steps " + steps);
         assertThat(steps.size(), is(4));
         assertThat(steps.get(0).isSuccessful(), is(true));
         assertThat(steps.get(1).isFailure(), is(true));

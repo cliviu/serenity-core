@@ -40,6 +40,18 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- TEST DEPENDENCIES -->
         <!-- https://mvnrepository.com/artifact/org.testng/testng -->
         <dependency>
@@ -89,11 +101,19 @@
             <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
-         <dependency>
+        <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
                 <version>${slf4j.version}</version>
                 <scope>test</scope>
-            </dependency>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/nl.javadude.assumeng/assumeng -->
+        <dependency>
+            <groupId>nl.javadude.assumeng</groupId>
+            <artifactId>assumeng</artifactId>
+            <version>1.2.4</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>

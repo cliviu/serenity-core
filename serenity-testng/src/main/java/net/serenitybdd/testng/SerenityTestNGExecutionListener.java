@@ -2,9 +2,7 @@ package net.serenitybdd.testng;
 
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.di.SerenityInfrastructure;
-import net.serenitybdd.testng.datadriven.NamedDataTable;
 import net.serenitybdd.testng.datadriven.TestNGDataDrivenAnnotations;
-import net.serenitybdd.testng.utils.ClassUtil;
 import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.Listeners;
 import net.thucydides.core.steps.StepEventBus;
@@ -32,8 +30,6 @@ import static net.thucydides.model.reports.ReportService.getDefaultReporters;
 import static net.thucydides.model.steps.TestSourceType.TEST_SOURCE_TESTNG;
 
 
-
-
 public class SerenityTestNGExecutionListener extends TestListenerAdapter implements ITestNGListener, IExecutionListener,
 		IDataProviderListener, ISuiteListener, IAnnotationTransformer {
 
@@ -46,7 +42,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
     //key-> "ClassName.MethodName"
     //entries-> DataTable associated with method
-    private final Map<String, DataTable> dataTables = Collections.synchronizedMap(new HashMap<>());
+    private final static Map<String, DataTable> dataTables = Collections.synchronizedMap(new HashMap<>());
 
     private ReportService reportService;
 
@@ -506,7 +502,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void beforeDataProviderExecution(
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
-        logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
+      /*  logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
                     + " context: " + iTestContext.getName());
         Method testDataMethod =  method.getConstructorOrMethod().getMethod();
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
@@ -516,10 +512,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = namedDataTable.getDataTable();
             dataTables.put(dataTableName, dataTable);
         }
-        exampleStarted = false;
-        //eventBusFor().useExamplesFrom(dataTable);
-        //logger.info("useDataTable " + dataTable);
-        //eventBusFor().exampleStarted(dataTable.row(dataProviderMethod.).toStringMap());
+        exampleStarted = false;*/
     }
 
 
@@ -548,16 +541,18 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
    * @param t - The {@link RuntimeException} that embeds the actual exception. Use {@link
    *     RuntimeException#getCause()} to get to the actual exception.
    */
-  public void onDataProviderFailure(ITestNGMethod method, ITestContext ctx, RuntimeException t) {
+    public void onDataProviderFailure(ITestNGMethod method, ITestContext ctx, RuntimeException t) {
         logger.info("onDataProviderFailure " + method  + " " + ctx  + " " + t);
   }
 
     public void transform(
         ITestAnnotation annotation, Class testClass, Constructor testConstructor, Method testMethod) {
    		System.out.println("XXXTransform " + testMethod);
-  }
+    }
 
-
+    public static Map<String, DataTable> getDataTables() {
+        return dataTables;
+    }
 
 
 }

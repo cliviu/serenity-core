@@ -5,8 +5,8 @@ import net.serenitybdd.annotations.Step;
 import net.serenitybdd.annotations.Steps;
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.steps.UIInteractionSteps;
+import nl.javadude.assumeng.Assumes;
 import org.junit.Ignore;
-//import org.junit.jupiter.api.Assumptions;
 import org.openqa.selenium.ElementNotInteractableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,7 @@ public class SampleScenarioSteps extends UIInteractionSteps {
 
     @Step
     public void stepWithFailedAssumption() {
-        /*Assumptions.assumeTrue(false);*/
+        Assumes.assumeThat("failed assertion", false);
     }
 
     @Step
