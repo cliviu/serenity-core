@@ -2,6 +2,7 @@ package net.serenitybdd.testng;
 
 import net.serenitybdd.core.Serenity;
 import net.serenitybdd.core.di.SerenityInfrastructure;
+import net.serenitybdd.testng.datadriven.NamedDataTable;
 import net.serenitybdd.testng.datadriven.TestNGDataDrivenAnnotations;
 import net.thucydides.core.steps.BaseStepListener;
 import net.thucydides.core.steps.Listeners;
@@ -154,14 +155,14 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
         startTestSuiteForFirstTest(result);
 
-        System.out.println("On test start " + result + " " + result.getName() + " " + result.getInstance());
+        logger.info("On test start " + result + " " + result.getName() + " " + result.getInstance() + "datatable" + dataTable);
         stepEventBus().clear();
         //stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
         stepEventBus().testStarted(result.getName(),result.getTestClass().getRealClass());
         startTest();
         if (dataTable != null) {
             if (!exampleStarted) {
-                eventBusFor().exampleFinished();
+                //eventBusFor().exampleFinished();
                 eventBusFor().useExamplesFrom(dataTable);
                 exampleStarted = true;
                 currentExample = 0;
@@ -206,6 +207,9 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         if (testingThisTest(result)) {
             // TODO updateResultsUsingTestAnnotations(description);
             stepEventBus().testFinished();
+            if (dataTable != null) {
+                stepEventBus().exampleFinished();
+            }
             stepEventBus().setTestSource(null);
             endTest();
         }
@@ -502,8 +506,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void beforeDataProviderExecution(
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
-      /*  logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
+        logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
                     + " context: " + iTestContext.getName());
+        System.out.println("XXXbeforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
+                + " context: " + iTestContext.getName());
         Method testDataMethod =  method.getConstructorOrMethod().getMethod();
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
         dataTable  = dataTables.get(dataTableName);
@@ -512,7 +518,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = namedDataTable.getDataTable();
             dataTables.put(dataTableName, dataTable);
         }
-        exampleStarted = false;*/
+        exampleStarted = false;
     }
 
 
