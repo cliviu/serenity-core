@@ -14,6 +14,7 @@ import net.thucydides.model.domain.TestResult;
 import net.thucydides.model.environment.SystemEnvironmentVariables;
 import net.thucydides.model.reports.ReportService;
 import net.thucydides.model.steps.StepListener;
+import net.thucydides.model.util.Inflector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.*;
@@ -69,7 +70,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      */
     @Override
     public void onStart(ISuite suite) {
-        System.out.println("Starting Suite " + suite.getName());
+        logger.info("Starting Suite " + suite.getName());
 
 
         //eventBusFor(suite.).testSuiteStarted(suite.getXmlSuite().getClass(),"" /*suite.getXmlSuite().getTest().*/);
@@ -93,12 +94,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void onFinish(ISuite suite) {
         if (dataTable != null) {
-            eventBusFor().exampleFinished();
-            System.out.println("Example finished " + currentExample  + " " + dataTable.row(currentExample).toStringMap());
             currentExample = 0;
             dataTable = null;
         }
-        System.out.println("Finishing Suite " + suite.getName());
+        logger.info("Finishing Suite " + suite.getName());
         StepEventBus.getEventBus().testSuiteFinished();
         generateReports();
     }
@@ -129,8 +128,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         SystemEnvironmentVariables.currentEnvironment().reset();
     }
 
-
-    boolean exampleStarted = false;
     int currentExample = 0;
 
     /**
@@ -155,22 +152,16 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
         startTestSuiteForFirstTest(result);
 
-        logger.info("On test start " + result + " " + result.getName() + " " + result.getInstance() + "datatable" + dataTable);
         stepEventBus().clear();
-        //stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
-        stepEventBus().testStarted(result.getName(),result.getTestClass().getRealClass());
+        stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
+        String testName = Inflector.getInstance().humanize(result.getMethod().getMethodName());
+        logger.info("On test start " + result + " " + testName + " testName " + result.getTestName());
+        stepEventBus().testStarted(testName,result.getTestClass().getRealClass());
         startTest();
         if (dataTable != null) {
-            if (!exampleStarted) {
-                //eventBusFor().exampleFinished();
-                eventBusFor().useExamplesFrom(dataTable);
-                exampleStarted = true;
-                currentExample = 0;
-            }
-            logger.info("useDataTable " + dataTable);
-
+            eventBusFor().useExamplesFrom(dataTable);
             eventBusFor().exampleStarted(dataTable.row(currentExample).toStringMap());
-            System.out.println("Example started " + currentExample  + " " + dataTable.row(currentExample).toStringMap());
+            logger.info("Example started " + currentExample  + " " + dataTable.row(currentExample).toStringMap());
             currentExample++;
         }
     }
@@ -203,7 +194,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         super.onTestSuccess(result);
         updateResultsUsingTestAnnotations(result);
-        System.out.println("On test success " + result);
+        System.out.println("XXX On test success " + result + " " + result.getTestContext().getName());
         if (testingThisTest(result)) {
             // TODO updateResultsUsingTestAnnotations(description);
             stepEventBus().testFinished();
@@ -477,7 +468,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
                     }
                 }
         );*/
-        System.out.println("TestOutcomes " + testOutcomes);
         return testOutcomes;
     }
 
@@ -508,8 +498,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
         logger.info("beforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
                     + " context: " + iTestContext.getName());
-        System.out.println("XXXbeforeDataProviderExecution " + dataProviderMethod.getName() + " " + dataProviderMethod.getIndices() +   " methodName: " + method.getMethodName()
-                + " context: " + iTestContext.getName());
         Method testDataMethod =  method.getConstructorOrMethod().getMethod();
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
         dataTable  = dataTables.get(dataTableName);
@@ -518,7 +506,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = namedDataTable.getDataTable();
             dataTables.put(dataTableName, dataTable);
         }
-        exampleStarted = false;
     }
 
 

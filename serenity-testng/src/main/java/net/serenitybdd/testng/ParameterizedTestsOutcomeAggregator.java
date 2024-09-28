@@ -5,8 +5,9 @@ import net.thucydides.core.steps.StepEventBus;
 import net.thucydides.model.domain.*;
 import net.thucydides.model.util.Inflector;
 import org.apache.commons.lang3.StringUtils;
-//import org.junit.jupiter.params.ParameterizedTest;
+import org.testng.annotations.Test;
 
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -163,9 +164,8 @@ public class ParameterizedTestsOutcomeAggregator {
 
     private String alternativeMethodName(TestOutcome testOutcome) {
         // Any parameterized test name attributes overrides the qualified name
-        //TODO
-        /*if (hasParameterizedTestName(testOutcome)) {
-            return testOutcome.getTitle();
+        if (hasParameterizedTestName(testOutcome)) {
+            return "ZZGG " +  testOutcome.getTitle();
         }
 
         Optional<String> qualifier = testOutcome.getQualifier();
@@ -173,23 +173,23 @@ public class ParameterizedTestsOutcomeAggregator {
             return testOutcome.getTitle(false) + " " + testOutcome.getQualifier().get();
         } else {
             return testOutcome.getTitle();
-        }*/
-        return "";
+        }
     }
 
-    /*private boolean hasParameterizedTestName(TestOutcome testOutcome) {
+    private boolean hasParameterizedTestName(TestOutcome testOutcome) {
         if (testOutcome.getTestCase() == null) {
             return false;
         }
-        String parameterizedTestName = Arrays.stream(testOutcome.getTestCase().getDeclaredMethods())
-                .filter(method -> method.getName().equals(testOutcome.getMethodName()))
-                .filter(method -> method.isAnnotationPresent(ParameterizedTest.class))
-                .map(method -> method.getAnnotation(ParameterizedTest.class).name())
-                .findFirst()
-                .orElse("");
+        String parameterizedTestName = "";
+        Method[] declaredMethods = testOutcome.getTestCase().getDeclaredMethods();
+        for (Method currentMethod : declaredMethods) {
+            if (currentMethod.isAnnotationPresent(Test.class) && (currentMethod.getAnnotation(Test.class).dataProvider() != null)) {
+                parameterizedTestName = currentMethod.getAnnotation(Test.class).dataProvider();
+            }
+        }
 
         return (!parameterizedTestName.isEmpty());
-    }*/
+    }
 
     public List<TestOutcome> getTestOutcomesForAllParameterSets() {
         List<TestOutcome> testOutcomes = new ArrayList<>();
