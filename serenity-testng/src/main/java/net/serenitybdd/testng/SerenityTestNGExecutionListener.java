@@ -14,7 +14,6 @@ import net.thucydides.model.domain.TestResult;
 import net.thucydides.model.environment.SystemEnvironmentVariables;
 import net.thucydides.model.reports.ReportService;
 import net.thucydides.model.steps.StepListener;
-import net.thucydides.model.util.Inflector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.*;
@@ -168,12 +167,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     }
 
     private void startTestSuiteForFirstTest(ITestResult result) {
-        //if (isMethodSource(testIdentifier)) {
-            Class<?> testCase = result.getTestClass().getRealClass();
-            logger.info("-->TestSuiteStarted " + testCase);
-            String testSuiteName = TEST_CASE_DISPLAY_NAMES.getOrDefault(testCase, testCase.getSimpleName());
-            eventBusFor().testSuiteStarted(testCase, testSuiteName);
-        //}
+        Class<?> testCase = result.getTestClass().getRealClass();
+        logger.info("-->TestSuiteStarted " + testCase);
+        String testSuiteName = TEST_CASE_DISPLAY_NAMES.getOrDefault(testCase, testCase.getSimpleName());
+        eventBusFor().testSuiteStarted(testCase, testSuiteName);
     }
 
     private boolean isSerenityTestNGClass(ITestResult testResult) {
@@ -195,7 +192,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         super.onTestSuccess(result);
         updateResultsUsingTestAnnotations(result);
-        System.out.println("XXX On test success " + result + " " + result.getTestContext().getName());
         if (testingThisTest(result)) {
             // TODO updateResultsUsingTestAnnotations(description);
             stepEventBus().testFinished();
@@ -235,7 +231,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             return;
         }
         super.onTestSkipped(result);
-       // processTestMethodAnnotationsFor(result);
+
     }
 
     @Override
@@ -243,51 +239,23 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         if (!isSerenityTestNGClass(result)) {
             return;
         }
-        super.onTestSkipped(result);
-        processTestMethodAnnotationsFor(result);
+        super.onConfigurationSkip(result);
     }
 
-    private void processTestMethodAnnotationsFor(ITestResult testResult) {
-        //String className = methodTestSource.getClassName();
-        //String methodName = methodTestSource.getMethodName();
-        ITestNGMethod method = testResult.getMethod();
-        //method parameter types are class names as strings comma separated : java.langString,java.lang.Integer
-        /*String methodParameterTypes = methodTestSource.getMethodParameterTypes();
-        List<Class> methodParameterClasses = null;
-
-        if (methodParameterTypes != null && !methodParameterTypes.isEmpty()) {
-            methodParameterClasses = Arrays.asList(methodParameterTypes.split(",")).stream().map(parameterClassName -> {
-                try {
-                    //ClassUtils handles also simple data type like int, char..
-                    return ClassUtil.forName(parameterClassName.trim(), this.getClass().getClassLoader());
-                } catch (ClassNotFoundException e) {
-                    logger.error("Problem when getting parameter classes ", e);
-                    return null;
-                }
-            }).collect(Collectors.toList());
-        }*/
-
-        if (isIgnored(method.getConstructorOrMethod().getMethod())) {
-            startTestAtEventBus(testResult);
-            eventBusFor().testIgnored();
-            eventBusFor().testFinished();
-        }
-
-
-    }
 
     private boolean isIgnored(Method child) {
         return child.getAnnotation(Ignore.class) != null;
     }
 
 
-    private void startTestAtEventBus(ITestResult testResult) {
+    private void startTestAtEventBus(String testMethodName,Class testClass) {
         eventBusFor().setTestSource(TEST_SOURCE_TESTNG.getValue());
         //String displayName = removeEndBracketsFromDisplayName(testIdentifier.getDisplayName());
-        String displayName = testResult.getTestName();
+        //String displayName = testResult.getTestName();
+        String displayName = testMethodName;
         //if (isMethodSource(testIdentifier)) {
             //String className = ((MethodSource) testIdentifier.getSource().get()).getClassName();
-            String className = testResult.getTestClass().getRealClass().getName();
+            String className = testClass.getName();
             try {
                 eventBusFor().testStarted(Optional.ofNullable(displayName).orElse("Initialisation"), Class.forName(className));
             } catch (ClassNotFoundException exception) {
@@ -315,7 +283,16 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void onStart(ITestContext context) {
         super.onStart(context);
-        System.out.println("On start " + context.getCurrentXmlTest().getName());
+        Collection<ITestNGMethod> excludedITestMethods = context.getExcludedMethods();
+        List<String> excludedMethods = excludedITestMethods.stream()
+                .map(each -> each.getConstructorOrMethod().getMethod().getName())
+                .collect(Collectors.toList());
+        for (ITestNGMethod excludedITestMethod : excludedITestMethods) {
+               startTestAtEventBus(excludedITestMethod.getMethodName(),excludedITestMethod.getRealClass());
+               eventBusFor().testIgnored();
+               eventBusFor().testFinished();
+        }
+        System.out.println("On start excluded methods " +  excludedMethods);
     }
 
     /**
@@ -539,9 +516,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         logger.info("onDataProviderFailure " + method  + " " + ctx  + " " + t);
   }
 
-    public void transform(
+    @Override
+    public void transform (
         ITestAnnotation annotation, Class testClass, Constructor testConstructor, Method testMethod) {
-   		System.out.println("XXXTransform " + testMethod);
+        // manipulate annotations if needed
     }
 
     public static Map<String, DataTable> getDataTables() {

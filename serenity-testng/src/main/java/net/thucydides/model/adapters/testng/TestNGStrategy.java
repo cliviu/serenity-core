@@ -1,16 +1,17 @@
 package net.thucydides.model.adapters.testng;
 
-import net.serenitybdd.testng.SerenityTestNG;
+
 import net.thucydides.model.adapters.JUnitStrategy;
 import net.thucydides.model.domain.TestTag;
 import org.testng.SkipException;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 import static java.util.Arrays.stream;
 
@@ -52,17 +53,13 @@ public class TestNGStrategy
 
     @Override
     public boolean isTestMethod(final Method method) {
-
-        boolean testMethod = (method.getAnnotation(org.testng.annotations.Test.class) != null) ;//||
-                             // containsAnnotationCalled(method.getAnnotations(), "ParameterizedTest");
-                             //(method.getAnnotation(org.junit.jupiter.params.ParameterizedTest.class) != null);
-        return testMethod;
+        return (method.getAnnotation(Test.class) != null);
     }
 
     @Override
     public boolean isTestSetupMethod(final Method method) {
-        return (method.getAnnotation(org.testng.annotations.BeforeTest.class) != null)
-               || (method.getAnnotation(org.testng.annotations.BeforeClass.class) != null);
+        return (method.getAnnotation(BeforeTest.class) != null)
+               || (method.getAnnotation(BeforeClass.class) != null);
     }
 
     @Override
@@ -72,37 +69,12 @@ public class TestNGStrategy
 
     @Override
     public boolean isIgnored(final Method method) {
-        return stream(method.getAnnotations()).anyMatch(annotation -> annotation.annotationType().getName().contains("Ignored"));
-        //return (method.getAnnotation(Disabled.class) != null);
-    }
-
-
-    private boolean hasSerenityAnnotation(final Class<?> clazz, final Set<Class<?>> checked) {
-        checked.add(clazz);
-        return stream(clazz.getAnnotations()).anyMatch(a -> carriesSerenityExtension(a, checked));
-    }
-
-    private boolean carriesSerenityExtension(final Annotation annotation, final Set<Class<?>> checked) {
-        return (annotation instanceof SerenityTestNG);
-        /*if (annotation instanceof ExtendWith) {
-            return stream(((ExtendWith) annotation).value())
-                .anyMatch(c -> c.getSimpleName().matches("Serenity.*Extension"));
-        }
-        Class<? extends Annotation> annotationType = annotation.annotationType();
-
-        if (annotationType.getPackage().getName().startsWith("java.lang") // performance optimization
-            || checked.contains(annotation.annotationType()) // avoid endless loops
-        ) {
-            return false;
-        }*/
-
-        // find meta annotations
-        //return hasSerenityAnnotation(annotation.annotationType(), checked);
+        boolean ignored = stream(method.getAnnotations()).anyMatch(annotation -> annotation.annotationType().getName().contains("Ignore"));
+        return ignored;
     }
 
     @Override
     public boolean isAssumptionViolatedException(final Throwable throwable) {
-        //return (throwable instanceof org.opentest4j.TestAbortedException);
         return (throwable instanceof SkipException);
     }
 
@@ -115,11 +87,7 @@ public class TestNGStrategy
 
     @Override
     public Optional<String> getTitleAnnotation(Method testMethod) {
-        //TODO
-       /* DisplayName displayNameAnnotation = testMethod.getAnnotation(DisplayName.class);
-        if (displayNameAnnotation != null) {
-            return Optional.of(displayNameAnnotation.value());
-        }*/
+        //Right now, in TestNG there is no way to provide a custom name.
         return Optional.empty();
     }
 

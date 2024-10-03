@@ -14,7 +14,6 @@ import net.thucydides.model.domain.TestResult;
 import net.thucydides.model.environment.MockEnvironmentVariables;
 import net.thucydides.model.webdriver.Configuration;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.MockitoAnnotations;
 import spock.lang.TempDir;
@@ -106,37 +105,25 @@ public class WhenRunningADataDrivenTestNGScenario {
     }*/
 
     @Test
-    @Ignore("TO be clarified")
     public void a_data_driven_test_with_a_failing_assumption_should_be_ignored()  {
         SerenityTestNGStarter.runTestClass(SampleSingleDataDrivenScenarioWithFailingAssumption.class);
-
-        //for(int i = 1; i <= 5; i++) {
-            //StepEventBus stepEventBus = StepEventBus.eventBusFor(String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.SampleSingleDataDrivenScenarioWithFailingAssumption]/[test-template:happy_day_scenario(java.lang.String, java.lang.Integer)]/[test-template-invocation:#%s]",i));
-            StepEventBus stepEventBus = StepEventBus.getEventBus();
-            List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
-            assertThat(currentOutcomes.size(), is(4));
-            TestOutcome testOutcome1 = currentOutcomes.get(0);
-            assertThat(testOutcome1.getResult(), is(TestResult.IGNORED));
-        //}
+        StepEventBus stepEventBus = StepEventBus.getEventBus();
+        List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
+        assertThat(currentOutcomes.size(), is(4));
+        TestOutcome testOutcome1 = currentOutcomes.get(0);
+        assertThat(testOutcome1.getResult(), is(TestResult.IGNORED));
     }
 
     @Test
     public void data_driven_tests_should_pass_even_if_no_steps_are_called() {
-
         SerenityTestNGStarter.runTestClass(SimpleSuccessfulParameterizedTestSample.class);
-
-        //for(int i = 1; i <= 2; i++) {
-            //String eventBusName = String.format("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.SimpleSuccessfulParameterizedTestSample]/[test-template:test1()]/[test-template-invocation:#%s]",i);
-            //StepEventBus stepEventBus = StepEventBus.eventBusFor(eventBusName);
-            StepEventBus stepEventBus = StepEventBus.getEventBus();
-            List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
-            assertThat(currentOutcomes.size(), is(7));
-            assertThat(currentOutcomes.get(0).getResult(), is(TestResult.SUCCESS));
-            assertThat(currentOutcomes.get(1).getResult(), is(TestResult.SUCCESS));
-            stepEventBus.getBaseStepListener().clearTestOutcomes();
-            stepEventBus.clear();
-            //StepEventBus.forceClearEventBusFor(eventBusName);
-        //}
+        StepEventBus stepEventBus = StepEventBus.getEventBus();
+        List<TestOutcome> currentOutcomes = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
+        assertThat(currentOutcomes.size(), is(7));
+        assertThat(currentOutcomes.get(0).getResult(), is(TestResult.SUCCESS));
+        assertThat(currentOutcomes.get(1).getResult(), is(TestResult.SUCCESS));
+        stepEventBus.getBaseStepListener().clearTestOutcomes();
+        stepEventBus.clear();
     }
 
     @Test
@@ -144,7 +131,6 @@ public class WhenRunningADataDrivenTestNGScenario {
 
         SerenityTestNGStarter.runTestClass(SampleDataDrivenIgnoredScenario.class);
         StepEventBus stepEventBus = StepEventBus.getEventBus();
-        //StepEventBus stepEventBus = StepEventBus.eventBusFor("[engine:junit-jupiter]/[class:net.serenitybdd.junit5.datadriven.samples.SampleDataDrivenIgnoredScenario]/[test-template:ignored_scenario(java.lang.String, int)]");
         List<TestOutcome> currentOutcomes
             = new ParameterizedTestsOutcomeAggregator(stepEventBus.getBaseStepListener()).getTestOutcomesForAllParameterSets();
         assertThat(currentOutcomes.size(), is(1));

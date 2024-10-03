@@ -82,8 +82,8 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
     }
 
 
-    @Test
-    //@Ignore("clarify if junit assumption has to be supported in JUnit test")
+    @Test(enabled = false)
+    @Ignore("clarify if junit assumption has to be supported in JUnit test")
     public void tests_with_failing_assumptions_should_be_aborted() {
 
         runTestForClass(HasAFailingAssumptionInATest.class);
@@ -158,7 +158,6 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
 
     @Test
-    @Ignore("phase-2")
     public void tests_should_be_run_after_an_assertion_error() {
         SerenityTestNGStarter.runTestClass(AScenarioWithAnAssertionError.class);
         TestOutcome failingTest = getTestOutcomeFor("a_scenario_with_an_assertion_error");
@@ -168,7 +167,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         assertThat(nextTest.getResult(), is(TestResult.SUCCESS));
     }
 
-    @Test
+    @Test()
     @Ignore("phase-2")
     public void failing_assertions_with_no_steps_should_still_record_the_error() {
 

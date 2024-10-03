@@ -21,8 +21,8 @@ public class SimpleSuccessfulParameterizedTestSample
     }
 
     @DataProvider
-    public Object[] getParametersFortest1() {
-        return new Object[] {"A" , "B" , "C" };
+    public Object[][] getParametersFortest1() {
+        return new Object[][] { {"A"} ,{ "B"} , {"C"} };
     }
 
     @Test(dataProvider = "getParametersFortest2")
@@ -31,8 +31,8 @@ public class SimpleSuccessfulParameterizedTestSample
     }
 
     @DataProvider
-    public Object[] getParametersFortest2() {
-        return new Object[] {"D", "E" ,"F","H" };
+    public Object[][] getParametersFortest2() {
+        return new Object[][] { {"D"}, {"E"} ,{"F"},{"H"} };
     }
 
 }

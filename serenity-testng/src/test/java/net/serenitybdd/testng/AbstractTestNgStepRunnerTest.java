@@ -58,17 +58,11 @@ public abstract class AbstractTestNgStepRunnerTest {
     }
 
     public void runTestForClass(Class testClass){
-        /*LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-                .selectors(selectClass(testClass))
-                .build();
-        LauncherFactory.create().execute(request);*/
         SerenityTestNGStarter.runTestClass(testClass);
     }
 
 
     public static TestOutcome getTestOutcomeFor(String testName) {
-        //return StepEventBus.eventBusForTest(testName).get().getBaseStepListener().getTestOutcomes().get(0);
-        //return StepEventBus.getEventBus().getBaseStepListener().getTestOutcomes().get(0);
         return StepEventBus.getEventBus().getBaseStepListener().getTestOutcomes().stream().filter(ta->ta.getName().equals(testName)).collect(Collectors.toList()).get(0);
     }
 }

@@ -16,7 +16,7 @@ public class SampleDataDrivenIgnoredScenario
         
 
     @Ignore
-    @Test(dataProvider = "getParametersForIgnoredScenario")
+    @Test(dataProvider = "getParametersForIgnoredScenario", enabled = false)
     public void ignored_scenario(String option1,int option2) {
         steps.stepWithParameters(option1,option2);
     }
