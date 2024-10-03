@@ -98,7 +98,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         logger.info("Finishing Suite " + suite.getName());
         StepEventBus.getEventBus().testSuiteFinished();
-        generateReports();
+        generateReports(suite);
     }
 
 
@@ -192,15 +192,12 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         super.onTestSuccess(result);
         updateResultsUsingTestAnnotations(result);
-        if (testingThisTest(result)) {
-            // TODO updateResultsUsingTestAnnotations(description);
-            stepEventBus().testFinished();
-            if (dataTable != null) {
-                stepEventBus().exampleFinished();
-            }
-            stepEventBus().setTestSource(null);
-            endTest();
+        stepEventBus().testFinished();
+        if (dataTable != null) {
+            stepEventBus().exampleFinished();
         }
+        stepEventBus().setTestSource(null);
+        endTest();
     }
 
     /**
@@ -217,12 +214,11 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             return;
         }
         super.onTestFailure(result);
-        if (testingThisTest(result)) {
-            //TODO startTestIfNotYetStarted(failure.getDescription());
-            stepEventBus().testFailed(result.getThrowable());
-            //TODO updateFailureList(failure);
-            endTest();
-        }
+        //TODO startTestIfNotYetStarted(failure.getDescription());
+        stepEventBus().testFailed(result.getThrowable());
+        //TODO updateFailureList(failure);
+        endTest();
+
     }
 
     @Override
@@ -341,16 +337,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         testStarted = false;
     }
 
-    private boolean testingThisTest(ITestResult testResult) {
-        //return (testResult.getTestClass() != null) && (testResult.getTestClass().equals(testClass));
-        return true;
-    }
-
-    private void generateReports(/*ITestContext testContext*/) {
-        //logger.trace("GENERATE REPORTS FOR TEST " + testContext.getName());
+    private void generateReports(ISuite suite) {
+        logger.debug("GENERATE REPORTS for suite " + suite.getName());
         generateReportsFor(getNonDataDrivenTestOutcomes());
         generateReportsForParameterizedTests();
-        //StepEventBus.clearEventBusFor(testContext.getName());
     }
 
         /**
@@ -369,18 +359,9 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     }
 
      private void generateReportsForParameterizedTests(/*List<TestIdentifier> testIdentifiers*/) {
-        //logger.trace("GENERATE REPORTS FOR PARAMETERIZED TESTS " + testIdentifiers);
-        /*List<TestOutcome> allTestOutcomes = testIdentifiers
-                .stream()
-                .map(this::getTestOutcomes)
-                .flatMap(List::stream)
-                .collect(Collectors.toList());*/
         ParameterizedTestsOutcomeAggregator parameterizedTestsOutcomeAggregator
                 = new ParameterizedTestsOutcomeAggregator(getDataDrivenTestOutcomes()/*allTestOutcomes*/);
-
         generateReportsFor(parameterizedTestsOutcomeAggregator.aggregateTestOutcomesByTestMethods());
-
-        //testIdentifiers.stream().map(TestIdentifier::getUniqueId).forEach(StepEventBus::clearEventBusFor);
     }
 
     private ReportService getReportService() {
@@ -412,16 +393,12 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         return testOutcomes;
     }
 
-        /**
+    /**
      * Find the current set of test outcomes produced by the test execution.
-     *
-     *
      * @return the current list of test outcomes
      */
     public List<TestOutcome> getDataDrivenTestOutcomes(/*ITestContext testContext*/) {
-        //logger.trace("GET TEST OUTCOMES FOR " + testContext);
-        //logger.trace(" - BASE STEP LISTENER: " + eventBusFor(testIdentifier).getBaseStepListener());
-        //List<TestOutcome> testOutcomes = eventBusFor(testIdentifier).getBaseStepListener().getTestOutcomes();
+
         List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
         /*testOutcomes.forEach(
                 outcome -> {
@@ -434,18 +411,8 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         return testOutcomes;
     }
 
-    public List<TestOutcome> getNonDataDrivenTestOutcomes(/*ITestContext testContext*/) {
-        //logger.trace("GET TEST OUTCOMES FOR " + testContext);
-        //logger.trace(" - BASE STEP LISTENER: " + eventBusFor(testIdentifier).getBaseStepListener());
-        //List<TestOutcome> testOutcomes = eventBusFor(testIdentifier).getBaseStepListener().getTestOutcomes();
+    public List<TestOutcome> getNonDataDrivenTestOutcomes() {
         List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(to->!to.isDataDriven()).collect(Collectors.toList());
-        /*testOutcomes.forEach(
-                outcome -> {
-                    if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
-                        outcome.setTestOutlineName(DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()));
-                    }
-                }
-        );*/
         return testOutcomes;
     }
 
@@ -500,6 +467,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
       IDataProviderMethod dataProviderMethod, ITestNGMethod method, ITestContext iTestContext) {
       logger.info("afterDataProviderExecution " + dataProviderMethod + "name: " + method.getMethodName()
                 + " testContext: " + iTestContext + " " + iTestContext.getPassedTests());
+      //dataTable = null;
   }
 
   /**
