@@ -9,9 +9,7 @@ public final class ADisabledTest {
     public void previous_test() {
     }
 
-    //@Ignore
     @Test(enabled = false)
-    //https://github.com/junit-team/testng-engine/issues/3
     public void a_disabled_test() {
     }
 

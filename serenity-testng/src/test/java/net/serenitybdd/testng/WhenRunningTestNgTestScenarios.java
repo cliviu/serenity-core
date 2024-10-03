@@ -129,17 +129,12 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
         assertThat(testOutcome.getResult(), is(TestResult.SUCCESS));
     }
 
-
-    //TODO ignored tests are completely ignored
-    /*@Test
+    @Test
     public void disabled_tests_should_be_skipped() {
         runTestForClass(ADisabledTest.class);
         TestOutcome testOutcome = getTestOutcomeFor("a_disabled_test");
         assertThat(testOutcome.getResult(), is(TestResult.IGNORED));
-    }*/
-
-
-    //@ExtendWith(SerenityJUnit5Extension.class)
+    }
 
 
     @Test
