@@ -16,7 +16,7 @@ public class HappyDayScenarios {
 		this.steps = Instrumented.instanceOf(SampleNonWebSteps.class).newInstance();
 	}
 
-	@Test
+	@Test(testName = "My happy day scenario")
 	public void some_happy_day_scenario() throws Throwable {
 		steps.stepThatSucceeds();
 		steps.anotherStepThatSucceeds();

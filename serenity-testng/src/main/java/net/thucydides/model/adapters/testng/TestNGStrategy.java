@@ -87,7 +87,10 @@ public class TestNGStrategy
 
     @Override
     public Optional<String> getTitleAnnotation(Method testMethod) {
-        //Right now, in TestNG there is no way to provide a custom name.
+        Test displayNameAnnotation = testMethod.getAnnotation(Test.class);
+        if (displayNameAnnotation != null && displayNameAnnotation.testName() != null) {
+            return Optional.of(displayNameAnnotation.testName());
+        }
         return Optional.empty();
     }
 

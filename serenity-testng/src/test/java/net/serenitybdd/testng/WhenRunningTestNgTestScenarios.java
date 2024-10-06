@@ -42,11 +42,11 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
         runTestForClass(HappyDayScenarios.class);
 
-        TestOutcome happyDayScenario = getTestOutcomeFor("some_happy_day_scenario");
+        TestOutcome happyDayScenario = getTestOutcomeFor("My happy day scenario");
         TestOutcome edgeCase1Scenario = getTestOutcomeFor("some_edge_case_1");
         TestOutcome edgeCase2Scenario = getTestOutcomeFor("some_edge_case_2");
 
-        assertThat(happyDayScenario.getTitle(), is("Some happy day scenario"));
+        assertThat(happyDayScenario.getTitle(), is("My happy day scenario"));
         assertThat(happyDayScenario.getResult(), is(TestResult.SUCCESS));
 
         assertThat(edgeCase1Scenario.getTitle(), is("Some edge case 1"));
@@ -62,9 +62,9 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
         runTestForClass(HappyDayScenarios.class);
 
-        TestOutcome happyDayScenario = getTestOutcomeFor("some_happy_day_scenario");
+        TestOutcome happyDayScenario = getTestOutcomeFor("My happy day scenario");
 
-        assertThat(happyDayScenario.getTitle(), is("Some happy day scenario"));
+        assertThat(happyDayScenario.getTitle(), is("My happy day scenario"));
         assertThat(happyDayScenario.getTestSteps(), hasSize(2));
         assertThat(happyDayScenario.getTestSteps().get(0).getDescription(), is("Step that succeeds"));
         assertThat(happyDayScenario.getTestSteps().get(1).getDescription(), is("Another step that succeeds"));
@@ -76,7 +76,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
 
         runTestForClass(HappyDayScenarios.class);
 
-        TestOutcome happyDayScenario = getTestOutcomeFor("some_happy_day_scenario");
+        TestOutcome happyDayScenario = getTestOutcomeFor("My happy day scenario");
 
         assertThat(happyDayScenario.getScreenshots(), hasSize(0));
     }
@@ -167,7 +167,7 @@ public class WhenRunningTestNgTestScenarios extends AbstractTestNgStepRunnerTest
     public void failing_assertions_with_no_steps_should_still_record_the_error() {
 
         SerenityTestNGStarter.runTestClass(AScenarioWithAnAssertionError.class);
-        TestOutcome outcome = getTestOutcomeFor("scenario_with_an_assertion_error");
+        TestOutcome outcome = getTestOutcomeFor("a_scenario_with_an_assertion_error");
 
         assertThat(outcome.getResult(), is(TestResult.FAILURE));
         assertThat(outcome.getTestFailureMessage(), is("Oh bother!"));

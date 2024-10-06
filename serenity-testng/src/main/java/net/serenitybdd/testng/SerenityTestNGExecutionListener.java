@@ -155,6 +155,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
         //String testName = Inflector.getInstance().humanize(result.getMethod().getMethodName());
         String testName = result.getName();
+        Method testMethod =  result.getMethod().getConstructorOrMethod().getMethod();
+        if (TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().isPresent()) {
+            testName = TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().get();
+        }
         logger.info("On test start " + result + " " + testName + " testName " + result.getTestName());
         stepEventBus().testStarted(testName,result.getTestClass().getRealClass());
         startTest();
