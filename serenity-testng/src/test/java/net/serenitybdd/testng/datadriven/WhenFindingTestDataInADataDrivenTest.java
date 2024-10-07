@@ -18,12 +18,10 @@ public class WhenFindingTestDataInADataDrivenTest
 {
 
 
-    @Test
-    @Ignore
+    @Test(enabled = false)
     public void the_parameterized_data_method_returns_the_set_of_test_data_valueSource() {
 
-        Map<String,DataTable> testDataTable = TestNGDataDrivenAnnotations.forClass(MultipleDataDrivenTestScenariosWithValueSource.class).getParameterTables();
-        //assertThat(testDataTable.keySet().size(), is(2));
+        /*Map<String,DataTable> testDataTable = TestNGDataDrivenAnnotations.forClass(MultipleDataDrivenTestScenariosWithValueSource.class).getParameterTables();
 
         DataTable dataTableStrings = testDataTable.get("net.serenitybdd.junit5.datadriven.samples.MultipleDataDrivenTestScenariosWithValueSource.withValueSource");
         assertThat(dataTableStrings.getRows().size(), is(2));
@@ -38,6 +36,6 @@ public class WhenFindingTestDataInADataDrivenTest
         List<DataTableRow> integersRows = dataTableIntegers.getRows();
         assertThat(integersRows.get(0).getStringValues().get(0), is("1"));
         assertThat(integersRows.get(1).getStringValues().get(0), is("2"));
-        assertThat(integersRows.get(2).getStringValues().get(0), is("3"));
+        assertThat(integersRows.get(2).getStringValues().get(0), is("3"));*/
     }
 }

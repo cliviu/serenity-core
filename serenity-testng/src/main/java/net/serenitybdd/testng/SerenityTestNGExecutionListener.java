@@ -70,17 +70,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     @Override
     public void onStart(ISuite suite) {
         logger.info("Starting Suite " + suite.getName());
-
-
-        //eventBusFor(suite.).testSuiteStarted(suite.getXmlSuite().getClass(),"" /*suite.getXmlSuite().getTest().*/);
-        //StepEventBus.getEventBus().testSuiteStarted(suite.getXmlSuite().getClass(),suite.getName());
-    }
-
-    private void configureParameterizedTestData(Class javaClass) {
-        Map<String, DataTable> parameterTablesForClass = TestNGDataDrivenAnnotations.forClass(javaClass).getParameterTables();
-        if (!parameterTablesForClass.isEmpty()) {
-            dataTables.putAll(parameterTablesForClass);
-        }
     }
 
 
@@ -153,9 +142,11 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
         stepEventBus().clear();
         stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
+        Method testMethod =  result.getMethod().getConstructorOrMethod().getMethod();
+        eventBusFor().getBaseStepListener().addTagsToCurrentStory(TestNGTags.forMethod(testMethod));
         //String testName = Inflector.getInstance().humanize(result.getMethod().getMethodName());
         String testName = result.getName();
-        Method testMethod =  result.getMethod().getConstructorOrMethod().getMethod();
+
         if (TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().isPresent()) {
             testName = TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().get();
         }
@@ -451,7 +442,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         String dataTableName = testDataMethod.getDeclaringClass().getCanonicalName() + "." + testDataMethod.getName();
         dataTable  = dataTables.get(dataTableName);
         if (dataTable == null) {
-            NamedDataTable namedDataTable = new TestNGDataDrivenAnnotations().generateDataTableForMethod(dataProviderMethod, method, iTestContext);
+            NamedDataTable namedDataTable = new TestNGDataDrivenAnnotations().generateDataTableForMethod(dataProviderMethod, method);
             dataTable = namedDataTable.getDataTable();
             dataTables.put(dataTableName, dataTable);
         }
