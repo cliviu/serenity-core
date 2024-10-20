@@ -56,8 +56,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
     private DataTable dataTable;
 
+    private final List<BaseStepListener> allBaseStepListeners =  Collections.synchronizedList(new ArrayList<>());
+
     public SerenityTestNGExecutionListener() {
-       BaseStepListener baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(getOutputDirectory());
+
     }
 
 
@@ -86,7 +88,8 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = null;
         }
         logger.info("Finishing Suite " + suite.getName());
-        StepEventBus.getEventBus().testSuiteFinished();
+        //TODO
+        //eventBusFor(suite.).testSuiteFinished();
         generateReports(suite);
     }
 
@@ -130,42 +133,44 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      */
     @Override
     public void onTestStart(ITestResult result) {
-        //status = STARTED
-
         if (!isSerenityTestNGClass(result)) {
             return;
         }
-
         injectSteps(result.getInstance());
-
         startTestSuiteForFirstTest(result);
-
-        stepEventBus().clear();
-        stepEventBus().setTestSource(TEST_SOURCE_TESTNG.getValue());
+        //stepEventBus().clear();
         Method testMethod =  result.getMethod().getConstructorOrMethod().getMethod();
-        eventBusFor().getBaseStepListener().addTagsToCurrentStory(TestNGTags.forMethod(testMethod));
-        //String testName = Inflector.getInstance().humanize(result.getMethod().getMethodName());
-        String testName = result.getName();
+        eventBusFor(result).getBaseStepListener().addTagsToCurrentStory(TestNGTags.forMethod(testMethod));
+        eventBusFor(result).setTestSource(TEST_SOURCE_TESTNG.getValue());
 
+        String testName = result.getName();
         if (TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().isPresent()) {
             testName = TestNGTestMethodAnnotations.forTest(testMethod).getDisplayName().get();
         }
         logger.info("On test start " + result + " " + testName + " testName " + result.getTestName());
-        stepEventBus().testStarted(testName,result.getTestClass().getRealClass());
+        eventBusFor(result).testStarted(testName,result.getTestClass().getRealClass());
         startTest();
         if (dataTable != null) {
-            eventBusFor().useExamplesFrom(dataTable);
-            eventBusFor().exampleStarted(dataTable.row(currentExample).toStringMap());
+            eventBusFor(result).useExamplesFrom(dataTable);
+            eventBusFor(result).exampleStarted(dataTable.row(currentExample).toStringMap());
             logger.info("Example started " + currentExample  + " " + dataTable.row(currentExample).toStringMap());
             currentExample++;
         }
     }
 
+    List<Class<?>> testSuites = new ArrayList<>();
+
     private void startTestSuiteForFirstTest(ITestResult result) {
         Class<?> testCase = result.getTestClass().getRealClass();
-        logger.info("-->TestSuiteStarted " + testCase);
-        String testSuiteName = TEST_CASE_DISPLAY_NAMES.getOrDefault(testCase, testCase.getSimpleName());
-        eventBusFor().testSuiteStarted(testCase, testSuiteName);
+        System.out.println("XXXstartTestSuiteForFirstTest  " + testCase + " " + testSuites);
+        //if (!testSuites.contains(testCase)) {
+            testSuites.add(testCase);
+            logger.info("-->TestSuiteStarted " + testCase);
+            String testSuiteName = TEST_CASE_DISPLAY_NAMES.getOrDefault(testCase, testCase.getSimpleName());
+            eventBusFor(result).testSuiteStarted(testCase, testSuiteName);
+        //} else {
+        //    logger.info("-->TestSuiteAlreadyStarted " + testCase);
+        //}
     }
 
     private boolean isSerenityTestNGClass(ITestResult testResult) {
@@ -187,11 +192,11 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         super.onTestSuccess(result);
         updateResultsUsingTestAnnotations(result);
-        stepEventBus().testFinished();
+        eventBusFor(result).testFinished();
         if (dataTable != null) {
-            stepEventBus().exampleFinished();
+            eventBusFor(result).exampleFinished();
         }
-        stepEventBus().setTestSource(null);
+        eventBusFor(result).setTestSource(null);
         endTest();
     }
 
@@ -210,7 +215,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         }
         super.onTestFailure(result);
         //TODO startTestIfNotYetStarted(failure.getDescription());
-        stepEventBus().testFailed(result.getThrowable());
+        eventBusFor(result).testFailed(result.getThrowable());
         //TODO updateFailureList(failure);
         endTest();
 
@@ -240,7 +245,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
 
     private void startTestAtEventBus(String testMethodName,Class testClass) {
-        eventBusFor().setTestSource(TEST_SOURCE_TESTNG.getValue());
+        eventBusFor(testClass).setTestSource(TEST_SOURCE_TESTNG.getValue());
         //String displayName = removeEndBracketsFromDisplayName(testIdentifier.getDisplayName());
         //String displayName = testResult.getTestName();
         String displayName = testMethodName;
@@ -248,7 +253,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             //String className = ((MethodSource) testIdentifier.getSource().get()).getClassName();
             String className = testClass.getName();
             try {
-                eventBusFor().testStarted(Optional.ofNullable(displayName).orElse("Initialisation"), Class.forName(className));
+                eventBusFor(testClass).testStarted(Optional.ofNullable(displayName).orElse("Initialisation"), Class.forName(className));
             } catch (ClassNotFoundException exception) {
                 logger.error("Exception when starting test at event bus ", exception);
             }
@@ -279,9 +284,10 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
                 .map(each -> each.getConstructorOrMethod().getMethod().getName())
                 .collect(Collectors.toList());
         for (ITestNGMethod excludedITestMethod : excludedITestMethods) {
-               startTestAtEventBus(excludedITestMethod.getMethodName(),excludedITestMethod.getRealClass());
-               eventBusFor().testIgnored();
-               eventBusFor().testFinished();
+               Class testClass = excludedITestMethod.getRealClass();
+               startTestAtEventBus(excludedITestMethod.getMethodName(),testClass);
+               eventBusFor(testClass).testIgnored();
+               eventBusFor(testClass).testFinished();
         }
         System.out.println("On start excluded methods " +  excludedMethods);
     }
@@ -298,18 +304,17 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         System.out.println("On finish " + context.getCurrentXmlTest().getName());
     }
 
-    StepEventBus stepEventBus(/*ITestContext testContext */) {
-        return  eventBusFor(/*testContext*/);
+    private synchronized StepEventBus eventBusFor(ITestResult testResult) {
+        return eventBusFor(testResult.getTestClass().getRealClass());
     }
 
-    private synchronized StepEventBus eventBusFor(/*ITestContext testContext*/) {
-        //String uniqueTestId = testIdentifier.getUniqueId();
+    private synchronized StepEventBus eventBusFor(Class testclass) {
 
-        //StepEventBus currentEventBus = StepEventBus.eventBusFor(/*testContext.getName()*/);
-        StepEventBus currentEventBus = StepEventBus.getEventBus();
+        StepEventBus currentEventBus = StepEventBus.eventBusFor(testclass.getName());
         if (!currentEventBus.isBaseStepListenerRegistered()) {
             File outputDirectory = getOutputDirectory();
             BaseStepListener baseStepListener = Listeners.getBaseStepListener().withOutputDirectory(outputDirectory);
+            allBaseStepListeners.add(baseStepListener);
             currentEventBus.registerListener(baseStepListener);
 //            currentEventBus.registerListener(new ConsoleLoggingListener(currentEventBus.getEnvironmentVariables()));
             currentEventBus.registerListener(SerenityInfrastructure.getLoggingListener());
@@ -319,7 +324,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             logger.trace("  -> ADDED LOGGING LISTENER " + loggingListener);
         }
         logger.trace("SETTING EVENT BUS FOR THREAD " + Thread.currentThread() + " TO " + currentEventBus);
-        StepEventBus.setCurrentBusToEventBusFor("TestNg");
+        StepEventBus.setCurrentBusToEventBusFor(testclass.getName());
         return currentEventBus;
     }
 
@@ -376,7 +381,15 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         //logger.trace("GET TEST OUTCOMES FOR " + testContext);
         //logger.trace(" - BASE STEP LISTENER: " + eventBusFor(testIdentifier).getBaseStepListener());
         //List<TestOutcome> testOutcomes = eventBusFor(testIdentifier).getBaseStepListener().getTestOutcomes();
-        List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes();
+        //TODO - get testOutcomes from all stepbuses
+
+        //List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes();
+
+        List<TestOutcome> allTestOutcomes = new ArrayList<>();
+        for(BaseStepListener stepListener :  allBaseStepListeners) {
+            allTestOutcomes.addAll(stepListener.getTestOutcomes());
+        }
+
         /*testOutcomes.forEach(
                 outcome -> {
                     if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
@@ -384,8 +397,8 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
                     }
                 }
         );*/
-        System.out.println("TestOutcomes " + testOutcomes);
-        return testOutcomes;
+        System.out.println("TestOutcomes " + allTestOutcomes);
+        return allTestOutcomes;
     }
 
     /**
@@ -394,7 +407,9 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      */
     public List<TestOutcome> getDataDrivenTestOutcomes(/*ITestContext testContext*/) {
 
-        List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
+        //TODO get testOutcomes from all buses
+        //List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
+        List<TestOutcome> testOutcomes = getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
         /*testOutcomes.forEach(
                 outcome -> {
                     if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
@@ -407,8 +422,8 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     }
 
     public List<TestOutcome> getNonDataDrivenTestOutcomes() {
-        List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(to->!to.isDataDriven()).collect(Collectors.toList());
-        return testOutcomes;
+        //TODO
+        return getTestOutcomes().stream().filter(to->!to.isDataDriven()).collect(Collectors.toList());
     }
 
 
@@ -421,16 +436,16 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
         Method method =  result.getMethod().getConstructorOrMethod().getMethod();
         if (TestMethodConfiguration.forMethod(method).isManual()) {
-            setToManual(method);
+            setToManual(result,method);
         }
         //expectedExceptions.forEach(ex -> updateResultsForExpectedException(testIdentifier, ex));
     }
 
 
-    private void setToManual(Method methodSource) {
-        eventBusFor().testIsManual();
+    private void setToManual(ITestResult iTestResult,Method methodSource) {
+        eventBusFor(iTestResult).testIsManual();
         TestResult result = TestMethodConfiguration.forMethod(methodSource).getManualResult();
-        eventBusFor().getBaseStepListener().recordManualTestResult(result);
+        eventBusFor(iTestResult).getBaseStepListener().recordManualTestResult(result);
     }
 
     @Override
