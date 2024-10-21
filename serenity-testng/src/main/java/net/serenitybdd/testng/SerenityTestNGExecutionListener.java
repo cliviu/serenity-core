@@ -162,7 +162,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
 
     private void startTestSuiteForFirstTest(ITestResult result) {
         Class<?> testCase = result.getTestClass().getRealClass();
-        System.out.println("XXXstartTestSuiteForFirstTest  " + testCase + " " + testSuites);
         //if (!testSuites.contains(testCase)) {
             testSuites.add(testCase);
             logger.info("-->TestSuiteStarted " + testCase);
@@ -244,20 +243,16 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
     }
 
 
-    private void startTestAtEventBus(String testMethodName,Class testClass) {
+    private void startTestAtEventBus(String testMethodName,Class<?> testClass) {
         eventBusFor(testClass).setTestSource(TEST_SOURCE_TESTNG.getValue());
-        //String displayName = removeEndBracketsFromDisplayName(testIdentifier.getDisplayName());
-        //String displayName = testResult.getTestName();
         String displayName = testMethodName;
-        //if (isMethodSource(testIdentifier)) {
-            //String className = ((MethodSource) testIdentifier.getSource().get()).getClassName();
-            String className = testClass.getName();
-            try {
-                eventBusFor(testClass).testStarted(Optional.ofNullable(displayName).orElse("Initialisation"), Class.forName(className));
-            } catch (ClassNotFoundException exception) {
-                logger.error("Exception when starting test at event bus ", exception);
-            }
-        //}
+        String className = testClass.getName();
+        try {
+            eventBusFor(testClass).testStarted(Optional.ofNullable(displayName).orElse("Initialisation"), Class.forName(className));
+        } catch (ClassNotFoundException exception) {
+            logger.error("Exception when starting test at event bus ", exception);
+        }
+
     }
 
     @Override
@@ -308,7 +303,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         return eventBusFor(testResult.getTestClass().getRealClass());
     }
 
-    private synchronized StepEventBus eventBusFor(Class testclass) {
+    private synchronized StepEventBus eventBusFor(Class<?> testclass) {
 
         StepEventBus currentEventBus = StepEventBus.eventBusFor(testclass.getName());
         if (!currentEventBus.isBaseStepListenerRegistered()) {
@@ -343,7 +338,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         generateReportsForParameterizedTests();
     }
 
-        /**
+    /**
      * A test runner can generate reports via Reporter instances that subscribe
      * to the test runner. The test runner tells the reporter what directory to
      * place the reports in. Then, at the end of the test, the test runner
@@ -377,19 +372,12 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      *
      * @return the current list of test outcomes
      */
-    public List<TestOutcome> getTestOutcomes(/*ITestContext testContext*/) {
-        //logger.trace("GET TEST OUTCOMES FOR " + testContext);
-        //logger.trace(" - BASE STEP LISTENER: " + eventBusFor(testIdentifier).getBaseStepListener());
-        //List<TestOutcome> testOutcomes = eventBusFor(testIdentifier).getBaseStepListener().getTestOutcomes();
-        //TODO - get testOutcomes from all stepbuses
-
-        //List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes();
+    public List<TestOutcome> getTestOutcomes() {
 
         List<TestOutcome> allTestOutcomes = new ArrayList<>();
         for(BaseStepListener stepListener :  allBaseStepListeners) {
             allTestOutcomes.addAll(stepListener.getTestOutcomes());
         }
-
         /*testOutcomes.forEach(
                 outcome -> {
                     if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
@@ -397,7 +385,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
                     }
                 }
         );*/
-        System.out.println("TestOutcomes " + allTestOutcomes);
         return allTestOutcomes;
     }
 
@@ -405,40 +392,20 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      * Find the current set of test outcomes produced by the test execution.
      * @return the current list of test outcomes
      */
-    public List<TestOutcome> getDataDrivenTestOutcomes(/*ITestContext testContext*/) {
-
-        //TODO get testOutcomes from all buses
-        //List<TestOutcome> testOutcomes = eventBusFor().getBaseStepListener().getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
-        List<TestOutcome> testOutcomes = getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
-        /*testOutcomes.forEach(
-                outcome -> {
-                    if (testIdentifier.getParentId().isPresent() && DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()) != null) {
-                        outcome.setTestOutlineName(DATA_DRIVEN_TEST_NAMES.get(testIdentifier.getParentId().get()));
-                    }
-                }
-        );*/
-        System.out.println("TestOutcomes " + testOutcomes);
-        return testOutcomes;
+    public List<TestOutcome> getDataDrivenTestOutcomes() {
+        return getTestOutcomes().stream().filter(TestOutcome::isDataDriven).collect(Collectors.toList());
     }
 
     public List<TestOutcome> getNonDataDrivenTestOutcomes() {
-        //TODO
         return getTestOutcomes().stream().filter(to->!to.isDataDriven()).collect(Collectors.toList());
     }
 
 
-
-
-
-
-
     private void updateResultsUsingTestAnnotations(ITestResult result) {
-
         Method method =  result.getMethod().getConstructorOrMethod().getMethod();
         if (TestMethodConfiguration.forMethod(method).isManual()) {
             setToManual(result,method);
         }
-        //expectedExceptions.forEach(ex -> updateResultsForExpectedException(testIdentifier, ex));
     }
 
 
