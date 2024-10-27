@@ -165,7 +165,7 @@ public class ParameterizedTestsOutcomeAggregator {
     private String alternativeMethodName(TestOutcome testOutcome) {
         // Any parameterized test name attributes overrides the qualified name
         if (hasParameterizedTestName(testOutcome)) {
-            return "ZZGG " +  testOutcome.getTitle();
+            return testOutcome.getTitle();
         }
 
         Optional<String> qualifier = testOutcome.getQualifier();
