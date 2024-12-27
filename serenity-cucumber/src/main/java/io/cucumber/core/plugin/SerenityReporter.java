@@ -38,11 +38,9 @@ import net.thucydides.model.webdriver.Configuration;
 import net.thucydides.core.webdriver.ThucydidesWebDriverSupport;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
-import org.junit.internal.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -160,15 +158,15 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         URI featurePath = event.getUri();
 
         featureFrom(featurePath).ifPresent(
-                feature -> {
-                    getContext().setFeatureTags(feature.getTags());
+            feature -> {
+                getContext().setFeatureTags(feature.getTags());
 
-                    resetEventBusFor(featurePath);
-                    initialiseListenersFor(featurePath);
-                    configureDriver(feature, featurePath);
-                    Story userStory = userStoryFrom(feature, relativeUriFrom(event.getUri()));
-                    getStepEventBus(event.getUri()).testSuiteStarted(userStory);
-                }
+                resetEventBusFor(featurePath);
+                initialiseListenersFor(featurePath);
+                configureDriver(feature, featurePath);
+                Story userStory = userStoryFrom(feature, relativeUriFrom(event.getUri()));
+                getStepEventBus(event.getUri()).testSuiteStarted(userStory);
+            }
         );
     }
 
@@ -198,28 +196,8 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         if (!featureFileUri.toString().contains(FEATURES_ROOT_PATH) && !featureFileUri.toString().contains(FEATURES_CLASSPATH_ROOT_PATH)) {
             LOGGER.warn("Feature from " + featureFileUri + " is not under the 'features' directory. Requirements report will not be correctly generated!");
         }
-        String defaultFeatureId = PathUtils.getAsFile(featureFileUri).getName().replace(".feature", "");
-        String defaultFeatureName = Inflector.getInstance().humanize(defaultFeatureId);
 
-        parseGherkinIn(featureFileUri);
-
-        if (isEmpty(featureLoader.getFeatureName(featureFileUri))) {
-            return Optional.empty();
-        }
-
-        Feature feature = featureLoader.getFeature(featureFileUri);
-        if (feature.getName().isEmpty()) {
-            feature = featureLoader.featureWithDefaultName(feature, defaultFeatureName);
-        }
-        return Optional.of(feature);
-    }
-
-    private void parseGherkinIn(URI featureFileUri) {
-        try {
-            featureLoader.getFeature(featureFileUri);
-        } catch (Throwable ignoreParsingErrors) {
-            LOGGER.warn("Could not parse the Gherkin in feature file " + featureFileUri + ": file ignored");
-        }
+        return featureLoader.featureFrom(featureFileUri);
     }
 
     private Story userStoryFrom(Feature feature, String featureFileUri) {
@@ -265,9 +243,9 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
                 if (getContext().isAScenarioOutline()) {
                     getContext().startNewExample();
                     handleExamples(currentFeature.get(),
-                            getContext().currentScenarioOutline().getTags(),
-                            getContext().currentScenarioOutline().getName(),
-                            getContext().currentScenarioOutline().getExamples());
+                        getContext().currentScenarioOutline().getTags(),
+                        getContext().currentScenarioOutline().getName(),
+                        getContext().currentScenarioOutline().getExamples());
                 }
                 startOfScenarioLifeCycle(currentFeature.get(), scenarioName, getContext().currentScenarioDefinition, event.getTestCase().getLocation().getLine());
                 getContext().currentScenario = scenarioIdFrom(currentFeature.get().getName(), TestSourcesModel.convertToId(getContext().currentScenarioDefinition.getName()));
@@ -298,9 +276,9 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     private boolean scenarioIsIncludedInARule(Scenario existingScenario, FeatureChild featureChild) {
         return featureChild.getRule() != null && featureChild.getRule().isPresent()
-                && featureChild.getRule().get().getChildren().stream().
-                filter(rc -> rc.getScenario().isPresent()).
-                map(rc -> rc.getScenario().get()).collect(Collectors.toList()).contains(existingScenario);
+            && featureChild.getRule().get().getChildren().stream().
+            filter(rc -> rc.getScenario().isPresent()).
+            map(rc -> rc.getScenario().get()).collect(Collectors.toList()).contains(existingScenario);
     }
 
     private Feature getFeatureForTestCase(TestSourcesModel.AstNode astNode) {
@@ -334,11 +312,11 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     protected void handleTestStepStarted(TestStepStarted event) {
         StepDefinitionAnnotations.setScreenshotPreferencesTo(
-                StepDefinitionAnnotationReader
-                        .withScreenshotLevel((TakeScreenshots) systemConfiguration.getScreenshotLevel()
-                                .orElse(TakeScreenshots.UNDEFINED))
-                        .forStepDefinition(event.getTestStep().getCodeLocation())
-                        .getScreenshotPreferences());
+            StepDefinitionAnnotationReader
+                .withScreenshotLevel((TakeScreenshots) systemConfiguration.getScreenshotLevel()
+                    .orElse(TakeScreenshots.UNDEFINED))
+                .forStepDefinition(event.getTestStep().getCodeLocation())
+                .getScreenshotPreferences());
 
         if (!(event.getTestStep() instanceof HookTestStep)) {
             if (event.getTestStep() instanceof PickleStepTestStep) {
@@ -432,12 +410,12 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         initializeExamples();
         for (Examples examples : examplesList) {
             if (examplesAreNotExcludedByTags(examples, scenarioOutlineTags, currentFeatureTags)
-                    && lineFilters.examplesAreNotExcluded(examples, getContext().currentFeaturePath())) {
+                && lineFilters.examplesAreNotExcluded(examples, getContext().currentFeaturePath())) {
                 List<TableRow> examplesTableRows = examples
-                        .getTableBody()
-                        .stream()
-                        .filter(tableRow -> lineFilters.tableRowIsNotExcludedBy(tableRow, getContext().currentFeaturePath()))
-                        .collect(Collectors.toList());
+                    .getTableBody()
+                    .stream()
+                    .filter(tableRow -> lineFilters.tableRowIsNotExcludedBy(tableRow, getContext().currentFeaturePath()))
+                    .collect(Collectors.toList());
                 List<String> headers = getHeadersFrom(examples.getTableHeader().get());
                 List<Map<String, String>> rows = getValuesFrom(examplesTableRows, headers);
 
@@ -458,18 +436,18 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
                 String exampleTableDescription = trim(examples.getDescription());
                 if (newScenario) {
                     getContext().setTable(
-                            dataTableFrom(SCENARIO_OUTLINE_NOT_KNOWN_YET,
-                                    headers,
-                                    rows,
-                                    exampleTableName,
-                                    exampleTableDescription,
-                                    lineNumbersOfEachRow));
-                } else {
-                    getContext().addTableRows(headers,
+                        dataTableFrom(SCENARIO_OUTLINE_NOT_KNOWN_YET,
+                            headers,
                             rows,
                             exampleTableName,
                             exampleTableDescription,
-                            lineNumbersOfEachRow);
+                            lineNumbersOfEachRow));
+                } else {
+                    getContext().addTableRows(headers,
+                        rows,
+                        exampleTableName,
+                        exampleTableDescription,
+                        lineNumbersOfEachRow);
                 }
                 getContext().addTableTags(tagsIn(examples));
 
@@ -584,11 +562,11 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
                                     String description,
                                     Map<Integer, Long> lineNumbersOfEachRow) {
         return DataTable.withHeaders(headers)
-                .andScenarioOutline(scenarioOutline)
-                .andMappedRows(rows, lineNumbersOfEachRow)
-                .andTitle(name)
-                .andDescription(description)
-                .build();
+            .andScenarioOutline(scenarioOutline)
+            .andMappedRows(rows, lineNumbersOfEachRow)
+            .andTitle(name)
+            .andDescription(description)
+            .build();
     }
 
     private DataTable addTableRowsTo(DataTable table, List<String> headers,
@@ -604,8 +582,8 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     private List<String> rowValuesFrom(List<String> headers, Map<String, String> row) {
         return headers.stream()
-                .map(header -> row.get(header))
-                .collect(toList());
+            .map(header -> row.get(header))
+            .collect(toList());
     }
 
     private void startOfScenarioLifeCycle(Feature feature, String scenarioName, Scenario scenario, Integer currentLine) {
@@ -630,9 +608,9 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         getContext().stepEventBus().setTestSource(TestSourceType.TEST_SOURCE_CUCUMBER.getValue());
 
         getContext().stepEventBus()
-                .testStarted(scenarioName,
-                        scenarioIdFrom(TestSourcesModel.convertToId(currentFeature.getName()),
-                                TestSourcesModel.convertToId(scenarioName)));
+            .testStarted(scenarioName,
+                scenarioIdFrom(TestSourcesModel.convertToId(currentFeature.getName()),
+                    TestSourcesModel.convertToId(scenarioName)));
 
         getContext().stepEventBus().addDescriptionToCurrentTest(scenarioDefinition.getDescription());
         getContext().stepEventBus().addTagsToCurrentTest(convertCucumberTags(currentFeature.getTags()));
@@ -653,15 +631,15 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     private List<TestTag> tagsInEnclosingRule(Feature feature, Scenario scenario) {
         List<io.cucumber.messages.types.Rule> nestedRules = feature.getChildren().stream()
-                .filter(fc -> fc.getRule().isPresent())
-                .map(fc -> fc.getRule().get())
-                .filter(Objects::nonNull)
-                .collect(toList());
+            .filter(fc -> fc.getRule().isPresent())
+            .map(fc -> fc.getRule().get())
+            .filter(Objects::nonNull)
+            .collect(toList());
 
         return nestedRules.stream()
-                .filter(rule -> containsScenario(rule, scenario))
-                .flatMap(rule -> convertCucumberTags(rule.getTags()).stream())
-                .collect(toList());
+            .filter(rule -> containsScenario(rule, scenario))
+            .flatMap(rule -> convertCucumberTags(rule.getTags()).stream())
+            .collect(toList());
     }
 
     private boolean containsScenario(io.cucumber.messages.types.Rule rule, Scenario scenario) {
@@ -712,8 +690,8 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         cucumberTags = completeManualTagsIn(cucumberTags);
 
         return cucumberTags.stream()
-                .map(tag -> TestTag.withValue(tag.getName().substring(1)))
-                .collect(toList());
+            .map(tag -> TestTag.withValue(tag.getName().substring(1)))
+            .collect(toList());
     }
 
     private List<Tag> completeManualTagsIn(List<Tag> cucumberTags) {
@@ -721,8 +699,8 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
             List<Tag> updatedTags = Lists.newArrayList(cucumberTags);
 
             Tag newManualTag = new Tag(unqualifiedManualTag(cucumberTags).get().getLocation(),
-                    "@manual:pending",
-                    UUID.randomUUID().toString());
+                "@manual:pending",
+                UUID.randomUUID().toString());
             updatedTags.add(newManualTag);
             return updatedTags;
         } else {
@@ -872,10 +850,10 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
         getContext().stepEventBus().testIsManual();
 
         manualResultDefinedIn(scenarioTags).ifPresent(
-                testResult ->
-                        UpdateManualScenario.forScenario(getContext().currentScenarioDefinition.getDescription())
-                                .inContext(getContext().stepEventBus().getBaseStepListener(), systemConfiguration.getEnvironmentVariables())
-                                .updateManualScenario(testResult, scenarioTags)
+            testResult ->
+                UpdateManualScenario.forScenario(getContext().currentScenarioDefinition.getDescription())
+                    .inContext(getContext().stepEventBus().getBaseStepListener(), systemConfiguration.getEnvironmentVariables())
+                    .updateManualScenario(testResult, scenarioTags)
         );
     }
 
@@ -917,7 +895,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     private String currentStepTitle() {
         return getContext().stepEventBus().getCurrentStep().isPresent()
-                ? getContext().stepEventBus().getCurrentStep().get().getDescription() : "";
+            ? getContext().stepEventBus().getCurrentStep().get().getDescription() : "";
     }
 
     private boolean errorOrFailureRecordedForStep(String stepTitle, Throwable cause) {
@@ -943,18 +921,23 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
         List<TestOutcome> recordedOutcomes = getContext().stepEventBus().getBaseStepListener().getTestOutcomes();
         return (recordedOutcomes.isEmpty()) ? Optional.empty()
-                : Optional.of(recordedOutcomes.get(recordedOutcomes.size() - 1));
+            : Optional.of(recordedOutcomes.get(recordedOutcomes.size() - 1));
     }
 
     private boolean isAssumptionFailure(Throwable rootCause) {
-        return (AssumptionViolatedException.class.isAssignableFrom(rootCause.getClass()));
+        try {
+            Class<?> assumptionViolationException = Class.forName("org.junit.AssumptionViolatedException");
+            return assumptionViolationException.isAssignableFrom(rootCause.getClass());
+        } catch (ClassNotFoundException var3) {
+            return false;
+        }
     }
 
     private String stepTitleFrom(io.cucumber.messages.types.Step currentStep, TestStep testStep) {
         if (currentStep != null && testStep instanceof PickleStepTestStep)
             return currentStep.getKeyword()
-                    + ((PickleStepTestStep) testStep).getStep().getText()
-                    + embeddedTableDataIn((PickleStepTestStep) testStep);
+                + ((PickleStepTestStep) testStep).getStep().getText()
+                + embeddedTableDataIn((PickleStepTestStep) testStep);
         return "";
     }
 
@@ -998,7 +981,7 @@ public class SerenityReporter implements Plugin, ConcurrentEventListener {
 
     public List<TestOutcome> getAllTestOutcomes() {
         return baseStepListeners.stream().map(BaseStepListener::getTestOutcomes).flatMap(List::stream)
-                .collect(Collectors.toList());
+            .collect(Collectors.toList());
     }
 
     private String normalized(String value) {

@@ -8,7 +8,6 @@ import net.thucydides.model.screenshots.ScreenshotAndHtmlSource;
 import net.thucydides.model.steps.ExecutedStepDescription;
 import net.thucydides.model.steps.StepFailure;
 import net.thucydides.core.steps.events.StepEventBusEventBase;
-import org.junit.internal.AssumptionViolatedException;
 
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -60,7 +59,7 @@ public class StepFinishedWithResultEvent extends StepEventBusEventBase {
 
 
     private void failed(String stepTitle, Throwable cause, List<ScreenshotAndHtmlSource> screenshots) {
-        if (!errorOrFailureRecordedForStep(stepTitle, cause)) {
+        if (!errorOrFailureRecordedForStep(stepTitle, cause))  {
             if (!isEmpty(stepTitle)) {
                 getStepEventBus().updateCurrentStepTitle(stepTitle);
             }
@@ -119,7 +118,17 @@ public class StepFinishedWithResultEvent extends StepEventBusEventBase {
     }
 
 	private boolean isAssumptionFailure(Throwable rootCause) {
-        return (AssumptionViolatedException.class.isAssignableFrom(rootCause.getClass()));
+        try {
+            // Load the AssumptionViolatedException class using its name
+            Class<?> clazz = Class.forName("org.junit.AssumptionViolatedException");
+
+            // Check if the rootCause is an instance of the AssumptionViolatedException class
+            return clazz.isAssignableFrom(rootCause.getClass());
+        } catch (ClassNotFoundException e) {
+            // AssumptionViolatedException class is not found on the classpath
+            return false;
+        }
+        //return (AssumptionViolatedException.class.isAssignableFrom(rootCause.getClass()));
     }
 
 
@@ -132,4 +141,11 @@ public class StepFinishedWithResultEvent extends StepEventBusEventBase {
                 ? getStepEventBus().getCurrentStep().get().getDescription() : "";
     }
 
+    public Result getResult() {
+        return result;
+    }
+
+    public String toString() {
+		return("EventBusEvent STEP_FINISHED_WITH_RESULT with result " + result);
+	}
 }

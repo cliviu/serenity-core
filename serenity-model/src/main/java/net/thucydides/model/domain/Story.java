@@ -12,6 +12,8 @@ import net.thucydides.model.requirements.model.FeatureType;
 import net.thucydides.model.util.EnvironmentVariables;
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -94,7 +96,12 @@ public class Story {
     private PathElements pathElementsFromDirectoryPath(String path) {
         List<PathElement> pathElements = new ArrayList<>();
         if (path != null) {
-            Path storyPath = Paths.get(path);
+            Path storyPath = null;
+            try {
+                storyPath = Paths.get(new URI(path));
+            } catch (Throwable wellThatDidntWorkAsExpectedSoWeWillAssumeItsNotAURI) {
+                storyPath = Paths.get(path);
+            }
             for (int i = 0; i < storyPath.getNameCount(); i++) {
                 pathElements.add(new PathElement(storyPath.getName(i).toString(), ""));
             }
@@ -105,31 +112,7 @@ public class Story {
     public static String pathOf(Class<?> userStoryClass) {
         String canonicalName = userStoryClass.getCanonicalName();
         return stripRootPathFrom(canonicalName);
-//        String localPath = stripRootPathFrom(canonicalName);
-//        int lastDot = localPath.lastIndexOf(".");
-//
-//        if (lastDot > 0) {
-//            return localPath.substring(0, lastDot);
-//        } else {
-//            return "";
-//        }
     }
-
-    public static String completePathOf(Class<?> userStoryClass) {
-        String canonicalName = userStoryClass.getCanonicalName();
-
-        int lastDot = canonicalName.lastIndexOf(".");
-        int lastDollar = canonicalName.lastIndexOf("$");
-        int lastSeparator = Math.max(lastDollar, lastDot);
-
-        if (lastSeparator > 0) {
-            return canonicalName.substring(0, lastSeparator);
-//            return localPath;
-        } else {
-            return "";
-        }
-    }
-
 
     private static String stripRootPathFrom(String testOutcomePath) {
         EnvironmentVariables environmentVariables = SystemEnvironmentVariables.currentEnvironmentVariables();

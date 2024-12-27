@@ -106,7 +106,8 @@ public class CucumberParser {
     }
 
     private void performGherkinQualityChecks(File featureFile, Feature feature, List<Scenario> scenarioList) {
-        Map<String, List<Scenario>> allScenariosByName = scenarioList.stream().collect(Collectors.groupingBy(Scenario::getName));
+        Map<String, List<Scenario>> allScenariosByName = scenarioList.stream()
+                .collect(Collectors.groupingBy(Scenario::getName));
 
         List<String> errors = new ArrayList<>();
 
@@ -152,7 +153,7 @@ public class CucumberParser {
     }
 
     private Optional<String> analyseDuplicateScenarioNames(String scenarioName, List<Scenario> scenarios, File featureFile) throws InvalidFeatureFileException {
-        if (scenarios.size() > 1) {
+        if (scenarios.size() > 1 && !scenarioName.isEmpty()) {
             return Optional.of(String.format(DUPLICATE_SCENARIO_NAME, scenarioName, featureFile.getName()));
         } else {
             return Optional.empty();
@@ -392,7 +393,7 @@ public class CucumberParser {
             } else if (tag.getName().toLowerCase().startsWith("@issues:")) {
                 String issueNumberList = tag.getName().replaceAll("@issues:", "");
                 List<String> issueNumberTags = Splitter.on(",").trimResults().omitEmptyStrings().splitToList(issueNumberList);
-                return issueNumberTags.get(0);
+                return issueNumberTags.stream().findFirst().orElse("");
             }
         }
         return null;

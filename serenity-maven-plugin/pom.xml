@@ -6,7 +6,7 @@
     <parent>
         <artifactId>serenity-bdd</artifactId>
         <groupId>net.serenity-bdd</groupId>
-        <version>4.1.11-SNAPSHOT</version>
+        <version>4.2.10-SNAPSHOT</version>
     </parent>
     <artifactId>serenity-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
@@ -16,7 +16,7 @@
         <java.version>11</java.version>
         <maven.core.version>3.9.0</maven.core.version>
         <maven.reporting.version>3.1.1</maven.reporting.version>
-        <maven.plugin.version>3.9.0</maven.plugin.version>
+        <maven.plugin.version>3.15.0</maven.plugin.version>
     </properties>
 
     <build>

@@ -1,80 +1,70 @@
 package net.serenitybdd.demos.todos.screenplay.features.maintain_my_todo_list;
 
+import net.serenitybdd.annotations.Managed;
+import net.serenitybdd.demos.todos.screenplay.model.TodoStatusFilter;
 import net.serenitybdd.demos.todos.screenplay.questions.CurrentFilter;
 import net.serenitybdd.demos.todos.screenplay.questions.TheItems;
-import net.serenitybdd.demos.todos.screenplay.tasks.CompleteItem;
+import net.serenitybdd.demos.todos.screenplay.tasks.CompleteItems;
 import net.serenitybdd.demos.todos.screenplay.tasks.FilterItems;
 import net.serenitybdd.demos.todos.screenplay.tasks.Start;
-import net.serenitybdd.junit.runners.SerenityRunner;
+import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.abilities.BrowseTheWeb;
-import net.serenitybdd.annotations.Managed;
-import net.serenitybdd.annotations.WithTag;
-import net.serenitybdd.annotations.WithTags;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import net.serenitybdd.screenplay.ensure.Ensure;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.openqa.selenium.WebDriver;
 
-import static net.serenitybdd.demos.todos.screenplay.model.TodoStatusFilter.*;
 import static net.serenitybdd.screenplay.GivenWhenThen.*;
-import static org.hamcrest.Matchers.*;
 
-@RunWith(SerenityRunner.class)
-@WithTags({
-        @WithTag("Screenplay pattern"),
-        @WithTag("version:RELEASE-2"),
-})
+@ExtendWith(SerenityJUnit5Extension.class)
 public class FilteringTodos {
 
     private Actor james = Actor.named("James");
-    @Managed private WebDriver hisBrowser;
-    @Before public void jamesCanBrowseTheWeb() {
+
+    @Managed
+    private WebDriver hisBrowser;
+
+    @BeforeEach
+    public void jamesCanBrowseTheWeb() {
         james.can(BrowseTheWeb.with(hisBrowser));
     }
 
-    @Test
-    public void should_be_able_to_view_only_completed_todos() {
+    @ParameterizedTest
+    @CsvSource(delimiterString = "|", value = {
+            // initialTodos                   | itemsToComplete | filters   | expectedDisplayedItems           | selectedFilter
+            "Walk the dog;Put out the garbage | Walk the dog    | Completed | Walk the dog                     | Completed",
+            "Walk the dog;Put out the garbage | Walk the dog    | Active    | Put out the garbage              | Active",
+            "Walk the dog;Put out the garbage | Walk the dog    | All       | Walk the dog;Put out the garbage | All",
+            "Walk the dog                     | Walk the dog    | Completed |                                  | Completed"})
+    public void should_be_able_to_filter_todos(String initialTodos, String itemsToComplete, String filter,
+                                               String expectedDisplayedItems, String selectedFilter
+    ) {
+        TodoStatusFilter filterToApply = TodoStatusFilter.valueOf(filter);
+        TodoStatusFilter expectedFilter = TodoStatusFilter.valueOf(selectedFilter);
 
-        givenThat(james).wasAbleTo(Start.withATodoListContaining("Walk the dog", "Put out the garbage"));
-
-        when(james).attemptsTo(
-            CompleteItem.called("Walk the dog"),
-            FilterItems.toShow(Completed)
+        givenThat(james).wasAbleTo(
+                Start.withATodoListContaining(itemsIn(initialTodos))
         );
 
-        then(james).should(seeThat(TheItems.displayed(), hasItems("Walk the dog")));
-        and(james).should(seeThat(TheItems.displayed(), not(hasItems("Put out the garbage"))));
-        and(james).should(seeThat(CurrentFilter.selected(), is(Completed)));
-    }
-
-    @Test
-    public void should_be_able_to_view_only_incomplete_todos() {
-
-        givenThat(james).wasAbleTo(Start.withATodoListContaining("Walk the dog", "Put out the garbage"));
-
         when(james).attemptsTo(
-            CompleteItem.called("Walk the dog"),
-            FilterItems.toShow(Active)
+                CompleteItems.called(itemsIn(itemsToComplete)),
+                FilterItems.toShow(filterToApply)
         );
 
-        then(james).should(seeThat(TheItems.displayed(), hasItems("Put out the garbage")));
-        and(james).should(seeThat(TheItems.displayed(), not(hasItems("Walk the dog"))));
-        and(james).should(seeThat(CurrentFilter.selected(), is(Active)));
-    }
-
-    @Test
-    public void should_be_able_to_view_both_complete_and_incomplete_todos() {
-
-        givenThat(james).wasAbleTo(Start.withATodoListContaining("Walk the dog", "Put out the garbage"));
-
-        when(james).attemptsTo(
-            CompleteItem.called("Walk the dog"),
-            FilterItems.toShow(Active),
-            FilterItems.toShow(All)
+        then(james).attemptsTo(
+                Ensure.that(TheItems.displayed()).contains(itemsIn(expectedDisplayedItems)),
+                Ensure.that(CurrentFilter.selected()).isEqualTo(expectedFilter)
         );
-
-        then(james).should(seeThat(TheItems.displayed(), hasItems("Walk the dog", "Put out the garbage")));
-        and(james).should(seeThat(CurrentFilter.selected(), is(All)));
     }
+
+    private String[] itemsIn(String listOfItems) {
+        if (listOfItems == null || listOfItems.trim().isEmpty()) {
+            return new String[]{};
+        }
+        return listOfItems.split(";");
+    }
+
 }
