@@ -88,8 +88,6 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
             dataTable = null;
         }
         logger.info("Finishing Suite " + suite.getName());
-        //TODO
-        //eventBusFor(suite.).testSuiteFinished();
         generateReports(suite);
     }
 
@@ -107,7 +105,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
      */
     @Override
     public void onExecutionFinish() {
-        System.out.println("On Execution finish");
+        logger.info("On Execution finish");
         StepEventBus.getEventBus().testSuiteFinished();
     }
 
@@ -136,6 +134,7 @@ public class SerenityTestNGExecutionListener extends TestListenerAdapter impleme
         if (!isSerenityTestNGClass(result)) {
             return;
         }
+        //TODO optimize
         injectSteps(result.getInstance());
         startTestSuiteForFirstTest(result);
         //stepEventBus().clear();
