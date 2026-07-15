@@ -22,7 +22,6 @@ public class WhenUsingSessionFilterRegressionTest {
   static WireMockExtension sessionsWireMock = WireMockExtension.newInstance().options(WireMockConfiguration.options()
           .dynamicPort()
           .usingFilesUnderClasspath("wiremock/sessions"))
-      .filesRoot("/Users/john/Projects/Serenity/serenity-core/serenity-screenplay-rest/src/test/resources/wiremock/sessions")
       .build();
 
   Actor actor;

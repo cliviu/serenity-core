@@ -30,11 +30,6 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback {
         this.filesRoot = filesRoot;
     }
 
-    // Default absolute test resources root for proxied sites mappings. This makes tests hermetic
-    // by ensuring the test WireMock server loads mappings from the known test resources folder.
-    private static final String DEFAULT_TEST_FILES_ROOT =
-            "/Users/john/Projects/Serenity/serenity-core/serenity-screenplay-rest/src/test/resources/wiremock/proxied-sites";
-
     public static Builder newInstance() {
         return new Builder();
     }
@@ -89,18 +84,23 @@ public class WireMockExtension implements BeforeAllCallback, AfterAllCallback {
             } catch (Exception ignored) {
             }
 
-            // Determine the effective files root: system property overrides builder, otherwise default
+            // Determine the effective files root: system property overrides the builder's filesRoot.
+            // Leave the options untouched (and rely on whatever the caller already configured, e.g.
+            // usingFilesUnderClasspath(...) or a relative withRootDirectory(...)) unless a files root
+            // was explicitly requested here — an unconditional default would silently override a
+            // caller's portable configuration and break on machines/CI where that path doesn't exist.
             String effectiveFilesRoot = System.getProperty("wiremock.files.root");
             if (effectiveFilesRoot == null || effectiveFilesRoot.isEmpty()) {
-                effectiveFilesRoot = this.filesRoot != null ? this.filesRoot : DEFAULT_TEST_FILES_ROOT;
+                effectiveFilesRoot = this.filesRoot;
             }
 
-            // Force an explicit absolute files root so mappings under test/resources are discovered
-            try {
-                Method withRoot = options.getClass().getMethod("withRootDirectory", String.class);
-                withRoot.invoke(options, effectiveFilesRoot);
-            } catch (Exception ignored) {
-                // If the API isn't available, proceed — WireMock will fall back to classpath-based loading
+            if (effectiveFilesRoot != null && !effectiveFilesRoot.isEmpty()) {
+                try {
+                    Method withRoot = options.getClass().getMethod("withRootDirectory", String.class);
+                    withRoot.invoke(options, effectiveFilesRoot);
+                } catch (Exception ignored) {
+                    // If the API isn't available, proceed — WireMock will fall back to classpath-based loading
+                }
             }
 
             server = new WireMockServer(options);
