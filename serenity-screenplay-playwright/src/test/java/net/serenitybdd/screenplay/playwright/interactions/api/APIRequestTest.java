@@ -1,11 +1,15 @@
 package net.serenitybdd.screenplay.playwright.interactions.api;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import net.serenitybdd.junit5.SerenityJUnit5Extension;
 import net.serenitybdd.screenplay.Actor;
 import net.serenitybdd.screenplay.playwright.abilities.BrowseTheWebWithPlaywright;
 import net.serenitybdd.screenplay.playwright.interactions.ManageCookies;
 import net.serenitybdd.screenplay.playwright.interactions.Open;
 import net.serenitybdd.screenplay.playwright.questions.api.LastAPIResponse;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -23,7 +31,29 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @ExtendWith(SerenityJUnit5Extension.class)
 public class APIRequestTest {
 
+    private static WireMockServer wireMockServer;
+
     Actor alice;
+
+    @BeforeAll
+    static void startWireMock() {
+        wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort());
+        wireMockServer.start();
+        wireMockServer.stubFor(get(urlEqualTo("/html"))
+            .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "text/html")
+                .withBody("<html><body>ok</body></html>")));
+        wireMockServer.stubFor(get(urlEqualTo("/cookies"))
+            .withCookie("testcookie", equalTo("testvalue"))
+            .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json")
+                .withBody("{\"cookies\":{\"testcookie\":\"testvalue\"}}")));
+    }
+
+    @AfterAll
+    static void stopWireMock() {
+        if (wireMockServer != null) {
+            wireMockServer.stop();
+        }
+    }
 
     @BeforeEach
     void setup() {
@@ -257,19 +287,24 @@ public class APIRequestTest {
     @Test
     @DisplayName("Should share cookies with browser context")
     void should_share_cookies_with_browser() {
-        // First, navigate to httpbin.org to establish the domain context
+        // Uses a local WireMock stub rather than a live third-party service (httpbin.org has
+        // been prone to outages), since this test is about Playwright's own cookie-sharing
+        // behaviour between the browser and API contexts, not about any particular server.
+        String baseUrl = wireMockServer.baseUrl();
+
+        // First, navigate to the stub server to establish the domain context
         alice.attemptsTo(
-            Open.url("https://httpbin.org/html")
+            Open.url(baseUrl + "/html")
         );
 
-        // Set a cookie programmatically (more reliable than using /cookies/set)
+        // Set a cookie programmatically (more reliable than using a server-set cookie)
         alice.attemptsTo(
-            ManageCookies.addCookie("testcookie", "testvalue").forDomain("httpbin.org")
+            ManageCookies.addCookie("testcookie", "testvalue")
         );
 
         // API request should include the cookie
         alice.attemptsTo(
-            APIRequest.get("https://httpbin.org/cookies")
+            APIRequest.get(baseUrl + "/cookies")
         );
 
         // Verify the response is OK before parsing

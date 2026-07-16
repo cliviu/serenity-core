@@ -257,12 +257,29 @@ public class EvidenceCaptureTest {
     @Test
     @DisplayName("Should identify client error requests")
     void should_identify_client_errors() {
+        // httpbin.org's /status/404 endpoint has been returning 503s from its load balancer
+        // rather than the intended 404, so use the-internet.herokuapp.com instead, which is
+        // already relied on elsewhere in this file and reliably returns a genuine 404.
         alice.attemptsTo(
             CaptureNetworkRequests.duringTest(),
-            Open.url("https://httpbin.org/status/404")
+            Open.url("https://the-internet.herokuapp.com/status_codes/404")
         );
 
-        List<CapturedRequest> clientErrors = alice.asksFor(NetworkRequests.clientErrors());
+        // Request/response events are delivered to the Java-side listeners asynchronously, so the
+        // capture can briefly lag behind navigate() returning. Poll for a moment rather than
+        // asserting immediately, to avoid a race against event delivery under CI load.
+        List<CapturedRequest> clientErrors = List.of();
+        for (int attempt = 0; attempt < 5; attempt++) {
+            clientErrors = alice.asksFor(NetworkRequests.clientErrors());
+            if (clientErrors.stream().anyMatch(r -> r.getStatus() != null && r.getStatus() == 404)) {
+                break;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
 
         assertThat(clientErrors).anyMatch(r -> r.getStatus() != null && r.getStatus() == 404);
     }
