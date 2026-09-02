@@ -396,7 +396,7 @@ public class TestOutcome {
         this.issues = getIssues();
         this.versions = getVersions();
         this.tags = getTags();
-//        this.allTags = addFeatureTagTo(this.tags);
+        this.allTags = addFeatureTagTo(this.tags);
     }
 
     private String nameOf(Class<?> testCase) {
@@ -2146,16 +2146,17 @@ public class TestOutcome {
     public Set<TestTag> getTags() {
         if (tags == null) {
             tags = getTagsUsingTagProviders(getTagProviderService().getTagProviders(getTestSource()));
+            addFeatureTagTo(tags);
         }
         return tags;
     }
 
     public Set<TestTag> getAllTags() {
-        return getTags();
-//        if (allTags == null) {
-//            allTags = addFeatureTagTo(getTags());
-//        }
-//        return allTags;
+        //return getTags();
+        if (allTags == null) {
+            allTags = addFeatureTagTo(getTags());
+        }
+        return allTags;
     }
 
     private Set<TestTag> addFeatureTagTo(Set<TestTag> tags) {
@@ -2902,7 +2903,7 @@ public class TestOutcome {
 
 
     public Optional<TestTag> getFeatureTag() {
-        if (!featureTag.isPresent()) {
+        if (featureTag.isEmpty() && (getPath() != null)) {
             featureTag = FeatureTagAsDefined.in(userStory, getPath());
         }
         return featureTag;
