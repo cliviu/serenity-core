@@ -2146,13 +2146,11 @@ public class TestOutcome {
     public Set<TestTag> getTags() {
         if (tags == null) {
             tags = getTagsUsingTagProviders(getTagProviderService().getTagProviders(getTestSource()));
-            addFeatureTagTo(tags);
         }
         return tags;
     }
 
     public Set<TestTag> getAllTags() {
-        //return getTags();
         if (allTags == null) {
             allTags = addFeatureTagTo(getTags());
         }
